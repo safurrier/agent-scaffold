@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+test-results/
+
+# Linting / type-checking
+.ruff_cache/
+.mypy_cache/
+
+# MkDocs build output
+site/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# mise
+.mise.local.toml

@@ -1,0 +1,18 @@
+#:schema https://mise.jdx.dev/schema/mise.json
+
+# ─────────────────────────────────────────────
+# agent-scaffold — mise configuration
+# ─────────────────────────────────────────────
+# After `mise run init`, the env vars below are rewritten
+# to reflect your project's name, shape, and stack.
+
+[tools]
+python = "3.12"
+uv = "latest"
+
+[env]
+MISE_PROJECT_ROOT = "{{config_root}}"
+# Project configuration — read by task scripts via $SCAFFOLD_*
+SCAFFOLD_PROJECT_NAME  = "agent-scaffold"
+SCAFFOLD_PROJECT_SHAPE = "single"
+SCAFFOLD_PROJECT_STACK = "python"

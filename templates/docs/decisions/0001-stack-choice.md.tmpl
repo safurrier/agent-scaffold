@@ -1,0 +1,54 @@
+---
+id: {{project_name}}-adr-0001
+title: ADR 0001 — Stack Choice for {{project_name}}
+description: >
+  Records the {{project_stack}} stack selection decision for {{project_name}},
+  including rationale, trade-offs, and alternatives considered.
+index:
+  - id: decision
+    keywords: [stack, choice, python, go, tools, rationale]
+  - id: consequences
+    keywords: [trade-offs, positive, negative, accepted]
+  - id: alternatives-considered
+    keywords: [alternatives, rejected, comparison]
+---
+
+# ADR 0001: Stack Choice for {{project_name}}
+
+**Status**: Accepted
+**Date**: <!-- YYYY-MM-DD -->
+**Deciders**: <!-- names or team -->
+
+---
+
+## Context
+
+{{project_name}} requires a primary implementation stack for building, testing, and
+deploying the application. The choice constrains tooling, CI configuration, and
+contributor onboarding.
+
+## Decision
+
+**Stack**: {{project_stack}}
+
+{{stack_adr_notes}}
+
+## Consequences
+
+**Positive**:
+
+- Standard tooling with strong ecosystem support.
+- Consistent quality gates via `mise run check`.
+- Reproducible builds via mise tool version pinning.
+
+**Negative / Trade-offs**:
+
+- <!-- list accepted trade-offs, e.g., "Go compilation adds ~30s to cold CI runs" -->
+
+## Alternatives Considered
+
+<!-- List stacks that were considered but not chosen, and why -->
+
+| Alternative | Reason not chosen |
+|---|---|
+| <!-- alt --> | <!-- reason --> |

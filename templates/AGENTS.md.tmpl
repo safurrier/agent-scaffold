@@ -1,0 +1,71 @@
+---
+id: {{project_name}}-agents
+title: {{project_name}}
+description: >
+  Steering index for {{project_name}}. Covers project purpose, repo map,
+  and validation commands for agents and humans working in this repo.
+index:
+  - id: why
+    keywords: [purpose, goals, done-means, project-overview]
+  - id: what
+    keywords: [repo-map, entrypoints, structure, steering-files]
+  - id: how
+    keywords: [setup, check, verify, dev, commands, validate]
+  - id: skills
+    keywords: [skills, plugins, agent-skills, optional-workflows]
+---
+
+# {{project_name}}
+
+{{project_description}}
+
+## WHY
+
+<!-- Describe the problem this project solves in 2-3 sentences -->
+
+**Done means**: all `mise run check` gates pass; intended behavior is covered by tests.
+
+Durable invariants and decisions live in [`docs/architecture.md`](docs/architecture.md).
+
+## WHAT
+
+{{project_structure}}
+
+Key steering files:
+- `AGENTS.md` — this file (steering index)
+- `docs/architecture.md` — invariants, principles, system model
+- `docs/decisions/` — architectural decision records (ADRs)
+- `.agent/skills/` — optional opinionated workflow plugins
+
+## HOW
+
+```bash
+mise run setup      # install tools and dependencies (one-time)
+mise run check      # fast quality gate: fmt + lint + typecheck + test  ← before committing
+mise run verify     # heavier validation: integration, security, docker  ← before merging
+mise run dev        # start local development
+```
+
+CI calls `mise run ci` (= `check`). Pre-commit hooks mirror CI exactly.
+If `check` passes locally, CI passes.
+
+## Stack: {{project_stack}}
+
+{{stack_notes}}
+
+## Skills
+
+Optional workflow plugins live in `.agent/skills/`. Each `SKILL.md` describes when to
+load it and what workflow it encodes. Skills are preference-based — canonical truth
+stays in `docs/`.
+
+`.claude/skills` is symlinked to `.agent/skills` for Claude Code discovery. Other
+harnesses can create `<harness-config>/skills → ../.agent/skills` similarly.
+
+## Further Reading
+
+| Document | Purpose |
+|---|---|
+| `docs/architecture.md` | System model, invariants, principles |
+| `docs/decisions/` | Architectural decision records |
+| `README.md` | Human-oriented quick start |

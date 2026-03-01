@@ -1,0 +1,172 @@
+"""Verify the scaffold exposes the full task contract.
+
+These tests run on the scaffold itself (before any init) and are fast —
+no subprocess invocations, just file-system assertions.
+"""
+
+from __future__ import annotations
+
+import os
+
+import pytest
+
+from tests.conftest import SCAFFOLD_ROOT
+
+pytestmark = pytest.mark.contract
+
+CONTRACT_TASKS = [
+    "init",
+    "setup",
+    "fmt",
+    "lint",
+    "typecheck",
+    "test",
+    "build",
+    "check",
+    "dev",
+    "ci",
+    "verify",
+]
+
+TASKS_DIR = SCAFFOLD_ROOT / ".mise" / "tasks"
+
+
+@pytest.mark.parametrize("task", CONTRACT_TASKS)
+def test_task_file_exists(task: str) -> None:
+    """Every contract task must have a file in .mise/tasks/."""
+    assert (TASKS_DIR / task).exists(), f"Missing task file: .mise/tasks/{task}"
+
+
+@pytest.mark.parametrize("task", CONTRACT_TASKS)
+def test_task_file_is_executable(task: str) -> None:
+    """Every task file must be executable."""
+    assert os.access(TASKS_DIR / task, os.X_OK), (
+        f"Task not executable: .mise/tasks/{task}"
+    )
+
+
+@pytest.mark.parametrize("task", CONTRACT_TASKS)
+def test_task_has_mise_description(task: str) -> None:
+    """Every task file should declare a MISE description header."""
+    content = (TASKS_DIR / task).read_text()
+    has_header = "#MISE description=" in content or "# MISE description=" in content
+    assert has_header, f".mise/tasks/{task} is missing a MISE description header"
+
+
+@pytest.mark.parametrize("task", CONTRACT_TASKS)
+def test_task_uses_uv_shebang(task: str) -> None:
+    """All task files must use the uv-managed Python shebang."""
+    first_line = (TASKS_DIR / task).read_text().splitlines()[0]
+    assert first_line == "#!/usr/bin/env -S uv run python", (
+        f".mise/tasks/{task}: expected shebang '#!/usr/bin/env -S uv run python', got: {first_line!r}"
+    )
+
+
+def test_mise_toml_exists() -> None:
+    assert (SCAFFOLD_ROOT / ".mise.toml").exists()
+
+
+def test_scripts_lib_py_exists() -> None:
+    assert (SCAFFOLD_ROOT / "scripts" / "lib.py").exists()
+
+
+def test_cli_package_exists() -> None:
+    assert (SCAFFOLD_ROOT / "src" / "agent_scaffold" / "__init__.py").exists()
+
+
+def test_cli_entry_point_registered() -> None:
+    """agent-scaffold entry point must be declared in pyproject.toml."""
+    content = (SCAFFOLD_ROOT / "pyproject.toml").read_text()
+    assert "agent-scaffold" in content
+    assert "agent_scaffold.cli:cli" in content
+
+
+def test_stacks_python_exists() -> None:
+    assert (SCAFFOLD_ROOT / "stacks" / "python").is_dir()
+
+
+def test_stacks_go_exists() -> None:
+    assert (SCAFFOLD_ROOT / "stacks" / "go").is_dir()
+
+
+def test_ci_workflow_exists() -> None:
+    assert (SCAFFOLD_ROOT / ".github" / "workflows" / "ci.yml").exists()
+
+
+def test_ci_workflow_calls_mise_ci() -> None:
+    """The CI workflow must use 'mise run ci' as its sole quality gate."""
+    workflow = (SCAFFOLD_ROOT / ".github" / "workflows" / "ci.yml").read_text()
+    assert "mise run ci" in workflow
+
+
+def test_pre_commit_config_exists() -> None:
+    assert (SCAFFOLD_ROOT / ".pre-commit-config.yaml").exists()
+
+
+def test_pre_commit_calls_mise_tasks() -> None:
+    """Pre-commit hooks must delegate to mise tasks, not raw tools."""
+    content = (SCAFFOLD_ROOT / ".pre-commit-config.yaml").read_text()
+    assert "mise run" in content
+
+
+def test_python_stack_has_pyproject_template() -> None:
+    assert (SCAFFOLD_ROOT / "stacks" / "python" / "pyproject.toml.tmpl").exists()
+
+
+def test_go_stack_has_go_mod_template() -> None:
+    assert (SCAFFOLD_ROOT / "stacks" / "go" / "go.mod.tmpl").exists()
+
+
+def test_go_stack_has_golangci_config() -> None:
+    assert (SCAFFOLD_ROOT / "stacks" / "go" / ".golangci.yml").exists()
+
+
+def test_golangci_config_is_v2() -> None:
+    """golangci-lint v2 requires version: "2" at the top."""
+    content = (SCAFFOLD_ROOT / "stacks" / "go" / ".golangci.yml").read_text()
+    assert 'version: "2"' in content
+
+
+def test_readme_template_exists() -> None:
+    assert (SCAFFOLD_ROOT / "templates" / "README.md.tmpl").exists()
+
+
+def test_agents_md_template_exists() -> None:
+    assert (SCAFFOLD_ROOT / "templates" / "AGENTS.md.tmpl").exists()
+
+
+def test_architecture_template_exists() -> None:
+    assert (SCAFFOLD_ROOT / "templates" / "docs" / "architecture.md.tmpl").exists()
+
+
+def test_adr_template_exists() -> None:
+    assert (
+        SCAFFOLD_ROOT / "templates" / "docs" / "decisions" / "0001-stack-choice.md.tmpl"
+    ).exists()
+
+
+def test_agent_skills_template_exists() -> None:
+    assert (SCAFFOLD_ROOT / "templates" / ".agent" / "skills" / "README.md").exists()
+
+
+def test_agent_skills_has_example_skill() -> None:
+    """Skills template must include an example-skill starter with SKILL.md."""
+    assert (
+        SCAFFOLD_ROOT / "templates" / ".agent" / "skills" / "example-skill" / "SKILL.md"
+    ).exists()
+
+
+def test_ci_template_exists() -> None:
+    assert (
+        SCAFFOLD_ROOT / "templates" / ".github" / "workflows" / "ci.yml.tmpl"
+    ).exists()
+
+
+def test_ci_template_is_two_tier() -> None:
+    """Generated CI template must include both check and verify jobs."""
+    content = (
+        SCAFFOLD_ROOT / "templates" / ".github" / "workflows" / "ci.yml.tmpl"
+    ).read_text()
+    assert "mise run ci" in content
+    assert "mise run verify" in content
+    assert "upload-artifact" in content

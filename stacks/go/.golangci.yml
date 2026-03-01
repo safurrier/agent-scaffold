@@ -1,0 +1,48 @@
+version: "2"
+
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+
+formatters:
+  enable:
+    - gofumpt
+
+linters:
+  enable:
+    - govet
+    - staticcheck
+    - revive
+    - errcheck
+    - ineffassign
+    - unused
+    - misspell
+    - gocyclo
+    - dupl
+    - unconvert
+    - unparam
+    - bodyclose
+    - nilerr
+    - prealloc
+
+linters-settings:
+  gocyclo:
+    min-complexity: 15
+  dupl:
+    threshold: 100
+  revive:
+    rules:
+      - name: exported
+        severity: warning
+
+issues:
+  exclude-dirs:
+    - vendor
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - dupl
+        - gosec
+    - path: \.pb\.go
+      linters:
+        - all

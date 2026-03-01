@@ -1,0 +1,18 @@
+# ─────────────────────────────────────────────
+# {{project_name}} — workspace module registry
+# ─────────────────────────────────────────────
+# Each [modules.<name>] defines an app or package
+# that participates in the unified task contract.
+#
+# Fields:
+#   path  — relative path from repo root
+#   kind  — python | go | rust | web
+#   role  — app | package
+#   dev   — (optional) include in `mise run dev` (default: false)
+
+{% for name, info in modules.items() %}
+[modules.{{ name }}]
+path = "{{ info.path }}"
+kind = "{{ info.kind }}"
+role = "{{ info.role }}"
+{% endfor %}
