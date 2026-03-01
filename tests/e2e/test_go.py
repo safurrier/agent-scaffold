@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.conftest import mise
+from tests._support import mise
 
 pytestmark = [pytest.mark.e2e, pytest.mark.slow, pytest.mark.go]
 

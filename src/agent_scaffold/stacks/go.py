@@ -5,10 +5,8 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
-from agent_scaffold.config import Config
+from agent_scaffold.config import SCAFFOLD_ROOT, Config
 from agent_scaffold.templates import copy_tree
-
-_SCAFFOLD_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
 
 class GoStack:
@@ -32,7 +30,7 @@ The Go stack uses:
 - Tests: go test"""
 
     def init_single(self, root: Path, config: Config) -> dict[str, str]:
-        stack_dir = _SCAFFOLD_ROOT / "stacks" / "go"
+        stack_dir = SCAFFOLD_ROOT / "stacks" / "go"
         context = _build_context(config)
 
         _write(stack_dir / "go.mod.tmpl", root / "go.mod", context)
@@ -41,7 +39,7 @@ The Go stack uses:
         shutil.copy2(stack_dir / ".golangci.yml", root / ".golangci.yml")
         _write(stack_dir / "Dockerfile.tmpl", root / "Dockerfile", context)
 
-        gitignore = _SCAFFOLD_ROOT / "templates" / "single" / ".gitignore.go.tmpl"
+        gitignore = SCAFFOLD_ROOT / "templates" / "single" / ".gitignore.go.tmpl"
         if gitignore.exists():
             _write(gitignore, root / ".gitignore", context)
 
@@ -54,7 +52,7 @@ The Go stack uses:
     def init_module(
         self, mod_dir: Path, config: Config, mod_name: str
     ) -> dict[str, str]:
-        stack_dir = _SCAFFOLD_ROOT / "stacks" / "go"
+        stack_dir = SCAFFOLD_ROOT / "stacks" / "go"
         go_module = (
             f"{config.go_module}/{mod_name}"
             if config.go_module

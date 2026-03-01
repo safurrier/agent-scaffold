@@ -17,6 +17,17 @@ def runner() -> CliRunner:
     return CliRunner()
 
 
+# ── --version ─────────────────────────────────────────────────────────────────
+
+
+def test_version_flag(runner: CliRunner) -> None:
+    from agent_scaffold.cli import cli
+
+    result = runner.invoke(cli, ["--version"])
+    assert result.exit_code == 0
+    assert "0.1.0" in result.output
+
+
 # ── --help ────────────────────────────────────────────────────────────────────
 
 

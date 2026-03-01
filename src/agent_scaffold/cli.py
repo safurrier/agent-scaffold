@@ -21,6 +21,7 @@ from agent_scaffold.config import (
 
 
 @click.group()
+@click.version_option(package_name="agent-scaffold")
 @click.option("--debug/--no-debug", default=False, envvar="AGENT_SCAFFOLD_DEBUG")
 @click.pass_context
 def cli(ctx: click.Context, debug: bool) -> None:

@@ -4,6 +4,10 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
+
+# Canonical scaffold root — src/agent_scaffold/ is two levels below the repo root.
+SCAFFOLD_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
 def validate_name(name: str) -> str:

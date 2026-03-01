@@ -53,7 +53,7 @@ markers = [
 
 # ── ty ───────────────────────────────────────
 [tool.ty.environment]
-extra-paths = ["src"]
+extra-paths = ["src", "."]
 
 [tool.ty.src]
 exclude = ["stacks/**", "templates/**"]

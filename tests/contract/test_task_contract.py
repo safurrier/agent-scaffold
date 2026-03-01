@@ -10,7 +10,7 @@ import os
 
 import pytest
 
-from tests.conftest import SCAFFOLD_ROOT
+from tests._support import SCAFFOLD_ROOT
 
 pytestmark = pytest.mark.contract
 

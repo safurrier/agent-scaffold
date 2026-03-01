@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.conftest import init_project, mise
+from tests._support import init_project, mise
 
 pytestmark = pytest.mark.e2e
 

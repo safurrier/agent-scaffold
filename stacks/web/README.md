@@ -1,6 +1,6 @@
 # Web (TypeScript) Stack
 
-Planned for a future release. Task stubs are in place; templates are not yet available.
+> **Status: PLANNED** — not yet implemented. Task stubs exist; templates are not yet available.
 
 Tooling targets:
 - fmt: `prettier --write .`

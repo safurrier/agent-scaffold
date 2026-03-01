@@ -5,11 +5,8 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
-from agent_scaffold.config import Config, to_module_name
-from agent_scaffold.templates import copy_tree, render_template
-
-# Scaffold root — two levels up from this file (src/agent_scaffold/stacks/)
-_SCAFFOLD_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+from agent_scaffold.config import SCAFFOLD_ROOT, Config, to_module_name
+from agent_scaffold.templates import copy_tree
 
 
 class PythonStack:
@@ -33,10 +30,9 @@ The Python stack uses:
 
     def init_single(self, root: Path, config: Config) -> dict[str, str]:
         module_name = to_module_name(config.name)
-        stack_dir = _SCAFFOLD_ROOT / "stacks" / "python"
+        stack_dir = SCAFFOLD_ROOT / "stacks" / "python"
         context = _build_context(config, module_name)
 
-        render_template(stack_dir / "pyproject.toml.tmpl", context)
         _write(stack_dir / "pyproject.toml.tmpl", root / "pyproject.toml", context)
 
         # Source directory: stacks/python/src/ → <module_name>/
@@ -49,7 +45,7 @@ The Python stack uses:
         copy_tree(stack_dir / "tests", tests_dir, context)
 
         # .gitignore
-        gitignore = _SCAFFOLD_ROOT / "templates" / "single" / ".gitignore.python.tmpl"
+        gitignore = SCAFFOLD_ROOT / "templates" / "single" / ".gitignore.python.tmpl"
         if gitignore.exists():
             _write(gitignore, root / ".gitignore", context)
 
@@ -63,7 +59,7 @@ The Python stack uses:
         self, mod_dir: Path, config: Config, mod_name: str
     ) -> dict[str, str]:
         module_name = to_module_name(mod_name)
-        stack_dir = _SCAFFOLD_ROOT / "stacks" / "python"
+        stack_dir = SCAFFOLD_ROOT / "stacks" / "python"
         context = {**_build_context(config, module_name), "project_name": mod_name}
 
         _write(stack_dir / "pyproject.toml.tmpl", mod_dir / "pyproject.toml", context)

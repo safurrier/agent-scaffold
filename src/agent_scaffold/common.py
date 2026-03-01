@@ -10,11 +10,9 @@ from typing import Any
 
 import click
 
-from agent_scaffold.config import Config
+from agent_scaffold.config import SCAFFOLD_ROOT, Config
 from agent_scaffold.stacks import STACKS
 from agent_scaffold.templates import copy_tree, render_template
-
-_SCAFFOLD_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
 def build_context(
@@ -41,7 +39,7 @@ def build_context(
 
 def generate_docs(root: Path, context: dict[str, Any]) -> None:
     """Generate README, AGENTS.md + CLAUDE.md symlink, docs/, CI template."""
-    tmpl_dir = _SCAFFOLD_ROOT / "templates"
+    tmpl_dir = SCAFFOLD_ROOT / "templates"
 
     # README.md
     readme_tmpl = tmpl_dir / "README.md.tmpl"
@@ -116,7 +114,7 @@ def generate_workspace_toml(
         name: {"path": f"apps/{name}", "kind": config.stack, "role": "app"}
         for name in config.modules
     }
-    tmpl = _SCAFFOLD_ROOT / "templates" / "apps" / "workspace.toml.tmpl"
+    tmpl = SCAFFOLD_ROOT / "templates" / "apps" / "workspace.toml.tmpl"
     if tmpl.exists():
         _write(tmpl, root / "workspace.toml", {**context, "modules": modules_data})
 
@@ -289,6 +287,11 @@ def _init_apps(root: Path, config: Config, stack: Any) -> dict[str, str]:
     # packages/ placeholder
     (root / "packages").mkdir(exist_ok=True)
     (root / "packages" / ".gitkeep").touch()
+
+    # .gitignore for apps workspace
+    gitignore_tmpl = SCAFFOLD_ROOT / "templates" / "apps" / ".gitignore.tmpl"
+    if gitignore_tmpl.exists():
+        _write(gitignore_tmpl, root / ".gitignore", {})
 
     # Generate project_structure
     mod_tree = "\n".join(f"│   └── {m}/" for m in modules)
