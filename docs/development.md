@@ -6,9 +6,7 @@ description: >
   adding new stacks, updating tool versions, and running the docs server.
 index:
   - id: test-suite
-    keywords: [contract, unit, e2e, slow, markers, pytest, xdist]
-  - id: e2e-test-fixtures
-    keywords: [py-single-ready, go-single-ready, module-scoped, fixture, mut]
+    keywords: [contract, unit, e2e, slow, markers, pytest, xdist, fixtures]
   - id: adding-a-new-stack
     keywords: [new-stack, templates, task-dispatch, init-script, stacks-dir]
   - id: updating-tool-versions
