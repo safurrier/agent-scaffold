@@ -90,6 +90,25 @@ class TestPythonSingleGolden:
         assert "## WHAT" in content
         assert "## HOW" in content
 
+    def test_agents_md_no_frontmatter(self) -> None:
+        content = (self._root / "AGENTS.md").read_text()
+        assert not content.startswith("---\n"), "AGENTS.md should not have frontmatter"
+
+    def test_architecture_doc_has_frontmatter(self) -> None:
+        content = (self._root / "docs" / "architecture.md").read_text()
+        assert content.startswith("---\n"), "architecture.md missing frontmatter"
+        assert "id:" in content
+
+    def test_adr_has_frontmatter(self) -> None:
+        content = (
+            self._root / "docs" / "decisions" / "0001-stack-choice.md"
+        ).read_text()
+        assert content.startswith("---\n"), "ADR missing frontmatter"
+        assert "id:" in content
+
+    def test_docs_test_generated(self) -> None:
+        assert (self._root / "tests" / "test_docs.py").exists()
+
     def test_gitignore_has_python_entries(self) -> None:
         content = (self._root / ".gitignore").read_text()
         assert "__pycache__/" in content
@@ -158,6 +177,22 @@ class TestPythonAppsGolden:
             pyproj = self._root / "apps" / mod / "pyproject.toml"
             assert pyproj.exists(), f"Missing pyproject.toml for {mod}"
 
+    def test_agents_md_no_frontmatter(self) -> None:
+        content = (self._root / "AGENTS.md").read_text()
+        assert not content.startswith("---\n"), "AGENTS.md should not have frontmatter"
+
+    def test_architecture_doc_has_frontmatter(self) -> None:
+        content = (self._root / "docs" / "architecture.md").read_text()
+        assert content.startswith("---\n"), "architecture.md missing frontmatter"
+        assert "id:" in content
+
+    def test_adr_has_frontmatter(self) -> None:
+        content = (
+            self._root / "docs" / "decisions" / "0001-stack-choice.md"
+        ).read_text()
+        assert content.startswith("---\n"), "ADR missing frontmatter"
+        assert "id:" in content
+
     def test_scaffold_artifacts_removed(self) -> None:
         assert not (self._root / "stacks").exists()
         assert not (self._root / "templates").exists()
@@ -191,6 +226,22 @@ class TestGoSingleGolden:
     def test_golangci_yml_generated(self) -> None:
         assert (self._root / ".golangci.yml").exists()
 
+    def test_agents_md_no_frontmatter(self) -> None:
+        content = (self._root / "AGENTS.md").read_text()
+        assert not content.startswith("---\n"), "AGENTS.md should not have frontmatter"
+
+    def test_architecture_doc_has_frontmatter(self) -> None:
+        content = (self._root / "docs" / "architecture.md").read_text()
+        assert content.startswith("---\n"), "architecture.md missing frontmatter"
+        assert "id:" in content
+
+    def test_adr_has_frontmatter(self) -> None:
+        content = (
+            self._root / "docs" / "decisions" / "0001-stack-choice.md"
+        ).read_text()
+        assert content.startswith("---\n"), "ADR missing frontmatter"
+        assert "id:" in content
+
     def test_scaffold_artifacts_removed(self) -> None:
         assert not (self._root / "stacks").exists()
         assert not (self._root / "templates").exists()
@@ -221,6 +272,22 @@ class TestGoAppsGolden:
 
     def test_gitignore_exists(self) -> None:
         assert (self._root / ".gitignore").exists()
+
+    def test_agents_md_no_frontmatter(self) -> None:
+        content = (self._root / "AGENTS.md").read_text()
+        assert not content.startswith("---\n"), "AGENTS.md should not have frontmatter"
+
+    def test_architecture_doc_has_frontmatter(self) -> None:
+        content = (self._root / "docs" / "architecture.md").read_text()
+        assert content.startswith("---\n"), "architecture.md missing frontmatter"
+        assert "id:" in content
+
+    def test_adr_has_frontmatter(self) -> None:
+        content = (
+            self._root / "docs" / "decisions" / "0001-stack-choice.md"
+        ).read_text()
+        assert content.startswith("---\n"), "ADR missing frontmatter"
+        assert "id:" in content
 
     def test_scaffold_artifacts_removed(self) -> None:
         assert not (self._root / "stacks").exists()
