@@ -41,10 +41,20 @@ def generate_docs(root: Path, context: dict[str, Any]) -> None:
     """Generate README, AGENTS.md + CLAUDE.md symlink, docs/, CI template."""
     tmpl_dir = SCAFFOLD_ROOT / "templates"
 
+    # Remove scaffold's own docs/ (MkDocs site) before generating project docs
+    scaffold_docs = root / "docs"
+    if scaffold_docs.is_dir():
+        shutil.rmtree(scaffold_docs)
+
     # README.md
     readme_tmpl = tmpl_dir / "README.md.tmpl"
     if readme_tmpl.exists():
         _write(readme_tmpl, root / "README.md", context)
+
+    # SPEC.md
+    spec_tmpl = tmpl_dir / "SPEC.md.tmpl"
+    if spec_tmpl.exists():
+        _write(spec_tmpl, root / "SPEC.md", context)
 
     # AGENTS.md + CLAUDE.md → AGENTS.md symlink
     agents_tmpl = tmpl_dir / "AGENTS.md.tmpl"
@@ -63,9 +73,12 @@ def generate_docs(root: Path, context: dict[str, Any]) -> None:
         _write(adr_tmpl, root / "docs" / "decisions" / "0001-stack-choice.md", context)
 
     # .agent/skills/ (full tree, includes example-skill/)
+    # Remove scaffold's own skills before copying template skills
+    skills_dst = root / ".agent" / "skills"
+    if skills_dst.is_dir():
+        shutil.rmtree(skills_dst)
     skills_src = tmpl_dir / ".agent" / "skills"
     if skills_src.exists():
-        skills_dst = root / ".agent" / "skills"
         skills_dst.mkdir(parents=True, exist_ok=True)
         copy_tree(skills_src, skills_dst, context)
 
@@ -125,8 +138,8 @@ def cleanup_scaffold(root: Path, config: Config) -> None:
         root / "stacks",
         root / "templates",
         root / "src",
+        root / "mkdocs.yml",  # scaffold's MkDocs config
         root / "scripts" / "init_project.py",  # legacy, may not exist
-        root / "SPEC.md",
     ]
 
     is_python_single = config.shape == "single" and config.stack == "python"

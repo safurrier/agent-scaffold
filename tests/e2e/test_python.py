@@ -28,11 +28,18 @@ class TestPythonSingleHappyPath:
         assert (py_single_ready / ".mise.toml").exists()
 
     def test_scaffold_artifacts_removed(self, py_single_ready: Path) -> None:
-        """stacks/, templates/, SPEC.md and init_project.py are gone."""
+        """stacks/, templates/, and init_project.py are gone."""
         assert not (py_single_ready / "stacks").exists()
         assert not (py_single_ready / "templates").exists()
-        assert not (py_single_ready / "SPEC.md").exists()
         assert not (py_single_ready / "scripts" / "init_project.py").exists()
+
+    def test_spec_md_generated(self, py_single_ready: Path) -> None:
+        """SPEC.md must be generated from the template (not the scaffold's design doc)."""
+        spec = py_single_ready / "SPEC.md"
+        assert spec.exists()
+        content = spec.read_text()
+        assert content.startswith("---\n"), "SPEC.md missing frontmatter"
+        assert "Invariants" in content
 
     def test_agents_md_exists(self, py_single_ready: Path) -> None:
         """AGENTS.md must be generated as the canonical steering doc."""

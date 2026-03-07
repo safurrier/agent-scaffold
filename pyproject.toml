@@ -30,7 +30,7 @@ packages = ["src/agent_scaffold"]
 
 # ── Ruff ─────────────────────────────────────
 [tool.ruff]
-extend-exclude = ["stacks/", "templates/"]
+extend-exclude = ["stacks/", "templates/", ".agent/skills/"]
 target-version = "py312"
 line-length = 88
 
@@ -56,4 +56,4 @@ markers = [
 extra-paths = ["src", "."]
 
 [tool.ty.src]
-exclude = ["stacks/**", "templates/**"]
+exclude = ["stacks/**", "templates/**", ".agent/skills/**"]

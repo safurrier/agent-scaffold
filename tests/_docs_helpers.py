@@ -10,6 +10,8 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
+# ── Frontmatter ──────────────────────────────────────────────────────────
+
 
 @dataclass
 class Frontmatter:
@@ -135,3 +137,204 @@ def find_doc_files(docs_dir: Path) -> list[Path]:
     if not docs_dir.exists():
         return []
     return sorted(p for p in docs_dir.rglob("*.md") if p.name != "AGENTS.md")
+
+
+# ── Section parsing ──────────────────────────────────────────────────────
+
+
+@dataclass
+class DocSection:
+    """A markdown heading and its content."""
+
+    heading: str
+    level: int
+    content: str
+    line_number: int
+
+
+def parse_sections(path: Path) -> list[DocSection]:
+    """Parse all markdown headings and their content from a file."""
+    text = path.read_text()
+
+    # Strip frontmatter if present
+    if text.startswith("---\n"):
+        end = text.find("\n---\n", 4)
+        if end != -1:
+            text = text[end + 5 :]
+
+    sections: list[DocSection] = []
+    lines = text.splitlines()
+
+    for i, line in enumerate(lines):
+        m = re.match(r"^(#{1,6})\s+(.+)$", line)
+        if m:
+            sections.append(
+                DocSection(
+                    heading=m.group(2).strip(),
+                    level=len(m.group(1)),
+                    content="",  # filled below
+                    line_number=i + 1,
+                )
+            )
+
+    # Fill content: everything between this heading and the next
+    for idx, section in enumerate(sections):
+        start = section.line_number  # line after heading
+        end = (
+            sections[idx + 1].line_number - 1 if idx + 1 < len(sections) else len(lines)
+        )
+        section.content = "\n".join(lines[start:end]).strip()
+
+    return sections
+
+
+def find_section(
+    sections: list[DocSection], heading_pattern: str, *, level: int | None = None
+) -> DocSection | None:
+    """Find first section matching heading pattern (case-insensitive substring)."""
+    pat = heading_pattern.lower()
+    for s in sections:
+        if level is not None and s.level != level:
+            continue
+        if pat in s.heading.lower():
+            return s
+    return None
+
+
+# Required H2 sections for SPEC.md (correctness envelope)
+SPEC_REQUIRED_SECTIONS = [
+    "Summary",
+    "Goals",  # matches "Goals / Non-Goals"
+    "Requirements",
+    "Interfaces",  # matches "Interfaces & Contracts"
+    "Invariants",
+    "Acceptance",
+]
+
+# Required H2 sections for architecture.md (from AI Native Engineering RFC)
+ARCHITECTURE_REQUIRED_SECTIONS = [
+    "System Overview",
+    "Goals",  # matches "Goals / Non-Goals"
+    "Invariants",  # matches "Invariants & Boundaries"
+    "Principles",  # matches "Principles & Preferred Patterns"
+    "Cross-Cutting Workflows",
+    "Decisions",
+    "Module Map",
+    "Where Human Thought Goes",
+]
+
+
+# ── ADR parsing ──────────────────────────────────────────────────────────
+
+
+ALLOWED_ADR_STATUSES = {"Proposed", "Accepted", "Deprecated", "Superseded"}
+
+
+@dataclass
+class ADRMetadata:
+    """Parsed metadata from an Architecture Decision Record."""
+
+    number: int
+    filename: str
+    status: str = ""
+    date: str = ""
+    title: str = ""
+    has_context: bool = False
+    has_decision: bool = False
+    has_consequences: bool = False
+    has_alternatives: bool = False
+    generated_from: str | None = None
+
+
+def parse_adr(path: Path) -> ADRMetadata | None:
+    """Parse ADR metadata from a decision record file."""
+    name = path.name
+    # Extract number from filename: NNNN-slug.md
+    num_match = re.match(r"^(\d{4})-", name)
+    if not num_match:
+        return None
+
+    text = path.read_text()
+    adr = ADRMetadata(number=int(num_match.group(1)), filename=name)
+
+    # Parse title from first H1
+    m = re.search(r"^#\s+(.+)$", text, re.MULTILINE)
+    if m:
+        adr.title = m.group(1).strip()
+
+    # Parse bold key-value fields: **Key**: Value
+    m = re.search(r"\*\*Status\*\*:\s*(.+)$", text, re.MULTILINE)
+    if m:
+        adr.status = m.group(1).strip()
+
+    m = re.search(r"\*\*Date\*\*:\s*(.+)$", text, re.MULTILINE)
+    if m:
+        adr.date = m.group(1).strip()
+
+    m = re.search(r"\*\*Generated from\*\*:\s*(.+)$", text, re.MULTILINE)
+    if m:
+        adr.generated_from = m.group(1).strip()
+
+    # Check for required H2 sections
+    sections = parse_sections(path)
+    adr.has_context = find_section(sections, "Context", level=2) is not None
+    adr.has_decision = find_section(sections, "Decision", level=2) is not None
+    adr.has_consequences = find_section(sections, "Consequences", level=2) is not None
+    adr.has_alternatives = find_section(sections, "Alternatives", level=2) is not None
+
+    return adr
+
+
+def find_adrs(decisions_dir: Path) -> list[ADRMetadata]:
+    """Find and parse all ADR files in a decisions directory."""
+    if not decisions_dir.exists():
+        return []
+    adrs: list[ADRMetadata] = []
+    for p in sorted(decisions_dir.glob("*.md")):
+        adr = parse_adr(p)
+        if adr is not None:
+            adrs.append(adr)
+    return adrs
+
+
+def validate_adr(adr: ADRMetadata) -> list[str]:
+    """Validate ADR metadata. Returns list of error messages (empty = valid)."""
+    errors: list[str] = []
+
+    if not adr.status:
+        errors.append("missing Status field")
+    elif adr.status not in ALLOWED_ADR_STATUSES:
+        errors.append(
+            f"status '{adr.status}' not in allowed values: "
+            f"{', '.join(sorted(ALLOWED_ADR_STATUSES))}"
+        )
+
+    if not adr.has_context:
+        errors.append("missing '## Context' section")
+    if not adr.has_decision:
+        errors.append("missing '## Decision' section")
+    if not adr.has_consequences:
+        errors.append("missing '## Consequences' section")
+
+    if adr.generated_from is not None:
+        allowed_sources = {"diff", "pr", "agent-session", "init", "manual"}
+        if adr.generated_from not in allowed_sources:
+            errors.append(
+                f"generated-from '{adr.generated_from}' not in allowed values: "
+                f"{', '.join(sorted(allowed_sources))}"
+            )
+
+    return errors
+
+
+def derive_decisions_index(decisions_dir: Path) -> str:
+    """Generate the markdown table for architecture.md Decisions section."""
+    adrs = find_adrs(decisions_dir)
+    if not adrs:
+        return "| ADR | Decision |\n|---|---|\n"
+    lines = ["| ADR | Decision |", "|---|---|"]
+    for adr in adrs:
+        link = f"[{adr.filename[:-3]}](decisions/{adr.filename})"
+        title = adr.title or adr.filename
+        lines.append(f"| {link} | {title} |")
+    return "\n".join(lines)

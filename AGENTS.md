@@ -20,16 +20,16 @@ agent-scaffold/
 │   ├── unit/                   # Pure function tests (fast)
 │   └── e2e/                    # Full init+setup+check workflows (slow)
 ├── docs/                       # MkDocs documentation source
-├── SPEC.md                     # Living design specification
+├── SPEC.md                     # Correctness envelope (requirements, contracts, invariants)
 └── pyproject.toml              # Package config + ruff/pytest/ty settings
 ```
 
 ### Key steering files
 
 - `AGENTS.md` -- this file
+- `SPEC.md` -- correctness envelope (requirements, contracts, invariants)
 - `.mise.toml` -- tool versions, project env vars (`SCAFFOLD_PROJECT_*`)
 - `mkdocs.yml` -- docs site navigation and theme
-- `SPEC.md` -- design specification (living doc, not removed during development)
 
 ## How to Work Here
 

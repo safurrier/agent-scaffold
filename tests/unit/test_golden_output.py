@@ -16,6 +16,15 @@ import pytest
 
 from agent_scaffold.common import run_init
 from agent_scaffold.config import Config
+from tests._docs_helpers import (
+    ARCHITECTURE_REQUIRED_SECTIONS,
+    SPEC_REQUIRED_SECTIONS,
+    find_adrs,
+    find_section,
+    has_frontmatter,
+    parse_sections,
+    validate_adr,
+)
 from tests._support import COPY_IGNORE, SCAFFOLD_ROOT
 
 pytestmark = pytest.mark.unit
@@ -124,16 +133,59 @@ class TestPythonSingleGolden:
         content = (self._root / "docs" / "architecture.md").read_text()
         assert "Invariants" in content
 
+    def test_architecture_has_required_sections(self) -> None:
+        arch = self._root / "docs" / "architecture.md"
+        sections = parse_sections(arch)
+        for name in ARCHITECTURE_REQUIRED_SECTIONS:
+            assert find_section(sections, name, level=2) is not None, (
+                f"Generated architecture.md missing section '{name}'"
+            )
+
+    def test_architecture_decisions_index(self) -> None:
+        sections = parse_sections(self._root / "docs" / "architecture.md")
+        dec = find_section(sections, "Decisions", level=2)
+        assert dec is not None
+        assert "0001-stack-choice" in dec.content, (
+            "Decisions index doesn't reference initial ADR"
+        )
+
     def test_adr_mentions_stack(self) -> None:
         content = (
             self._root / "docs" / "decisions" / "0001-stack-choice.md"
         ).read_text()
         assert "python" in content
 
+    def test_adr_schema_valid(self) -> None:
+        adrs = find_adrs(self._root / "docs" / "decisions")
+        assert len(adrs) >= 1, "Expected at least one ADR"
+        for adr in adrs:
+            errors = validate_adr(adr)
+            assert not errors, f"ADR {adr.filename} errors: {'; '.join(errors)}"
+
+    def test_adr_has_generated_from(self) -> None:
+        adrs = find_adrs(self._root / "docs" / "decisions")
+        assert adrs[0].generated_from == "init"
+
+    def test_spec_md_exists(self) -> None:
+        assert (self._root / "SPEC.md").exists()
+
+    def test_spec_md_has_frontmatter(self) -> None:
+        assert has_frontmatter(self._root / "SPEC.md")
+
+    def test_spec_md_has_required_sections(self) -> None:
+        sections = parse_sections(self._root / "SPEC.md")
+        for name in SPEC_REQUIRED_SECTIONS:
+            assert find_section(sections, name, level=2) is not None, (
+                f"Generated SPEC.md missing section '{name}'"
+            )
+
+    def test_spec_md_has_project_name(self) -> None:
+        content = (self._root / "SPEC.md").read_text()
+        assert "goldenapp" in content
+
     def test_scaffold_artifacts_removed(self) -> None:
         assert not (self._root / "stacks").exists()
         assert not (self._root / "templates").exists()
-        assert not (self._root / "SPEC.md").exists()
 
     def test_agent_skills_generated(self) -> None:
         assert (self._root / ".agent" / "skills" / "README.md").exists()
@@ -193,6 +245,30 @@ class TestPythonAppsGolden:
         assert content.startswith("---\n"), "ADR missing frontmatter"
         assert "id:" in content
 
+    def test_architecture_has_required_sections(self) -> None:
+        sections = parse_sections(self._root / "docs" / "architecture.md")
+        for name in ARCHITECTURE_REQUIRED_SECTIONS:
+            assert find_section(sections, name, level=2) is not None, (
+                f"Generated architecture.md missing section '{name}'"
+            )
+
+    def test_adr_schema_valid(self) -> None:
+        adrs = find_adrs(self._root / "docs" / "decisions")
+        assert len(adrs) >= 1
+        for adr in adrs:
+            errors = validate_adr(adr)
+            assert not errors, f"ADR {adr.filename} errors: {'; '.join(errors)}"
+
+    def test_spec_md_exists(self) -> None:
+        assert (self._root / "SPEC.md").exists()
+
+    def test_spec_md_has_required_sections(self) -> None:
+        sections = parse_sections(self._root / "SPEC.md")
+        for name in SPEC_REQUIRED_SECTIONS:
+            assert find_section(sections, name, level=2) is not None, (
+                f"Generated SPEC.md missing section '{name}'"
+            )
+
     def test_scaffold_artifacts_removed(self) -> None:
         assert not (self._root / "stacks").exists()
         assert not (self._root / "templates").exists()
@@ -242,6 +318,30 @@ class TestGoSingleGolden:
         assert content.startswith("---\n"), "ADR missing frontmatter"
         assert "id:" in content
 
+    def test_architecture_has_required_sections(self) -> None:
+        sections = parse_sections(self._root / "docs" / "architecture.md")
+        for name in ARCHITECTURE_REQUIRED_SECTIONS:
+            assert find_section(sections, name, level=2) is not None, (
+                f"Generated architecture.md missing section '{name}'"
+            )
+
+    def test_adr_schema_valid(self) -> None:
+        adrs = find_adrs(self._root / "docs" / "decisions")
+        assert len(adrs) >= 1
+        for adr in adrs:
+            errors = validate_adr(adr)
+            assert not errors, f"ADR {adr.filename} errors: {'; '.join(errors)}"
+
+    def test_spec_md_exists(self) -> None:
+        assert (self._root / "SPEC.md").exists()
+
+    def test_spec_md_has_required_sections(self) -> None:
+        sections = parse_sections(self._root / "SPEC.md")
+        for name in SPEC_REQUIRED_SECTIONS:
+            assert find_section(sections, name, level=2) is not None, (
+                f"Generated SPEC.md missing section '{name}'"
+            )
+
     def test_scaffold_artifacts_removed(self) -> None:
         assert not (self._root / "stacks").exists()
         assert not (self._root / "templates").exists()
@@ -288,6 +388,30 @@ class TestGoAppsGolden:
         ).read_text()
         assert content.startswith("---\n"), "ADR missing frontmatter"
         assert "id:" in content
+
+    def test_architecture_has_required_sections(self) -> None:
+        sections = parse_sections(self._root / "docs" / "architecture.md")
+        for name in ARCHITECTURE_REQUIRED_SECTIONS:
+            assert find_section(sections, name, level=2) is not None, (
+                f"Generated architecture.md missing section '{name}'"
+            )
+
+    def test_adr_schema_valid(self) -> None:
+        adrs = find_adrs(self._root / "docs" / "decisions")
+        assert len(adrs) >= 1
+        for adr in adrs:
+            errors = validate_adr(adr)
+            assert not errors, f"ADR {adr.filename} errors: {'; '.join(errors)}"
+
+    def test_spec_md_exists(self) -> None:
+        assert (self._root / "SPEC.md").exists()
+
+    def test_spec_md_has_required_sections(self) -> None:
+        sections = parse_sections(self._root / "SPEC.md")
+        for name in SPEC_REQUIRED_SECTIONS:
+            assert find_section(sections, name, level=2) is not None, (
+                f"Generated SPEC.md missing section '{name}'"
+            )
 
     def test_scaffold_artifacts_removed(self) -> None:
         assert not (self._root / "stacks").exists()
