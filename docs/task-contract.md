@@ -2,7 +2,7 @@
 id: task-contract
 title: Task Contract
 description: >
-  Reference for all 11 mise run tasks exposed by agent-scaffold projects: fmt, lint,
+  Reference for all 12 mise run tasks exposed by agent-scaffold projects: fmt, lint,
   typecheck, test, check, ci, verify, and others. Same commands regardless of stack.
 index:
   - id: contract-tasks
@@ -17,7 +17,7 @@ index:
 
 # Task Contract
 
-Every project initialized from agent-scaffold exposes these 11 tasks. The contract is **stable** — same command names regardless of stack or shape.
+Every project initialized from agent-scaffold exposes these 12 tasks. The contract is **stable** — same command names regardless of stack or shape.
 
 ```bash
 mise run <task>

@@ -23,7 +23,13 @@ Opinionated starter repository for agent-driven engineering. Provides a **stable
 
 agent-scaffold is a **clone-and-init** template. You clone it, run `mise run init`, and it transforms itself into your project — removing scaffold scaffolding, applying your project name, and verifying the golden path passes before handing control over.
 
-The key insight: agents (and humans) benefit from a **fixed command surface**. Regardless of language, repo shape, or tooling choices, every project initialized from this scaffold exposes the same 11 tasks:
+Every generated project ships with a **three-doc split**:
+
+- **`SPEC.md`** — correctness envelope (requirements, contracts, invariants)
+- **`AGENTS.md`** — how to work here (commands, repo map, workflow)
+- **`docs/architecture.md`** — system description (principles, decisions, module map)
+
+The key insight: agents (and humans) benefit from a **fixed command surface**. Regardless of language, repo shape, or tooling choices, every project initialized from this scaffold exposes the same 12 tasks:
 
 ```bash
 mise run fmt        # format

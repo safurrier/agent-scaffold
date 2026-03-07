@@ -20,7 +20,7 @@ index:
 
 ## Summary
 
-agent-scaffold is an opinionated starter repository for agent-driven engineering. Clone it, run `mise run init`, and it transforms itself into a fully configured project with a stable 11-task command surface. Both humans and AI agents benefit from a language-agnostic, CI-parity contract where `mise run check` always works regardless of stack.
+agent-scaffold is an opinionated starter repository for agent-driven engineering. Clone it, run `mise run init`, and it transforms itself into a fully configured project with a stable 12-task command surface. Both humans and AI agents benefit from a language-agnostic, CI-parity contract where `mise run check` always works regardless of stack.
 
 ## Goals / Non-Goals
 
@@ -83,7 +83,7 @@ agent-scaffold init [OPTIONS]
   --no-examples         Remove example code after init
 ```
 
-**11-task contract:**
+**12-task contract:**
 
 | Task | Purpose | Composition |
 |------|---------|-------------|
@@ -97,19 +97,20 @@ agent-scaffold init [OPTIONS]
 | `check` | Fast quality gate | fmt-check + lint + typecheck + test |
 | `dev` | Local development | Stack-dependent |
 | `ci` | CI entrypoint | Delegates to `check` |
+| `docs` | Documentation server | MkDocs dev server |
 | `verify` | Heavy validation | Integration, docker, security |
 
 **Stack Protocol:**
 
 ```python
 class Stack(Protocol):
-    def tools_toml(self) -> str: ...
-    def stack_notes(self) -> str: ...
-    def adr_notes(self) -> str: ...
-    def init_single(self, root: Path, config: Config) -> dict[str, Any]: ...
-    def init_apps_module(self, module_dir: Path, config: Config) -> None: ...
+    def init_single(self, root: Path, config: Config) -> dict[str, str]: ...
+    def init_module(self, mod_dir: Path, config: Config, mod_name: str) -> dict[str, str]: ...
     def remove_examples(self, root: Path, config: Config) -> None: ...
-    def remove_module_examples(self, module_dir: Path) -> None: ...
+    def remove_module_examples(self, mod_dir: Path) -> None: ...
+    def tools_toml(self) -> str: ...
+    def adr_notes(self) -> str: ...
+    def stack_notes(self) -> str: ...
 ```
 
 ## Invariants

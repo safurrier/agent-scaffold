@@ -44,11 +44,15 @@ Tests live in `tests/` organized into three layers:
 
 ```
 tests/
-├── conftest.py              # shared helpers: mise(), init_project(), scaffold_copy
+├── conftest.py                  # shared helpers: mise(), init_project(), scaffold_copy
+├── _support.py                  # SCAFFOLD_ROOT, COPY_IGNORE, helper functions
+├── _docs_helpers.py             # stdlib-only doc validation (frontmatter, sections, ADRs)
 ├── contract/
-│   └── test_task_contract.py    # @contract — structural checks (fast, no subprocess)
+│   ├── test_task_contract.py    # @contract — task file structural checks
+│   └── test_docs_contract.py   # @contract — SPEC.md, architecture, ADR template validation
 ├── unit/
-│   └── test_init_project.py     # @unit — pure function tests (fast)
+│   ├── test_golden_output.py    # @unit — deterministic rendering across all 4 shapes
+│   └── stacks/                  # per-stack unit tests
 └── e2e/
     ├── conftest.py              # module-scoped fixtures: py_single_ready, etc.
     ├── test_python.py           # @e2e — Python happy path + gate tests
@@ -71,15 +75,28 @@ Tests run in parallel via pytest-xdist (`-n auto --dist=loadfile`). The `loadfil
 
 ### Contract tests
 
-`tests/contract/test_task_contract.py` verifies the scaffold itself before any init:
+Two contract test files verify the scaffold itself before any init:
 
-- All 11 task files exist in `.mise/tasks/`
+**`test_task_contract.py`** — task file structure:
+
+- All 12 task files exist in `.mise/tasks/`
 - Every task file is executable
 - Every task file has a `# MISE description=` header
 - Every task file uses `#!/usr/bin/env -S uv run python` shebang
 - `scripts/lib.py` exists
 - CI workflow calls `mise run ci`
 - Pre-commit config calls `mise run` tasks
+
+**`test_docs_contract.py`** — documentation structure:
+
+- All `docs/*.md` files have valid YAML frontmatter (id, title, description, index)
+- Frontmatter ids are unique across all docs
+- SPEC.md template has all 6 required sections (Summary, Goals, Requirements, Interfaces, Invariants, Acceptance)
+- Architecture.md template has all 8 required sections
+- ADR template has Status field, required sections (Context, Decision, Consequences), and generated-from field
+- mkdocs.yml nav entries point to existing files
+
+Doc validation helpers live in `tests/_docs_helpers.py` (stdlib-only, no pyyaml). The same helpers are used by `stacks/python/tests/test_docs.py.tmpl` so generated Python repos self-validate their docs.
 
 ### E2E test fixtures
 

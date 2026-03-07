@@ -28,14 +28,17 @@ index:
 2. Copy stack templates to project root (or apps/ modules)
 3. Process .tmpl files — replace {{placeholders}} with project values
 4. Rewrite .mise.toml with project name, shape, stack, and tool versions
-5. Generate README.md and CLAUDE.md from templates
-6. Generate .gitignore for the target stack
-7. Generate workspace.toml (apps shape only)
-8. Remove scaffold artifacts (stacks/, templates/, SPEC.md, init_project.py)
-9. git init + initial commit
-10. Install pre-commit hooks (unless --no-hooks)
-11. mise run setup — install dependencies
-12. mise run check — verify the golden path passes
+5. Generate SPEC.md, README.md, AGENTS.md (+ CLAUDE.md symlink) from templates
+6. Generate docs/architecture.md and docs/decisions/0001-stack-choice.md from templates
+7. Generate .agent/skills/ (+ .claude/skills symlink) from templates
+8. Generate .github/workflows/ci.yml from template
+9. Generate .gitignore for the target stack
+10. Generate workspace.toml (apps shape only)
+11. Remove scaffold artifacts (stacks/, templates/, scaffold docs/, src/)
+12. git init + initial commit
+13. Install pre-commit hooks (unless --no-hooks)
+14. mise run setup — install dependencies
+15. mise run check — verify the golden path passes
 ```
 
 The last step is the guarantee: **a freshly initialized project passes `mise run check` out of the box**.
@@ -60,11 +63,28 @@ Files with the `.tmpl` extension are processed by replacing `{{placeholder}}` st
 After init, the following scaffold artifacts are deleted:
 
 - `stacks/` — per-stack template files
-- `templates/` — README, CLAUDE.md, .gitignore templates
-- `SPEC.md` — this specification
-- `scripts/init_project.py` — the init script itself
+- `templates/` — shared template files
+- `src/` — scaffold CLI package
+- `docs/` — scaffold's MkDocs site (replaced with generated project docs)
+- `mkdocs.yml` — scaffold's MkDocs config
+- `scripts/init_project.py` — legacy init script (if present)
 
 The scaffold's test suite (`tests/`, `pyproject.toml`) is only removed for non-Python stacks. For Python single projects, the test suite itself becomes the project's test suite.
+
+**Note:** `SPEC.md` is *not* removed — the scaffold's design spec is replaced by a project-specific correctness envelope generated from `templates/SPEC.md.tmpl`.
+
+## Shared templates
+
+Generated for all stacks and shapes from `templates/`:
+
+```
+SPEC.md.tmpl                              →  SPEC.md (correctness envelope)
+AGENTS.md.tmpl                            →  AGENTS.md (+ CLAUDE.md symlink)
+README.md.tmpl                            →  README.md
+docs/architecture.md.tmpl                 →  docs/architecture.md
+docs/decisions/0001-stack-choice.md.tmpl  →  docs/decisions/0001-stack-choice.md
+.github/workflows/ci.yml.tmpl            →  .github/workflows/ci.yml
+```
 
 ## Stack templates
 

@@ -7,12 +7,14 @@ Opinionated starter repository for agent-driven engineering. Provides a **stable
 ```
 agent-scaffold/
 ├── .mise.toml                  # Tool versions + env vars (stack, shape, name)
-├── .mise/tasks/                # 11 file-based task scripts (the contract)
+├── .mise/tasks/                # 12 file-based task scripts (the contract)
 ├── scripts/
 │   └── lib.py                  # Shared helpers (stack dispatch, module iteration)
 ├── stacks/                     # Per-stack template files (removed after init)
 │   ├── python/                 # Python stack templates (.tmpl + source)
-│   └── go/                     # Go stack templates
+│   ├── go/                     # Go stack templates
+│   ├── rust/                   # Rust stack templates
+│   └── web/                    # Web/TS stack templates
 ├── templates/                  # Shared templates: README, CLAUDE.md, .gitignore
 ├── src/agent_scaffold/         # CLI package (click-based)
 ├── tests/                      # Scaffold self-tests
@@ -55,7 +57,7 @@ mise run verify                 # heavy validation (integration, docker) ⏸️ 
 
 ## System Invariants
 
-- **Stable 11-task contract**: Every `.mise/tasks/` script must exist, be executable, have a `# MISE description=` header, and use `#!/usr/bin/env -S uv run python` shebang. Violation causes: contract test failures, agents cannot rely on the command surface.
+- **Stable 12-task contract**: Every `.mise/tasks/` script must exist, be executable, have a `# MISE description=` header, and use `#!/usr/bin/env -S uv run python` shebang. Violation causes: contract test failures, agents cannot rely on the command surface.
 - **CI parity**: `mise run check` locally must match what CI runs (`mise run ci` delegates to `check`). Pre-commit hooks call the same tasks. Violation causes: green local / red CI divergence.
 - **Golden path guarantee**: A freshly initialized project (`mise run init`) must pass `mise run check` out of the box. Violation causes: broken first-run experience for users and agents.
 - **Stack dispatch via env**: Tasks read `SCAFFOLD_PROJECT_STACK` from `.mise.toml` to dispatch to the correct toolchain. Violation causes: tasks run wrong language tools.
@@ -75,7 +77,7 @@ mise run verify                 # heavy validation (integration, docker) ⏸️ 
 |-----|-------|
 | `docs/index.md` | Project overview and quick start |
 | `docs/getting-started.md` | Full install and init walkthrough |
-| `docs/task-contract.md` | All 11 tasks: purpose, per-stack commands |
+| `docs/task-contract.md` | All 12 tasks: purpose, per-stack commands |
 | `docs/shapes.md` | Single vs apps workspace shapes |
 | `docs/init-system.md` | How init transforms the scaffold |
 | `docs/ci.md` | GitHub Actions workflow and pre-commit hooks |
