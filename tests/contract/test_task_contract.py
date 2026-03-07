@@ -170,3 +170,9 @@ def test_ci_template_is_two_tier() -> None:
     assert "mise run ci" in content
     assert "mise run verify" in content
     assert "upload-artifact" in content
+
+
+def test_python_stack_has_test_docs_template() -> None:
+    assert (
+        SCAFFOLD_ROOT / "stacks" / "python" / "tests" / "test_docs.py.tmpl"
+    ).exists()

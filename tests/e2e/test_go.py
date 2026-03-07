@@ -32,7 +32,12 @@ class TestGoSingleHappyPath:
     def test_scaffold_artifacts_removed(self, go_single_ready: Path) -> None:
         assert not (go_single_ready / "stacks").exists()
         assert not (go_single_ready / "templates").exists()
-        assert not (go_single_ready / "SPEC.md").exists()
+
+    def test_spec_md_generated(self, go_single_ready: Path) -> None:
+        """SPEC.md must be generated from template."""
+        spec = go_single_ready / "SPEC.md"
+        assert spec.exists()
+        assert spec.read_text().startswith("---\n"), "SPEC.md missing frontmatter"
 
     def test_agents_md_exists(self, go_single_ready: Path) -> None:
         """AGENTS.md must be generated as the canonical steering doc."""

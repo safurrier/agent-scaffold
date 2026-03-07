@@ -1,20 +1,3 @@
----
-id: {{project_name}}-agents
-title: {{project_name}}
-description: >
-  Steering index for {{project_name}}. Covers project purpose, repo map,
-  and validation commands for agents and humans working in this repo.
-index:
-  - id: why
-    keywords: [purpose, goals, done-means, project-overview]
-  - id: what
-    keywords: [repo-map, entrypoints, structure, steering-files]
-  - id: how
-    keywords: [setup, check, verify, dev, commands, validate]
-  - id: skills
-    keywords: [skills, plugins, agent-skills, optional-workflows]
----
-
 # {{project_name}}
 
 {{project_description}}
@@ -25,7 +8,7 @@ index:
 
 **Done means**: all `mise run check` gates pass; intended behavior is covered by tests.
 
-Durable invariants and decisions live in [`docs/architecture.md`](docs/architecture.md).
+Correctness invariants live in [`SPEC.md`](SPEC.md). System design and decisions in [`docs/architecture.md`](docs/architecture.md).
 
 ## WHAT
 
@@ -33,7 +16,8 @@ Durable invariants and decisions live in [`docs/architecture.md`](docs/architect
 
 Key steering files:
 - `AGENTS.md` — this file (steering index)
-- `docs/architecture.md` — invariants, principles, system model
+- `SPEC.md` — correctness envelope (requirements, contracts, invariants)
+- `docs/architecture.md` — system description, principles, decisions
 - `docs/decisions/` — architectural decision records (ADRs)
 - `.agent/skills/` — optional opinionated workflow plugins
 
@@ -53,6 +37,16 @@ If `check` passes locally, CI passes.
 
 {{stack_notes}}
 
+## Before Pushing
+
+1. `mise run check` — must pass
+2. `/spec-sync` — review changes against SPEC.md, capture any decisions as ADRs
+3. `/context-engineering update` — update AGENTS.md if workflows or structure changed
+4. `/docs-workflow update` — update docs/ if architecture or module docs affected
+
+Steps 2-4 are fast when nothing changed. The agent reviews its own diff and skips
+if no updates are needed.
+
 ## Skills
 
 Optional workflow plugins live in `.agent/skills/`. Each `SKILL.md` describes when to
@@ -66,6 +60,7 @@ harnesses can create `<harness-config>/skills → ../.agent/skills` similarly.
 
 | Document | Purpose |
 |---|---|
-| `docs/architecture.md` | System model, invariants, principles |
+| `SPEC.md` | Correctness envelope — requirements, contracts, invariants |
+| `docs/architecture.md` | System description, principles, decisions |
 | `docs/decisions/` | Architectural decision records |
 | `README.md` | Human-oriented quick start |

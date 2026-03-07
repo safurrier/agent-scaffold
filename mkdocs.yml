@@ -40,6 +40,8 @@ nav:
   - Init System: init-system.md
   - CI & Hooks: ci.md
   - Development: development.md
+  - Decisions:
+      - ADR 0001 — Spec-Driven Decision Loop: decisions/0001-spec-driven-decision-loop.md
 
 markdown_extensions:
   - admonition

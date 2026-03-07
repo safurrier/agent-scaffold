@@ -20,6 +20,7 @@ COPY_IGNORE = shutil.ignore_patterns(
     ".venv",
     ".mypy_cache",
     ".ruff_cache",
+    ".ai",  # plan artifacts
 )
 
 
