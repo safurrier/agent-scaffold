@@ -54,22 +54,22 @@
 - [ ] Verify: existing AGENTS.md tests still pass
 
 ## Phase 8: Generated Repo Tests
-- [ ] Update `stacks/python/tests/test_docs.py.tmpl` with SPEC.md + architecture + ADR tests
-- [ ] Update E2E tests to verify SPEC.md exists and has sections after init
-- [ ] Verify: `mise run check` (full suite)
+- [x] Update `stacks/python/tests/test_docs.py.tmpl` with SPEC.md + architecture + ADR tests
+- [x] Update E2E tests to verify SPEC.md exists and has sections after init
+- [x] Ship all 3 skills to `templates/.agent/skills/` so generated repos include them
+- [x] Verified: init → setup → check passes on fresh generated project with skills
+- [x] Verify: `mise run check` (full suite) — 322 passed
 
 ## Phase 9: ADRs From This Session
-- [ ] ADR 0002: Add SPEC.md as correctness envelope (distinct from architecture.md)
-- [ ] ADR 0003: 6-section SPEC structure (Summary, Goals, Requirements, Interfaces, Invariants, Acceptance)
-- [ ] ADR 0004: Architecture.md shifts to descriptive only (invariants move to SPEC.md)
-- [ ] ADR 0005: Bottom-up spec maintenance via decision extraction at merge time
-- [ ] Update architecture.md decisions index to list new ADRs
-- [ ] Verify: ADR contract tests pass on all new ADRs
+- [x] ADR 0001: Single ADR covering all branch decisions (one-per-branch granularity)
+  - SPEC.md as correctness envelope, 6-section structure, bottom-up maintenance, pre-push skills
+  - Decided against splitting into 4 separate ADRs — one per branch is sufficient for this repo
+- [x] Verify: ADR contract tests pass
 
 ## Final Gate
-- [ ] `mise run check` green
-- [ ] Self-review all changes
-- [ ] Push, open PR, iterate on CI
+- [x] `mise run check` green (322 tests)
+- [x] Ran pre-push skills — found and fixed: stale Stack Protocol, 11→12 task count, missing stacks, 6 docs gaps
+- [x] Push, open PR: https://github.com/safurrier/agent-scaffold/pull/1
 
 ## Follow-on (Not This Branch)
 - [ ] Groundskeeper skill: decision extraction from diff + PR metadata
