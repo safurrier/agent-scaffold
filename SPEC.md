@@ -20,7 +20,7 @@ index:
 
 ## Summary
 
-agent-scaffold is an opinionated starter repository for agent-driven engineering. Clone it, run `mise run init`, and it transforms itself into a fully configured project with a stable 12-task command surface. Both humans and AI agents benefit from a language-agnostic, CI-parity contract where `mise run check` always works regardless of stack.
+agent-scaffold is an opinionated starter repository for agent-driven engineering. Clone it, run `mise run init`, and it transforms itself into a fully configured project with a stable 13-task command surface. Both humans and AI agents benefit from a language-agnostic, CI-parity contract where `mise run check` always works regardless of stack.
 
 ## Goals / Non-Goals
 
@@ -83,7 +83,7 @@ agent-scaffold init [OPTIONS]
   --no-examples         Remove example code after init
 ```
 
-**12-task contract:**
+**13-task contract:**
 
 | Task | Purpose | Composition |
 |------|---------|-------------|
@@ -98,6 +98,7 @@ agent-scaffold init [OPTIONS]
 | `dev` | Local development | Stack-dependent |
 | `ci` | CI entrypoint | Delegates to `check` |
 | `docs` | Documentation server | MkDocs dev server |
+| `plan` | Create plan directory | Scaffolds `.ai/plans/<slug>/` |
 | `verify` | Heavy validation | Integration, docker, security |
 
 **Stack Protocol:**

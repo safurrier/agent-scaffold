@@ -29,7 +29,7 @@ Every generated project ships with a **three-doc split**:
 - **`AGENTS.md`** — how to work here (commands, repo map, workflow)
 - **`docs/architecture.md`** — system description (principles, decisions, module map)
 
-The key insight: agents (and humans) benefit from a **fixed command surface**. Regardless of language, repo shape, or tooling choices, every project initialized from this scaffold exposes the same 12 tasks:
+The key insight: agents (and humans) benefit from a **fixed command surface**. Regardless of language, repo shape, or tooling choices, every project initialized from this scaffold exposes the same 13 tasks:
 
 ```bash
 mise run fmt        # format

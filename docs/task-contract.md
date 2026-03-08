@@ -17,7 +17,7 @@ index:
 
 # Task Contract
 
-Every project initialized from agent-scaffold exposes these 12 tasks. The contract is **stable** — same command names regardless of stack or shape.
+Every project initialized from agent-scaffold exposes these 13 tasks. The contract is **stable** — same command names regardless of stack or shape.
 
 ```bash
 mise run <task>

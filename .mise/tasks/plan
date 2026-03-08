@@ -1,0 +1,95 @@
+#!/usr/bin/env -S uv run python
+# MISE description="Create a new plan directory for a unit of work"
+import os
+import shutil
+import subprocess
+import sys
+from datetime import datetime
+from pathlib import Path
+
+sys.path.insert(0, os.path.join(os.environ["MISE_PROJECT_ROOT"], "scripts"))
+from lib import PROJECT_ROOT, log_error, log_ok, log_step  # noqa: E402
+
+PLANS_DIR = PROJECT_ROOT / ".ai" / "plans"
+TEMPLATES_DIR = PROJECT_ROOT / ".ai" / "plans" / "_templates"
+
+
+def get_current_branch() -> str:
+    """Get the current git branch name."""
+    result = subprocess.run(
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout.strip() if result.returncode == 0 else ""
+
+
+def create_plan(slug: str) -> Path:
+    """Create a plan directory with template files."""
+    timestamp = datetime.now().strftime("%Y-%m-%d-%H%M")
+    dirname = f"{timestamp}-{slug}"
+    plan_dir = PLANS_DIR / dirname
+    plan_dir.mkdir(parents=True, exist_ok=True)
+
+    branch = get_current_branch()
+    created = datetime.now().strftime("%Y-%m-%d")
+
+    # Copy templates if they exist, otherwise create from defaults
+    if TEMPLATES_DIR.is_dir():
+        for src in TEMPLATES_DIR.iterdir():
+            dst = plan_dir / src.name
+            if src.is_file():
+                content = src.read_text()
+                content = content.replace("{{slug}}", slug)
+                content = content.replace("{{branch}}", branch)
+                content = content.replace("{{created}}", created)
+                dst.write_text(content)
+            elif src.is_dir():
+                shutil.copytree(src, dst)
+    else:
+        # Fallback: create minimal META.yaml and TODO.md
+        (plan_dir / "META.yaml").write_text(
+            f"slug: {slug}\nbranch: {branch}\ncreated: {created}\n"
+            f"pr:\nstatus: planned\nsource:\n"
+        )
+        (plan_dir / "TODO.md").write_text(f"# TODO — {slug}\n\n- [ ] \n")
+
+    return plan_dir
+
+
+def main() -> None:
+    args = sys.argv[1:]
+
+    if not args:
+        log_error("Usage: mise run plan -- <slug>")
+        log_error("  slug: lowercase-hyphenated name (e.g., add-user-auth)")
+        sys.exit(1)
+
+    slug = args[0].lower().replace(" ", "-")
+
+    # Warn if on main
+    branch = get_current_branch()
+    if branch in ("main", "master"):
+        log_error(
+            f"You're on '{branch}'. Create a feature branch before starting work."
+        )
+        log_error(f"  git checkout -b feat/{slug}")
+        sys.exit(1)
+
+    log_step(f"Creating plan: {slug}")
+    plan_dir = create_plan(slug)
+    log_ok(f"Plan created: {plan_dir.relative_to(PROJECT_ROOT)}")
+
+    print()
+    print(f"  Files:")
+    for f in sorted(plan_dir.iterdir()):
+        print(f"    {f.name}")
+    print()
+    print(f"  Next steps:")
+    print(f"    1. Edit TODO.md with your tasks")
+    print(f"    2. Fill in META.yaml source field")
+    print(f"    3. Start working — append to LEARNING_LOG.md as you go")
+
+
+main()
