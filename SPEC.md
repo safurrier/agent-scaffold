@@ -53,7 +53,7 @@ agent-scaffold is an opinionated starter repository for agent-driven engineering
 - Generated projects include `AGENTS.md`, `SPEC.md`, `docs/architecture.md`, `docs/decisions/`, and CI workflow
 - All generated docs have valid YAML frontmatter with `id`, `title`, `description`, and `index` fields
 - ADRs have Status (from allowed values), Context, Decision, and Consequences sections
-- `mise run plan -- <slug>` creates a plan directory with META.yaml, TODO.md, LEARNING_LOG.md, VALIDATION.md
+- `mise run plan -- <slug>` creates a plan directory with META.yaml, TODO.md, LEARNING_LOG.md, VALIDATION.md; invalid or duplicate slugs fail with clear errors
 - Generated projects include `.ai/plans/` with routing AGENTS.md, templates, and example
 - Plan META.yaml has required fields: `slug`, `created` (YYYY-MM-DD), `status` (from allowed values)
 

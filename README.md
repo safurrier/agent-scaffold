@@ -55,6 +55,8 @@ Every agent-scaffold project exposes these commands:
 | `mise run check` | Fast quality gate |
 | `mise run dev` | Local development |
 | `mise run ci` | CI entrypoint (= check) |
+| `mise run docs` | Documentation server |
+| `mise run plan -- <slug>` | Create a plan directory on a feature branch |
 | `mise run verify` | Heavy validation |
 
 ## Supported Stacks

@@ -40,11 +40,15 @@ If `check` passes locally, CI passes.
 ## Starting Work
 
 ```bash
-mise run plan -- <slug>    # creates .ai/plans/YYYY-MM-DD-HHmm-<slug>/
+git checkout -b feat/<slug>
+mise run plan -- <slug>    # creates .ai/plans/YYYY-MM-DD-HHmmSS-<slug>/
 ```
 
-This scaffolds a plan directory with META.yaml, TODO.md, LEARNING_LOG.md, and
-VALIDATION.md. Add SPEC.md or IMPLEMENTATION.md if the work is complex.
+`mise run plan` refuses to run on the default branch. Slugs must be lowercase
+kebab-case and unique within `.ai/plans/`.
+
+The task scaffolds META.yaml, TODO.md, LEARNING_LOG.md, and VALIDATION.md.
+Add SPEC.md or IMPLEMENTATION.md if the work is complex.
 
 See `.ai/plans/AGENTS.md` for the full plan structure and `_example/` for a reference.
 

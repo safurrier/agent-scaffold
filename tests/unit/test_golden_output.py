@@ -95,12 +95,22 @@ class TestPythonSingleGolden:
         content = (self._root / "README.md").read_text()
         assert "goldenapp" in content
 
+    def test_readme_includes_plan_workflow(self) -> None:
+        content = (self._root / "README.md").read_text()
+        assert "git checkout -b feat/<slug>" in content
+        assert "mise run plan -- <slug>" in content
+
     def test_agents_md_structure(self) -> None:
         content = (self._root / "AGENTS.md").read_text()
         assert "goldenapp" in content
         assert "## WHY" in content
         assert "## WHAT" in content
         assert "## HOW" in content
+
+    def test_agents_md_includes_plan_workflow(self) -> None:
+        content = (self._root / "AGENTS.md").read_text()
+        assert "git checkout -b feat/<slug>" in content
+        assert "mise run plan -- <slug>" in content
 
     def test_agents_md_no_frontmatter(self) -> None:
         content = (self._root / "AGENTS.md").read_text()

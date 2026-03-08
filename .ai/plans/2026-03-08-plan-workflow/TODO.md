@@ -16,7 +16,7 @@ description: >
 ## Phase 2: `mise run plan` Task
 - [x] Create `.mise/tasks/plan` script
 - [x] Auto-fills META.yaml with date and branch
-- [x] Warns if on main
+- [x] Refuses on the default branch with a clear message
 - [x] Update contract tests: plan task in CONTRACT_TASKS list
 
 ## Phase 3: `/plan-sync` Skill
@@ -32,7 +32,7 @@ description: >
 - [x] Add META.yaml parser + validator to `_docs_helpers.py`
 - [x] Contract tests: plan task, templates, example, META.yaml validation
 - [x] Golden output tests: plan templates generated in all 4 shapes
-- [x] `mise run check` green (350 passed)
+- [x] `mise run check` green (363 passed)
 - [x] Fix findings from pre-push skills (SPEC task count, docs gaps, ADR 0002)
 
 ## Phase 6: Pre-push skill fixes
@@ -42,3 +42,11 @@ description: >
 - [x] Fix docs/index.md: add plan to task listing
 - [x] Create ADR 0002 for this branch
 - [x] Update plan META.yaml, TODO, LEARNING_LOG, VALIDATION
+
+## Phase 7: Review fixes + extra coverage
+- [x] Fix `mise run plan` to load templates in both the scaffold repo and generated repos
+- [x] Reject invalid slugs and duplicate plan slugs with clear errors
+- [x] Update generated onboarding docs to create a feature branch before `mise run plan`
+- [x] Add E2E coverage for scaffold repo plan creation, invalid slugs, duplicate slugs, and generated-repo behavior
+- [x] Add golden-output checks for README and AGENTS plan workflow guidance
+- [x] Re-run `mise run check` after the fixes

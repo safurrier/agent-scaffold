@@ -20,7 +20,6 @@ COPY_IGNORE = shutil.ignore_patterns(
     ".venv",
     ".mypy_cache",
     ".ruff_cache",
-    ".ai",  # plan artifacts
 )
 
 
@@ -88,3 +87,14 @@ def trust_mise(path: Path) -> None:
             cwd=path,
             capture_output=True,
         )
+
+
+def init_git_branch(cwd: Path, branch: str) -> None:
+    """Create a git repo at *cwd* and switch to *branch*."""
+    subprocess.run(["git", "init"], cwd=cwd, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "checkout", "-b", branch],
+        cwd=cwd,
+        check=True,
+        capture_output=True,
+    )

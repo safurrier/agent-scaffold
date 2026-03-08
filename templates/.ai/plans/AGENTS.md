@@ -1,7 +1,7 @@
 # Plans
 
 Each subdirectory is a unit of work with a standard structure. Create one with
-`mise run plan <slug>` or manually.
+`git checkout -b feat/<slug>` then `mise run plan -- <slug>`, or create it manually.
 
 ## Required Files
 
@@ -33,13 +33,16 @@ source: feature-request      # freeform — code-review, bug, spike, follow-on, 
 ## Lifecycle
 
 ```
-mise run plan <slug>         → creates directory with templates
+git checkout -b feat/<slug>  → create a feature branch first
+mise run plan -- <slug>      → creates directory with templates
 status: planned              → start working
 status: in-progress          → append to LEARNING_LOG.md as you go
                              → update VALIDATION.md after testing
 /plan-sync before pushing    → verify META, TODOs, logs are current
 status: complete             → after merge
 ```
+
+`mise run plan` rejects invalid slugs and existing slugs so plan paths stay stable.
 
 ## Example
 

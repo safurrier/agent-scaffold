@@ -229,11 +229,13 @@ Creates a plan directory for a new unit of work. Scaffolds META.yaml, TODO.md,
 LEARNING_LOG.md, VALIDATION.md, and optional SPEC.md and IMPLEMENTATION.md.
 
 ```bash
+git checkout -b feat/<slug>
 mise run plan -- <slug>    # e.g., mise run plan -- add-user-auth
 ```
 
-Creates `.ai/plans/YYYY-MM-DD-HHmm-<slug>/` with templates auto-filled (date,
-branch). Refuses to run on `main` — create a feature branch first.
+Creates `.ai/plans/YYYY-MM-DD-HHmmSS-<slug>/` with templates auto-filled (date,
+branch). Refuses to run on the default branch. Slugs must be lowercase kebab-case
+and unique within `.ai/plans/`.
 
 See `.ai/plans/AGENTS.md` for the plan lifecycle and `_example/` for a reference.
 

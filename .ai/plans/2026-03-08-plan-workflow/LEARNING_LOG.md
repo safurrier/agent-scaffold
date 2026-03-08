@@ -37,3 +37,19 @@ Ran all 4 pre-push skills. Findings:
 - Plan's own META.yaml, TODO, LEARNING_LOG all stale
 
 Same pattern as last PR — the skills consistently find real drift. The pre-push convention works.
+
+## 2026-03-08 — Review fixes uncovered two real edge cases
+
+The new plan tests found issues that the schema-only coverage missed:
+
+- `git rev-parse --abbrev-ref HEAD` does not work on an unborn branch. In a fresh
+  repo with `git checkout -b feat/...` but no commit yet, it returns `HEAD` and exits
+  non-zero. Switched the plan task to `git symbolic-ref --quiet --short HEAD`, which
+  works for normal branches before the first commit.
+- The test copy helper ignored `.ai` globally, which also stripped `templates/.ai/`
+  out of scaffold copies. That made the plan task look broken in tests even though the
+  real repo still had the templates. Removing `.ai` from `COPY_IGNORE` kept shipped
+  plan templates in test fixtures.
+
+This is exactly why the extra end-to-end coverage mattered: the contract existed on
+paper, but the runtime path and test harness were still wrong.

@@ -55,7 +55,7 @@ mise run lint                   # ruff check ✅
 mise run typecheck              # ty check ⏸️ (may produce warnings on active codebase)
 mise run test                   # pytest (parallel via xdist) ⏸️ (E2E tests need temp dirs)
 mise run docs                   # MkDocs dev server at localhost:8000 ⏸️ (long-running)
-mise run plan -- <slug>         # create a plan directory for a unit of work ✅
+mise run plan -- <slug>         # create a plan directory on a feature branch ✅
 mise run init                   # transform scaffold into a project (one-time) ⏸️ (destructive)
 mise run verify                 # heavy validation (integration, docker) ⏸️ (slow, may need Docker)
 ```
