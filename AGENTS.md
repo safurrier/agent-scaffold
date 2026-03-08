@@ -7,7 +7,9 @@ Opinionated starter repository for agent-driven engineering. Provides a **stable
 ```
 agent-scaffold/
 ├── .mise.toml                  # Tool versions + env vars (stack, shape, name)
-├── .mise/tasks/                # 12 file-based task scripts (the contract)
+├── .mise/tasks/                # 13 file-based task scripts (the contract)
+├── .agent/skills/              # Agent skills (spec-sync, plan-sync, etc.)
+├── .ai/plans/                  # Plan directories for units of work
 ├── scripts/
 │   └── lib.py                  # Shared helpers (stack dispatch, module iteration)
 ├── stacks/                     # Per-stack template files (removed after init)
@@ -16,6 +18,8 @@ agent-scaffold/
 │   ├── rust/                   # Rust stack templates
 │   └── web/                    # Web/TS stack templates
 ├── templates/                  # Shared templates: README, CLAUDE.md, .gitignore
+│   ├── .agent/skills/          # Skills shipped to generated repos
+│   └── .ai/plans/              # Plan templates + example for generated repos
 ├── src/agent_scaffold/         # CLI package (click-based)
 ├── tests/                      # Scaffold self-tests
 │   ├── contract/               # Structural checks (fast, no subprocess)

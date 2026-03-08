@@ -2,5 +2,5 @@ slug: plan-workflow
 branch: feat/plan-workflow
 created: 2026-03-08
 pr:
-status: planned
+status: in-progress
 source: follow-on from spec-driven-decision-loop

@@ -37,6 +37,7 @@ mise run lint       # lint
 mise run typecheck  # type checking
 mise run test       # unit tests
 mise run check      # all of the above (fast gate)
+mise run plan       # create a plan directory for a unit of work
 mise run verify     # heavy validation (integration, docker, etc.)
 ```
 
