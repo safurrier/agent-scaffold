@@ -2,11 +2,11 @@
 id: task-contract
 title: Task Contract
 description: >
-  Reference for all 12 mise run tasks exposed by agent-scaffold projects: fmt, lint,
-  typecheck, test, check, ci, verify, and others. Same commands regardless of stack.
+  Reference for all 13 mise run tasks exposed by agent-scaffold projects: fmt, lint,
+  typecheck, test, check, ci, verify, plan, and others. Same commands regardless of stack.
 index:
   - id: contract-tasks
-    keywords: [tasks, contract, stable, list, reference]
+    keywords: [tasks, contract, stable, list, reference, plan]
   - id: check
     keywords: [check, quality-gate, fast, fmt-lint-typecheck-test]
   - id: verify
@@ -17,7 +17,7 @@ index:
 
 # Task Contract
 
-Every project initialized from agent-scaffold exposes these 12 tasks. The contract is **stable** — same command names regardless of stack or shape.
+Every project initialized from agent-scaffold exposes these 13 tasks. The contract is **stable** — same command names regardless of stack or shape.
 
 ```bash
 mise run <task>
@@ -37,6 +37,8 @@ mise run <task>
 | [`check`](#check) | fmt-check + lint + typecheck + test | Fast |
 | [`dev`](#dev) | Start local development | Long-running |
 | [`ci`](#ci) | CI entrypoint (= check) | Fast |
+| [`docs`](#docs) | Documentation server | Long-running |
+| [`plan`](#plan) | Create a plan directory | Fast |
 | [`verify`](#verify) | Heavy validation | Slow |
 
 ---
@@ -208,6 +210,34 @@ mise run ci
 ```
 
 GitHub Actions calls exactly this — nothing else. All quality gate logic lives in `check` which `ci` delegates to.
+
+---
+
+## docs
+
+Starts the MkDocs documentation server locally.
+
+```bash
+mise run docs    # serves at http://127.0.0.1:8000
+```
+
+---
+
+## plan
+
+Creates a plan directory for a new unit of work. Scaffolds META.yaml, TODO.md,
+LEARNING_LOG.md, VALIDATION.md, and optional SPEC.md and IMPLEMENTATION.md.
+
+```bash
+git checkout -b feat/<slug>
+mise run plan -- <slug>    # e.g., mise run plan -- add-user-auth
+```
+
+Creates `.ai/plans/YYYY-MM-DD-HHmmSS-<slug>/` with templates auto-filled (date,
+branch). Refuses to run on the default branch. Slugs must be lowercase kebab-case
+and unique within `.ai/plans/`.
+
+See `.ai/plans/AGENTS.md` for the plan lifecycle and `_example/` for a reference.
 
 ---
 

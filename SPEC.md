@@ -6,9 +6,9 @@ description: >
   and invariants that any valid implementation must satisfy.
 index:
   - id: requirements
-    keywords: [must, should, may, task-contract, init, check, ci, verify]
+    keywords: [must, should, may, task-contract, init, check, ci, verify, plan]
   - id: interfaces
-    keywords: [cli, mise, tasks, stack-protocol, shapes, config]
+    keywords: [cli, mise, tasks, stack-protocol, shapes, config, plan]
   - id: invariants
     keywords: [ci-parity, golden-path, worktree, deterministic, stack-dispatch]
 ---
@@ -20,7 +20,7 @@ index:
 
 ## Summary
 
-agent-scaffold is an opinionated starter repository for agent-driven engineering. Clone it, run `mise run init`, and it transforms itself into a fully configured project with a stable 12-task command surface. Both humans and AI agents benefit from a language-agnostic, CI-parity contract where `mise run check` always works regardless of stack.
+agent-scaffold is an opinionated starter repository for agent-driven engineering. Clone it, run `mise run init`, and it transforms itself into a fully configured project with a stable 13-task command surface. Both humans and AI agents benefit from a language-agnostic, CI-parity contract where `mise run check` always works regardless of stack.
 
 ## Goals / Non-Goals
 
@@ -45,7 +45,7 @@ agent-scaffold is an opinionated starter repository for agent-driven engineering
 
 - `mise run init` supports interactive and non-interactive modes
 - `mise run init -- --non-interactive` with explicit flags produces deterministic output
-- All 11 task scripts exist in `.mise/tasks/`, are executable, and have `# MISE description=` headers
+- All 13 task scripts exist in `.mise/tasks/`, are executable, and have `# MISE description=` headers
 - `mise run check` passes on a freshly initialized project without manual intervention (golden path)
 - `mise run ci` produces identical results to `mise run check` (CI parity)
 - Pre-commit hooks call the same tasks as CI
@@ -53,6 +53,9 @@ agent-scaffold is an opinionated starter repository for agent-driven engineering
 - Generated projects include `AGENTS.md`, `SPEC.md`, `docs/architecture.md`, `docs/decisions/`, and CI workflow
 - All generated docs have valid YAML frontmatter with `id`, `title`, `description`, and `index` fields
 - ADRs have Status (from allowed values), Context, Decision, and Consequences sections
+- `mise run plan -- <slug>` creates a plan directory with META.yaml, TODO.md, LEARNING_LOG.md, VALIDATION.md; invalid or duplicate slugs fail with clear errors
+- Generated projects include `.ai/plans/` with routing AGENTS.md, templates, and example
+- Plan META.yaml has required fields: `slug`, `created` (YYYY-MM-DD), `status` (from allowed values)
 
 ### SHOULD
 
@@ -83,7 +86,7 @@ agent-scaffold init [OPTIONS]
   --no-examples         Remove example code after init
 ```
 
-**12-task contract:**
+**13-task contract:**
 
 | Task | Purpose | Composition |
 |------|---------|-------------|
@@ -98,6 +101,7 @@ agent-scaffold init [OPTIONS]
 | `dev` | Local development | Stack-dependent |
 | `ci` | CI entrypoint | Delegates to `check` |
 | `docs` | Documentation server | MkDocs dev server |
+| `plan` | Create plan directory | Scaffolds `.ai/plans/<slug>/` |
 | `verify` | Heavy validation | Integration, docker, security |
 
 **Stack Protocol:**

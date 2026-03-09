@@ -37,14 +37,30 @@ If `check` passes locally, CI passes.
 
 {{stack_notes}}
 
+## Starting Work
+
+```bash
+git checkout -b feat/<slug>
+mise run plan -- <slug>    # creates .ai/plans/YYYY-MM-DD-HHmmSS-<slug>/
+```
+
+`mise run plan` refuses to run on the default branch. Slugs must be lowercase
+kebab-case and unique within `.ai/plans/`.
+
+The task scaffolds META.yaml, TODO.md, LEARNING_LOG.md, and VALIDATION.md.
+Add SPEC.md or IMPLEMENTATION.md if the work is complex.
+
+See `.ai/plans/AGENTS.md` for the full plan structure and `_example/` for a reference.
+
 ## Before Pushing
 
 1. `mise run check` — must pass
-2. `/spec-sync` — review changes against SPEC.md, capture any decisions as ADRs
-3. `/context-engineering update` — update AGENTS.md if workflows or structure changed
-4. `/docs-workflow update` — update docs/ if architecture or module docs affected
+2. `/plan-sync` — verify plan META, TODOs, and logs are current
+3. `/spec-sync` — review changes against SPEC.md, capture any decisions as ADRs
+4. `/context-engineering update` — update AGENTS.md if workflows or structure changed
+5. `/docs-workflow update` — update docs/ if architecture or module docs affected
 
-Steps 2-4 are fast when nothing changed. The agent reviews its own diff and skips
+Steps 2-5 are fast when nothing changed. The agent reviews its own diff and skips
 if no updates are needed.
 
 ## Skills
@@ -61,6 +77,7 @@ harnesses can create `<harness-config>/skills → ../.agent/skills` similarly.
 | Document | Purpose |
 |---|---|
 | `SPEC.md` | Correctness envelope — requirements, contracts, invariants |
+| `.ai/plans/` | Plan directories for units of work (see `.ai/plans/AGENTS.md`) |
 | `docs/architecture.md` | System description, principles, decisions |
 | `docs/decisions/` | Architectural decision records |
 | `README.md` | Human-oriented quick start |

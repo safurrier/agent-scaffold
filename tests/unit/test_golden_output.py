@@ -18,12 +18,15 @@ from agent_scaffold.common import run_init
 from agent_scaffold.config import Config
 from tests._docs_helpers import (
     ARCHITECTURE_REQUIRED_SECTIONS,
+    PLAN_REQUIRED_FILES,
     SPEC_REQUIRED_SECTIONS,
     find_adrs,
     find_section,
     has_frontmatter,
+    parse_meta_yaml,
     parse_sections,
     validate_adr,
+    validate_meta_yaml,
 )
 from tests._support import COPY_IGNORE, SCAFFOLD_ROOT
 
@@ -92,12 +95,22 @@ class TestPythonSingleGolden:
         content = (self._root / "README.md").read_text()
         assert "goldenapp" in content
 
+    def test_readme_includes_plan_workflow(self) -> None:
+        content = (self._root / "README.md").read_text()
+        assert "git checkout -b feat/<slug>" in content
+        assert "mise run plan -- <slug>" in content
+
     def test_agents_md_structure(self) -> None:
         content = (self._root / "AGENTS.md").read_text()
         assert "goldenapp" in content
         assert "## WHY" in content
         assert "## WHAT" in content
         assert "## HOW" in content
+
+    def test_agents_md_includes_plan_workflow(self) -> None:
+        content = (self._root / "AGENTS.md").read_text()
+        assert "git checkout -b feat/<slug>" in content
+        assert "mise run plan -- <slug>" in content
 
     def test_agents_md_no_frontmatter(self) -> None:
         content = (self._root / "AGENTS.md").read_text()
@@ -182,6 +195,29 @@ class TestPythonSingleGolden:
     def test_spec_md_has_project_name(self) -> None:
         content = (self._root / "SPEC.md").read_text()
         assert "goldenapp" in content
+
+    def test_plan_templates_generated(self) -> None:
+        plans = self._root / ".ai" / "plans"
+        assert plans.is_dir()
+        assert (plans / "AGENTS.md").exists()
+        assert (plans / "_templates").is_dir()
+        assert (plans / "_example").is_dir()
+
+    def test_plan_example_meta_valid(self) -> None:
+        meta = parse_meta_yaml(self._root / ".ai" / "plans" / "_example" / "META.yaml")
+        assert meta is not None
+        errors = validate_meta_yaml(meta)
+        assert not errors, f"Example META.yaml errors: {'; '.join(errors)}"
+
+    def test_plan_example_has_required_files(self) -> None:
+        example = self._root / ".ai" / "plans" / "_example"
+        for filename in PLAN_REQUIRED_FILES:
+            assert (example / filename).exists(), f"Example missing {filename}"
+
+    def test_plan_templates_have_required_files(self) -> None:
+        templates = self._root / ".ai" / "plans" / "_templates"
+        for filename in PLAN_REQUIRED_FILES:
+            assert (templates / filename).exists(), f"Template missing {filename}"
 
     def test_scaffold_artifacts_removed(self) -> None:
         assert not (self._root / "stacks").exists()
@@ -269,6 +305,11 @@ class TestPythonAppsGolden:
                 f"Generated SPEC.md missing section '{name}'"
             )
 
+    def test_plan_templates_generated(self) -> None:
+        assert (self._root / ".ai" / "plans" / "AGENTS.md").exists()
+        assert (self._root / ".ai" / "plans" / "_templates").is_dir()
+        assert (self._root / ".ai" / "plans" / "_example").is_dir()
+
     def test_scaffold_artifacts_removed(self) -> None:
         assert not (self._root / "stacks").exists()
         assert not (self._root / "templates").exists()
@@ -342,6 +383,10 @@ class TestGoSingleGolden:
                 f"Generated SPEC.md missing section '{name}'"
             )
 
+    def test_plan_templates_generated(self) -> None:
+        assert (self._root / ".ai" / "plans" / "AGENTS.md").exists()
+        assert (self._root / ".ai" / "plans" / "_templates").is_dir()
+
     def test_scaffold_artifacts_removed(self) -> None:
         assert not (self._root / "stacks").exists()
         assert not (self._root / "templates").exists()
@@ -412,6 +457,10 @@ class TestGoAppsGolden:
             assert find_section(sections, name, level=2) is not None, (
                 f"Generated SPEC.md missing section '{name}'"
             )
+
+    def test_plan_templates_generated(self) -> None:
+        assert (self._root / ".ai" / "plans" / "AGENTS.md").exists()
+        assert (self._root / ".ai" / "plans" / "_templates").is_dir()
 
     def test_scaffold_artifacts_removed(self) -> None:
         assert not (self._root / "stacks").exists()

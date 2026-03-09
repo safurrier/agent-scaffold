@@ -82,6 +82,15 @@ def generate_docs(root: Path, context: dict[str, Any]) -> None:
         skills_dst.mkdir(parents=True, exist_ok=True)
         copy_tree(skills_src, skills_dst, context)
 
+    # .ai/plans/ (AGENTS.md routing index, templates, example)
+    plans_dst = root / ".ai" / "plans"
+    if plans_dst.is_dir():
+        shutil.rmtree(plans_dst)
+    plans_src = tmpl_dir / ".ai" / "plans"
+    if plans_src.exists():
+        plans_dst.mkdir(parents=True, exist_ok=True)
+        copy_tree(plans_src, plans_dst, context)
+
     # .claude/skills → ../.agent/skills symlink
     claude_dir = root / ".claude"
     claude_dir.mkdir(exist_ok=True)

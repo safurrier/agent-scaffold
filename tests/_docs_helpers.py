@@ -338,3 +338,66 @@ def derive_decisions_index(decisions_dir: Path) -> str:
         title = adr.title or adr.filename
         lines.append(f"| {link} | {title} |")
     return "\n".join(lines)
+
+
+# ── Plan META.yaml validation ────────────────────────────────────────────
+
+
+REQUIRED_META_FIELDS = ["slug", "created", "status"]
+ALLOWED_META_STATUSES = {"planned", "in-progress", "complete", "abandoned"}
+
+
+@dataclass
+class PlanMeta:
+    """Parsed META.yaml from a plan directory."""
+
+    slug: str = ""
+    branch: str = ""
+    created: str = ""
+    pr: str = ""
+    status: str = ""
+    source: str = ""
+
+
+def parse_meta_yaml(path: Path) -> PlanMeta | None:
+    """Parse META.yaml from a plan directory. Returns None if absent."""
+    if not path.exists():
+        return None
+
+    text = path.read_text()
+    meta = PlanMeta()
+
+    for line in text.splitlines():
+        m = re.match(r"^(\w+):\s*(.*)$", line)
+        if m:
+            key, value = m.group(1), m.group(2).strip()
+            if hasattr(meta, key):
+                setattr(meta, key, value)
+
+    return meta
+
+
+def validate_meta_yaml(meta: PlanMeta) -> list[str]:
+    """Validate META.yaml fields. Returns list of error messages (empty = valid)."""
+    errors: list[str] = []
+
+    if not meta.slug:
+        errors.append("missing 'slug' field")
+
+    if not meta.created:
+        errors.append("missing 'created' field")
+    elif not re.match(r"^\d{4}-\d{2}-\d{2}$", meta.created):
+        errors.append(f"created '{meta.created}' is not YYYY-MM-DD format")
+
+    if not meta.status:
+        errors.append("missing 'status' field")
+    elif meta.status not in ALLOWED_META_STATUSES:
+        errors.append(
+            f"status '{meta.status}' not in allowed values: "
+            f"{', '.join(sorted(ALLOWED_META_STATUSES))}"
+        )
+
+    return errors
+
+
+PLAN_REQUIRED_FILES = ["META.yaml", "TODO.md", "LEARNING_LOG.md", "VALIDATION.md"]

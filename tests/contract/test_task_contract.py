@@ -26,6 +26,8 @@ CONTRACT_TASKS = [
     "dev",
     "ci",
     "verify",
+    "docs",
+    "plan",
 ]
 
 TASKS_DIR = SCAFFOLD_ROOT / ".mise" / "tasks"
@@ -176,3 +178,43 @@ def test_python_stack_has_test_docs_template() -> None:
     assert (
         SCAFFOLD_ROOT / "stacks" / "python" / "tests" / "test_docs.py.tmpl"
     ).exists()
+
+
+# ── Plan templates ───────────────────────────────────────────────────────
+
+
+def test_plan_templates_agents_md_exists() -> None:
+    """Plans routing index must exist in templates."""
+    assert (SCAFFOLD_ROOT / "templates" / ".ai" / "plans" / "AGENTS.md").exists()
+
+
+def test_plan_templates_dir_exists() -> None:
+    """Plan file templates directory must exist."""
+    assert (SCAFFOLD_ROOT / "templates" / ".ai" / "plans" / "_templates").is_dir()
+
+
+@pytest.mark.parametrize(
+    "filename",
+    ["META.yaml", "TODO.md", "LEARNING_LOG.md", "VALIDATION.md"],
+)
+def test_plan_template_required_file_exists(filename: str) -> None:
+    """Every required plan template file must exist."""
+    assert (
+        SCAFFOLD_ROOT / "templates" / ".ai" / "plans" / "_templates" / filename
+    ).exists(), f"Missing plan template: _templates/{filename}"
+
+
+def test_plan_example_dir_exists() -> None:
+    """Example plan directory must exist in templates."""
+    assert (SCAFFOLD_ROOT / "templates" / ".ai" / "plans" / "_example").is_dir()
+
+
+@pytest.mark.parametrize(
+    "filename",
+    ["META.yaml", "TODO.md", "LEARNING_LOG.md", "VALIDATION.md"],
+)
+def test_plan_example_has_required_file(filename: str) -> None:
+    """Example plan must include all required files."""
+    assert (
+        SCAFFOLD_ROOT / "templates" / ".ai" / "plans" / "_example" / filename
+    ).exists(), f"Example plan missing: {filename}"
