@@ -11,6 +11,8 @@ def test_tools_toml_has_go_gofumpt_golangci() -> None:
     from agent_scaffold.stacks.go import GoStack
 
     tools = GoStack().tools_toml()
+    assert 'python = "3.12"' in tools
+    assert 'uv = "latest"' in tools
     assert "go = " in tools
     assert "gofumpt" in tools
     assert "golangci-lint" in tools

@@ -11,7 +11,13 @@ from agent_scaffold.templates import copy_tree
 
 class GoStack:
     def tools_toml(self) -> str:
-        return 'go = "1.23.12"\ngofumpt = "latest"\ngolangci-lint = "latest"\n'
+        return (
+            'python = "3.12"\n'
+            'uv = "latest"\n'
+            'go = "1.23.12"\n'
+            'gofumpt = "latest"\n'
+            'golangci-lint = "latest"\n'
+        )
 
     def adr_notes(self) -> str:
         return """\

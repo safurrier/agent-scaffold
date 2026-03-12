@@ -23,6 +23,7 @@ def build_context(
         "project_name": config.name,
         "project_description": config.description,
         "project_stack": config.stack,
+        "project_shape": config.shape,
         "author_name": config.author_name,
         "author_email": config.author_email,
         "go_module": config.go_module,
