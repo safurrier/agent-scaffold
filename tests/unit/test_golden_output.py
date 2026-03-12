@@ -223,6 +223,11 @@ class TestPythonSingleGolden:
         assert not (self._root / "stacks").exists()
         assert not (self._root / "templates").exists()
 
+    def test_readme_dev_command_no_module(self) -> None:
+        content = (self._root / "README.md").read_text()
+        assert "mise run dev" in content
+        assert "mise run dev -- <module>" not in content
+
     def test_agent_skills_generated(self) -> None:
         assert (self._root / ".agent" / "skills" / "README.md").exists()
         assert (
@@ -310,6 +315,18 @@ class TestPythonAppsGolden:
         assert (self._root / ".ai" / "plans" / "_templates").is_dir()
         assert (self._root / ".ai" / "plans" / "_example").is_dir()
 
+    def test_readme_dev_command_shows_module(self) -> None:
+        content = (self._root / "README.md").read_text()
+        assert "mise run dev -- <module>" in content
+
+    def test_agents_md_dev_command_shows_module(self) -> None:
+        content = (self._root / "AGENTS.md").read_text()
+        assert "mise run dev -- <module>" in content
+
+    def test_ci_workflow_apps_artifacts(self) -> None:
+        content = (self._root / ".github" / "workflows" / "ci.yml").read_text()
+        assert "apps/*/test-results/" in content
+
     def test_scaffold_artifacts_removed(self) -> None:
         assert not (self._root / "stacks").exists()
         assert not (self._root / "templates").exists()
@@ -329,6 +346,8 @@ class TestGoSingleGolden:
 
     def test_mise_toml_go_tools(self) -> None:
         content = (self._root / ".mise.toml").read_text()
+        assert 'python = "3.12"' in content
+        assert 'uv = "latest"' in content
         assert "go = " in content
         assert "gofumpt" in content
         assert "golangci-lint" in content
@@ -461,6 +480,10 @@ class TestGoAppsGolden:
     def test_plan_templates_generated(self) -> None:
         assert (self._root / ".ai" / "plans" / "AGENTS.md").exists()
         assert (self._root / ".ai" / "plans" / "_templates").is_dir()
+
+    def test_ci_workflow_apps_artifacts(self) -> None:
+        content = (self._root / ".github" / "workflows" / "ci.yml").read_text()
+        assert "apps/*/test-results/" in content
 
     def test_scaffold_artifacts_removed(self) -> None:
         assert not (self._root / "stacks").exists()

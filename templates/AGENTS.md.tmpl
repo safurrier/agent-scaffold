@@ -27,7 +27,7 @@ Key steering files:
 mise run setup      # install tools and dependencies (one-time)
 mise run check      # fast quality gate: fmt + lint + typecheck + test  ← before committing
 mise run verify     # heavier validation: integration, security, docker  ← before merging
-mise run dev        # start local development
+{% if project_shape == "apps" %}mise run dev -- <module>  # start local development for a module{% else %}mise run dev        # start local development{% endif %}
 ```
 
 CI calls `mise run ci` (= `check`). Pre-commit hooks mirror CI exactly.
