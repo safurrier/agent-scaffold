@@ -17,11 +17,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
       - name: Install mise
         uses: jdx/mise-action@v2
 
-      - name: Override Python version
-        run: mise use python@${{ matrix.python-version }}
+      - name: Point mise at system Python
+        run: mise use python@system
 
       - name: Setup
         run: mise run setup
