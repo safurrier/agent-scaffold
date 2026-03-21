@@ -147,7 +147,7 @@ def cleanup_scaffold(root: Path, config: Config) -> None:
     to_remove = [
         root / "stacks",
         root / "templates",
-        root / "src",
+        root / "src" / "agent_scaffold",  # scaffold CLI package (not whole src/)
         root / "mkdocs.yml",  # scaffold's MkDocs config
         root / "scripts" / "init_project.py",  # legacy, may not exist
     ]
@@ -161,6 +161,11 @@ def cleanup_scaffold(root: Path, config: Config) -> None:
             shutil.rmtree(path)
         elif path.is_file():
             path.unlink(missing_ok=True)
+
+    # Remove src/ only if empty (Rust init_single writes src/main.rs there)
+    src_dir = root / "src"
+    if src_dir.is_dir() and not any(src_dir.iterdir()):
+        src_dir.rmdir()
 
     scripts_dir = root / "scripts"
     if scripts_dir.exists() and not any(scripts_dir.iterdir()):
