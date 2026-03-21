@@ -10,11 +10,7 @@ from agent_scaffold.templates import copy_tree
 
 class RustStack:
     def tools_toml(self) -> str:
-        return (
-            'python = "3.12"\n'
-            'uv = "latest"\n'
-            'rust = "stable"\n'
-        )
+        return 'python = "3.12"\nuv = "latest"\nrust = "stable"\n'
 
     def adr_notes(self) -> str:
         return """\

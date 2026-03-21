@@ -187,12 +187,12 @@ class TestRustGatesCatchErrors:
     def test_fmt_check_fails_on_unformatted_code(self, rust_single_mut: Path) -> None:
         """cargo fmt must detect improperly formatted Rust code."""
         bad_rs = rust_single_mut / "src" / "unformatted.rs"
-        bad_rs.write_text(
-            "pub fn unformatted(   ) ->String{  \"hello\".to_string()}\n"
-        )
+        bad_rs.write_text('pub fn unformatted(   ) ->String{  "hello".to_string()}\n')
         lib_rs = rust_single_mut / "src" / "lib.rs"
         content = lib_rs.read_text()
         lib_rs.write_text(f"pub mod unformatted;\n{content}")
 
         result = mise("fmt", rust_single_mut, "--check", timeout=60)
-        assert result.returncode != 0, "fmt --check should fail on unformatted Rust code"
+        assert result.returncode != 0, (
+            "fmt --check should fail on unformatted Rust code"
+        )
