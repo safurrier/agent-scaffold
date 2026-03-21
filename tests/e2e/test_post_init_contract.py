@@ -143,3 +143,47 @@ def test_go_apps_tasks_survive_init(go_apps_init: Path, task: str) -> None:
     assert os.access(task_file, os.X_OK), (
         f"Not executable after init: .mise/tasks/{task}"
     )
+
+
+# ── Rust combos (slow — require Rust toolchain for init) ─────────────────
+
+
+@pytest.fixture(scope="module")
+def rust_single_init(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    return _init_scaffold(
+        tmp_path_factory.mktemp("rust-single-contract"),
+        shape="single",
+        stack="rust",
+    )
+
+
+@pytest.fixture(scope="module")
+def rust_apps_init(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    return _init_scaffold(
+        tmp_path_factory.mktemp("rust-apps-contract"),
+        shape="apps",
+        stack="rust",
+        modules="svc",
+    )
+
+
+@pytest.mark.slow
+@pytest.mark.rust
+@pytest.mark.parametrize("task", CONTRACT_TASKS)
+def test_rust_single_tasks_survive_init(rust_single_init: Path, task: str) -> None:
+    task_file = rust_single_init / ".mise" / "tasks" / task
+    assert task_file.exists(), f"Missing after init: .mise/tasks/{task}"
+    assert os.access(task_file, os.X_OK), (
+        f"Not executable after init: .mise/tasks/{task}"
+    )
+
+
+@pytest.mark.slow
+@pytest.mark.rust
+@pytest.mark.parametrize("task", CONTRACT_TASKS)
+def test_rust_apps_tasks_survive_init(rust_apps_init: Path, task: str) -> None:
+    task_file = rust_apps_init / ".mise" / "tasks" / task
+    assert task_file.exists(), f"Missing after init: .mise/tasks/{task}"
+    assert os.access(task_file, os.X_OK), (
+        f"Not executable after init: .mise/tasks/{task}"
+    )

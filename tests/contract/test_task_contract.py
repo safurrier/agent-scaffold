@@ -91,6 +91,10 @@ def test_stacks_go_exists() -> None:
     assert (SCAFFOLD_ROOT / "stacks" / "go").is_dir()
 
 
+def test_stacks_rust_exists() -> None:
+    assert (SCAFFOLD_ROOT / "stacks" / "rust").is_dir()
+
+
 def test_ci_workflow_exists() -> None:
     assert (SCAFFOLD_ROOT / ".github" / "workflows" / "ci.yml").exists()
 
@@ -117,6 +121,10 @@ def test_python_stack_has_pyproject_template() -> None:
 
 def test_go_stack_has_go_mod_template() -> None:
     assert (SCAFFOLD_ROOT / "stacks" / "go" / "go.mod.tmpl").exists()
+
+
+def test_rust_stack_has_cargo_toml_template() -> None:
+    assert (SCAFFOLD_ROOT / "stacks" / "rust" / "Cargo.toml.tmpl").exists()
 
 
 def test_go_stack_has_golangci_config() -> None:

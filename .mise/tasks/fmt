@@ -50,10 +50,29 @@ def fmt_go(cwd=PROJECT_ROOT):
     log_ok("Go format")
 
 
+def fmt_rust(cwd=PROJECT_ROOT):
+    if check:
+        log_step("Checking Rust formatting")
+        result = subprocess.run(
+            ["cargo", "fmt", "--check"],
+            capture_output=True,
+            text=True,
+            cwd=cwd,
+        )
+        if result.returncode != 0:
+            log_error("Rust files need formatting:")
+            print(result.stdout + result.stderr)
+            sys.exit(1)
+    else:
+        log_step("Formatting Rust code")
+        run(["cargo", "fmt"], cwd=cwd)
+    log_ok("Rust format")
+
+
 if get_shape() == "apps":
     run_per_module(
         "fmt",
-        dispatch_module({"python": fmt_python, "go": fmt_go}),
+        dispatch_module({"python": fmt_python, "go": fmt_go, "rust": fmt_rust}),
     )
 else:
-    dispatch_stack({"python": fmt_python, "go": fmt_go})
+    dispatch_stack({"python": fmt_python, "go": fmt_go, "rust": fmt_rust})

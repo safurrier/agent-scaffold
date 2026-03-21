@@ -25,8 +25,8 @@ def to_module_name(name: str) -> str:
     return name.replace("-", "_")
 
 
-SUPPORTED_STACKS = ("python", "go")
-PLANNED_STACKS = ("rust", "web")
+SUPPORTED_STACKS = ("python", "go", "rust")
+PLANNED_STACKS = ("web",)
 SUPPORTED_SHAPES = ("single", "apps")
 
 

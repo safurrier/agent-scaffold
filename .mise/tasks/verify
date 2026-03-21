@@ -61,6 +61,26 @@ def verify_go(cwd=PROJECT_ROOT):
         log_ok("Docker build")
 
 
+def verify_rust(cwd=PROJECT_ROOT):
+    log_step("Running Rust integration tests")
+    result = subprocess.run(
+        ["cargo", "test", "--all-features"],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+    )
+    print(result.stdout + result.stderr, end="")
+    if result.returncode != 0:
+        sys.exit(result.returncode)
+    log_ok("Integration tests")
+
+    dockerfile = cwd / "Dockerfile"
+    if dockerfile.exists():
+        log_step("Building Docker image")
+        run(["docker", "build", "-t", f"{get_project_name()}:verify", "."], cwd=cwd)
+        log_ok("Docker build")
+
+
 log_step("Running verification suite")
 log_step("Phase 1: quality gate (check)")
 _run_task("check")
@@ -69,9 +89,13 @@ log_step("Phase 2: stack-specific verification")
 if get_shape() == "apps":
     run_per_module(
         "verify",
-        dispatch_module({"python": verify_python, "go": verify_go}),
+        dispatch_module(
+            {"python": verify_python, "go": verify_go, "rust": verify_rust}
+        ),
     )
 else:
-    dispatch_stack({"python": verify_python, "go": verify_go})
+    dispatch_stack(
+        {"python": verify_python, "go": verify_go, "rust": verify_rust}
+    )
 
 log_ok("Verification complete")

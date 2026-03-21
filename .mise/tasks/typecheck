@@ -31,10 +31,21 @@ def typecheck_go(cwd=PROJECT_ROOT):
     log_ok("Go typecheck")
 
 
+def typecheck_rust(cwd=PROJECT_ROOT):
+    # Rust's type + borrow checking via cargo check (faster than full build).
+    log_step("Type-checking Rust code (cargo check)")
+    run(["cargo", "check", "--all-targets", "--all-features"], cwd=cwd)
+    log_ok("Rust typecheck")
+
+
 if get_shape() == "apps":
     run_per_module(
         "typecheck",
-        dispatch_module({"python": typecheck_python, "go": typecheck_go}),
+        dispatch_module(
+            {"python": typecheck_python, "go": typecheck_go, "rust": typecheck_rust}
+        ),
     )
 else:
-    dispatch_stack({"python": typecheck_python, "go": typecheck_go})
+    dispatch_stack(
+        {"python": typecheck_python, "go": typecheck_go, "rust": typecheck_rust}
+    )

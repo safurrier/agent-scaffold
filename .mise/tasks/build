@@ -37,10 +37,16 @@ def build_go(cwd=PROJECT_ROOT):
     log_ok("Go build")
 
 
+def build_rust(cwd=PROJECT_ROOT):
+    log_step("Building Rust binaries")
+    run(["cargo", "build", "--release"], cwd=cwd)
+    log_ok("Rust build")
+
+
 if get_shape() == "apps":
     run_per_module(
         "build",
-        dispatch_module({"python": build_python, "go": build_go}),
+        dispatch_module({"python": build_python, "go": build_go, "rust": build_rust}),
     )
 else:
-    dispatch_stack({"python": build_python, "go": build_go})
+    dispatch_stack({"python": build_python, "go": build_go, "rust": build_rust})

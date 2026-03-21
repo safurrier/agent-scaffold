@@ -37,6 +37,7 @@ nav:
       - Overview: stacks/index.md
       - Python: stacks/python.md
       - Go: stacks/go.md
+      - Rust: stacks/rust.md
   - Init System: init-system.md
   - CI & Hooks: ci.md
   - Development: development.md
