@@ -8,6 +8,7 @@ Deselect them during day-to-day development:
 
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -31,6 +32,7 @@ class TestRustSingleHappyPath:
     def test_scaffold_artifacts_removed(self, rust_single_ready: Path) -> None:
         assert not (rust_single_ready / "stacks").exists()
         assert not (rust_single_ready / "templates").exists()
+        assert not (rust_single_ready / "src" / "agent_scaffold").exists()
 
     def test_spec_md_generated(self, rust_single_ready: Path) -> None:
         """SPEC.md must be generated from template."""
@@ -123,6 +125,26 @@ class TestRustSingleHappyPath:
         assert result.returncode == 0, result.stderr
         assert (rust_single_ready / "test-results" / "cargo-test.txt").exists(), (
             "cargo test must produce test-results/cargo-test.txt for CI artifact upload"
+        )
+
+    def test_release_build(self, rust_single_ready: Path) -> None:
+        """``cargo build --release`` must produce a working binary."""
+        result = mise("build", rust_single_ready, timeout=120)
+        assert result.returncode == 0, (
+            f"release build failed:\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
+        )
+        binary = rust_single_ready / "target" / "release" / "testrustapp"
+        assert binary.exists(), "release binary not found"
+
+        run = subprocess.run(
+            [str(binary)],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        assert run.returncode == 0, f"binary exited {run.returncode}: {run.stderr}"
+        assert "testrustapp" in run.stdout.lower() or "hello" in run.stdout.lower(), (
+            f"binary output unexpected: {run.stdout!r}"
         )
 
 
