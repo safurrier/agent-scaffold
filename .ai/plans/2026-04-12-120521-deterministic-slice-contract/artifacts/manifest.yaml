@@ -1,0 +1,7 @@
+artifacts:
+  - type: report
+    path: artifacts/generated-rust-validation.md
+    note: Summary of the generated mini-foreman repo validation and subagent slice
+  - type: report
+    path: artifacts/codex-review/review.md
+    note: External Codex review summary for the captured worktree slice

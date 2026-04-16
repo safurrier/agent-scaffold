@@ -23,6 +23,11 @@ CONTRACT_TASKS = [
     "test",
     "build",
     "check",
+    "plan-check",
+    "spec-check",
+    "evidence-check",
+    "review-check",
+    "sync-check",
     "dev",
     "ci",
     "verify",
@@ -146,12 +151,19 @@ def test_agents_md_template_exists() -> None:
 
 
 def test_architecture_template_exists() -> None:
-    assert (SCAFFOLD_ROOT / "templates" / "docs" / "architecture.md.tmpl").exists()
+    assert (
+        SCAFFOLD_ROOT / "templates" / "docs" / "explanation" / "architecture.md.tmpl"
+    ).exists()
 
 
 def test_adr_template_exists() -> None:
     assert (
-        SCAFFOLD_ROOT / "templates" / "docs" / "decisions" / "0001-stack-choice.md.tmpl"
+        SCAFFOLD_ROOT
+        / "templates"
+        / "docs"
+        / "explanation"
+        / "decisions"
+        / "0001-stack-choice.md.tmpl"
     ).exists()
 
 
@@ -203,7 +215,15 @@ def test_plan_templates_dir_exists() -> None:
 
 @pytest.mark.parametrize(
     "filename",
-    ["META.yaml", "TODO.md", "LEARNING_LOG.md", "VALIDATION.md"],
+    [
+        "META.yaml",
+        "TODO.md",
+        "LEARNING_LOG.md",
+        "VALIDATION.md",
+        "REVIEW.md",
+        "DECISIONS.md",
+        "artifacts/manifest.yaml",
+    ],
 )
 def test_plan_template_required_file_exists(filename: str) -> None:
     """Every required plan template file must exist."""
@@ -219,7 +239,15 @@ def test_plan_example_dir_exists() -> None:
 
 @pytest.mark.parametrize(
     "filename",
-    ["META.yaml", "TODO.md", "LEARNING_LOG.md", "VALIDATION.md"],
+    [
+        "META.yaml",
+        "TODO.md",
+        "LEARNING_LOG.md",
+        "VALIDATION.md",
+        "REVIEW.md",
+        "DECISIONS.md",
+        "artifacts/manifest.yaml",
+    ],
 )
 def test_plan_example_has_required_file(filename: str) -> None:
     """Example plan must include all required files."""

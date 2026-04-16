@@ -7,3 +7,11 @@ description: >
 ---
 
 # Validation
+
+## Commands
+
+- TODO
+
+## Evidence
+
+- Add artifact paths to `artifacts/manifest.yaml` as they are produced

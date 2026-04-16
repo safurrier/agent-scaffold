@@ -345,6 +345,9 @@ def derive_decisions_index(decisions_dir: Path) -> str:
 
 REQUIRED_META_FIELDS = ["slug", "created", "status"]
 ALLOWED_META_STATUSES = {"planned", "in-progress", "complete", "abandoned"}
+ALLOWED_CONTRACT_CHANGES = {"implementation_only", "docs_only", "contract_changed"}
+ALLOWED_DECISION_RECORDS = {"none", "ledger", "adr"}
+ALLOWED_REVIEW_MODES = {"external_required"}
 
 
 @dataclass
@@ -357,6 +360,14 @@ class PlanMeta:
     pr: str = ""
     status: str = ""
     source: str = ""
+    contract_change: str = ""
+    decision_record: str = ""
+    review_mode: str = ""
+    review_backend: str = ""
+    review_rubrics: list[str] = field(default_factory=list)
+    evidence_required: list[str] = field(default_factory=list)
+    continues_from: str = ""
+    supersedes: str = ""
 
 
 def parse_meta_yaml(path: Path) -> PlanMeta | None:
@@ -366,13 +377,32 @@ def parse_meta_yaml(path: Path) -> PlanMeta | None:
 
     text = path.read_text()
     meta = PlanMeta()
+    current_list_key: str | None = None
+    list_fields = {"review_rubrics", "evidence_required"}
 
-    for line in text.splitlines():
+    for raw_line in text.splitlines():
+        line = raw_line.rstrip()
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+
+        if current_list_key and raw_line.startswith("  - "):
+            getattr(meta, current_list_key).append(raw_line[4:].strip())
+            continue
+
+        if raw_line.startswith(" "):
+            continue
+
+        current_list_key = None
         m = re.match(r"^(\w+):\s*(.*)$", line)
-        if m:
-            key, value = m.group(1), m.group(2).strip()
-            if hasattr(meta, key):
-                setattr(meta, key, value)
+        if not m:
+            continue
+        key, value = m.group(1), m.group(2).strip()
+        if key in list_fields:
+            current_list_key = key
+            setattr(meta, key, [])
+        elif hasattr(meta, key):
+            setattr(meta, key, value)
 
     return meta
 
@@ -397,7 +427,49 @@ def validate_meta_yaml(meta: PlanMeta) -> list[str]:
             f"{', '.join(sorted(ALLOWED_META_STATUSES))}"
         )
 
+    if not meta.contract_change:
+        errors.append("missing 'contract_change' field")
+    elif meta.contract_change not in ALLOWED_CONTRACT_CHANGES:
+        errors.append(
+            f"contract_change '{meta.contract_change}' not in allowed values: "
+            f"{', '.join(sorted(ALLOWED_CONTRACT_CHANGES))}"
+        )
+
+    if not meta.decision_record:
+        errors.append("missing 'decision_record' field")
+    elif meta.decision_record not in ALLOWED_DECISION_RECORDS:
+        errors.append(
+            f"decision_record '{meta.decision_record}' not in allowed values: "
+            f"{', '.join(sorted(ALLOWED_DECISION_RECORDS))}"
+        )
+
+    if not meta.review_mode:
+        errors.append("missing 'review_mode' field")
+    elif meta.review_mode not in ALLOWED_REVIEW_MODES:
+        errors.append(
+            f"review_mode '{meta.review_mode}' not in allowed values: "
+            f"{', '.join(sorted(ALLOWED_REVIEW_MODES))}"
+        )
+
+    if not meta.review_rubrics:
+        errors.append("missing or empty 'review_rubrics' field")
+
+    if not meta.evidence_required:
+        errors.append("missing or empty 'evidence_required' field")
+
     return errors
 
 
-PLAN_REQUIRED_FILES = ["META.yaml", "TODO.md", "LEARNING_LOG.md", "VALIDATION.md"]
+PLAN_REQUIRED_FILES = [
+    "META.yaml",
+    "TODO.md",
+    "LEARNING_LOG.md",
+    "VALIDATION.md",
+    "REVIEW.md",
+    "DECISIONS.md",
+    "artifacts/manifest.yaml",
+]
+
+GENERATED_ARCHITECTURE = Path("docs/explanation/architecture.md")
+GENERATED_ADR = Path("docs/explanation/decisions/0001-stack-choice.md")
+GENERATED_DECISION_LEDGER = Path("docs/explanation/decision-ledger.md")

@@ -11,6 +11,11 @@ from pathlib import Path
 
 import pytest
 
+from tests._docs_helpers import (
+    GENERATED_ADR,
+    GENERATED_ARCHITECTURE,
+    GENERATED_DECISION_LEDGER,
+)
 from tests._support import init_project, mise
 
 pytestmark = pytest.mark.e2e
@@ -61,26 +66,35 @@ class TestPythonSingleHappyPath:
             assert claude.read_text() == agents.read_text()
 
     def test_docs_architecture_exists(self, py_single_ready: Path) -> None:
-        """docs/architecture.md must be generated with RFC invariant sections."""
-        arch = py_single_ready / "docs" / "architecture.md"
+        """The explanation architecture doc must be generated with invariant sections."""
+        arch = py_single_ready / GENERATED_ARCHITECTURE
         assert arch.exists()
         content = arch.read_text()
         assert "## 3. Invariants & Boundaries" in content
         assert "Worktree Safety" in content
-        assert "Traceability & Observability" in content
+        assert "Truth hierarchy" in content or "truth hierarchy" in content.lower()
+
+    def test_decision_ledger_exists(self, py_single_ready: Path) -> None:
+        ledger = py_single_ready / GENERATED_DECISION_LEDGER
+        assert ledger.exists()
+        assert (
+            "Append-only" in ledger.read_text() or "append-only" in ledger.read_text()
+        )
 
     def test_docs_decisions_exists(self, py_single_ready: Path) -> None:
-        """docs/decisions/ must contain the initial stack-choice ADR."""
-        adr = py_single_ready / "docs" / "decisions" / "0001-stack-choice.md"
+        """The explanation decisions dir must contain the initial stack-choice ADR."""
+        adr = py_single_ready / GENERATED_ADR
         assert adr.exists()
         assert "python" in adr.read_text()
 
     def test_agent_skills_exists(self, py_single_ready: Path) -> None:
-        """.agent/skills/ must have README and example-skill starter."""
+        """.agent/skills/ must have workflow skills and the starter template."""
         skills = py_single_ready / ".agent" / "skills"
         assert skills.is_dir()
         assert (skills / "README.md").exists()
         assert (skills / "example-skill" / "SKILL.md").exists()
+        assert (skills / "slice-planner" / "SKILL.md").exists()
+        assert (skills / "slice-reviewer" / "SKILL.md").exists()
 
     def test_claude_skills_symlink(self, py_single_ready: Path) -> None:
         """.claude/skills must point to .agent/skills."""
@@ -114,6 +128,12 @@ class TestPythonSingleHappyPath:
         assert result.returncode == 0, (
             f"check failed:\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
         )
+
+    def test_sync_check_passes_without_active_slice(
+        self, py_single_ready: Path
+    ) -> None:
+        result = mise("sync-check", py_single_ready, timeout=60)
+        assert result.returncode == 0, result.stderr
 
     def test_fmt_passes(self, py_single_ready: Path) -> None:
         result = mise("fmt", py_single_ready, timeout=60)

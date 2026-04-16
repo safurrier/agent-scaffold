@@ -18,6 +18,8 @@ from agent_scaffold.common import run_init
 from agent_scaffold.config import Config
 from tests._docs_helpers import (
     ARCHITECTURE_REQUIRED_SECTIONS,
+    GENERATED_ADR,
+    GENERATED_ARCHITECTURE,
     PLAN_REQUIRED_FILES,
     SPEC_REQUIRED_SECTIONS,
     find_adrs,
@@ -117,14 +119,12 @@ class TestPythonSingleGolden:
         assert not content.startswith("---\n"), "AGENTS.md should not have frontmatter"
 
     def test_architecture_doc_has_frontmatter(self) -> None:
-        content = (self._root / "docs" / "architecture.md").read_text()
+        content = (self._root / GENERATED_ARCHITECTURE).read_text()
         assert content.startswith("---\n"), "architecture.md missing frontmatter"
         assert "id:" in content
 
     def test_adr_has_frontmatter(self) -> None:
-        content = (
-            self._root / "docs" / "decisions" / "0001-stack-choice.md"
-        ).read_text()
+        content = (self._root / GENERATED_ADR).read_text()
         assert content.startswith("---\n"), "ADR missing frontmatter"
         assert "id:" in content
 
@@ -143,11 +143,11 @@ class TestPythonSingleGolden:
         assert "upload-artifact" in content
 
     def test_architecture_doc(self) -> None:
-        content = (self._root / "docs" / "architecture.md").read_text()
+        content = (self._root / GENERATED_ARCHITECTURE).read_text()
         assert "Invariants" in content
 
     def test_architecture_has_required_sections(self) -> None:
-        arch = self._root / "docs" / "architecture.md"
+        arch = self._root / GENERATED_ARCHITECTURE
         sections = parse_sections(arch)
         for name in ARCHITECTURE_REQUIRED_SECTIONS:
             assert find_section(sections, name, level=2) is not None, (
@@ -155,7 +155,7 @@ class TestPythonSingleGolden:
             )
 
     def test_architecture_decisions_index(self) -> None:
-        sections = parse_sections(self._root / "docs" / "architecture.md")
+        sections = parse_sections(self._root / GENERATED_ARCHITECTURE)
         dec = find_section(sections, "Decisions", level=2)
         assert dec is not None
         assert "0001-stack-choice" in dec.content, (
@@ -163,20 +163,18 @@ class TestPythonSingleGolden:
         )
 
     def test_adr_mentions_stack(self) -> None:
-        content = (
-            self._root / "docs" / "decisions" / "0001-stack-choice.md"
-        ).read_text()
+        content = (self._root / GENERATED_ADR).read_text()
         assert "python" in content
 
     def test_adr_schema_valid(self) -> None:
-        adrs = find_adrs(self._root / "docs" / "decisions")
+        adrs = find_adrs((self._root / GENERATED_ADR).parent)
         assert len(adrs) >= 1, "Expected at least one ADR"
         for adr in adrs:
             errors = validate_adr(adr)
             assert not errors, f"ADR {adr.filename} errors: {'; '.join(errors)}"
 
     def test_adr_has_generated_from(self) -> None:
-        adrs = find_adrs(self._root / "docs" / "decisions")
+        adrs = find_adrs((self._root / GENERATED_ADR).parent)
         assert adrs[0].generated_from == "init"
 
     def test_spec_md_exists(self) -> None:
@@ -275,26 +273,24 @@ class TestPythonAppsGolden:
         assert not content.startswith("---\n"), "AGENTS.md should not have frontmatter"
 
     def test_architecture_doc_has_frontmatter(self) -> None:
-        content = (self._root / "docs" / "architecture.md").read_text()
+        content = (self._root / GENERATED_ARCHITECTURE).read_text()
         assert content.startswith("---\n"), "architecture.md missing frontmatter"
         assert "id:" in content
 
     def test_adr_has_frontmatter(self) -> None:
-        content = (
-            self._root / "docs" / "decisions" / "0001-stack-choice.md"
-        ).read_text()
+        content = (self._root / GENERATED_ADR).read_text()
         assert content.startswith("---\n"), "ADR missing frontmatter"
         assert "id:" in content
 
     def test_architecture_has_required_sections(self) -> None:
-        sections = parse_sections(self._root / "docs" / "architecture.md")
+        sections = parse_sections(self._root / GENERATED_ARCHITECTURE)
         for name in ARCHITECTURE_REQUIRED_SECTIONS:
             assert find_section(sections, name, level=2) is not None, (
                 f"Generated architecture.md missing section '{name}'"
             )
 
     def test_adr_schema_valid(self) -> None:
-        adrs = find_adrs(self._root / "docs" / "decisions")
+        adrs = find_adrs((self._root / GENERATED_ADR).parent)
         assert len(adrs) >= 1
         for adr in adrs:
             errors = validate_adr(adr)
@@ -367,26 +363,24 @@ class TestGoSingleGolden:
         assert not content.startswith("---\n"), "AGENTS.md should not have frontmatter"
 
     def test_architecture_doc_has_frontmatter(self) -> None:
-        content = (self._root / "docs" / "architecture.md").read_text()
+        content = (self._root / GENERATED_ARCHITECTURE).read_text()
         assert content.startswith("---\n"), "architecture.md missing frontmatter"
         assert "id:" in content
 
     def test_adr_has_frontmatter(self) -> None:
-        content = (
-            self._root / "docs" / "decisions" / "0001-stack-choice.md"
-        ).read_text()
+        content = (self._root / GENERATED_ADR).read_text()
         assert content.startswith("---\n"), "ADR missing frontmatter"
         assert "id:" in content
 
     def test_architecture_has_required_sections(self) -> None:
-        sections = parse_sections(self._root / "docs" / "architecture.md")
+        sections = parse_sections(self._root / GENERATED_ARCHITECTURE)
         for name in ARCHITECTURE_REQUIRED_SECTIONS:
             assert find_section(sections, name, level=2) is not None, (
                 f"Generated architecture.md missing section '{name}'"
             )
 
     def test_adr_schema_valid(self) -> None:
-        adrs = find_adrs(self._root / "docs" / "decisions")
+        adrs = find_adrs((self._root / GENERATED_ADR).parent)
         assert len(adrs) >= 1
         for adr in adrs:
             errors = validate_adr(adr)
@@ -431,7 +425,7 @@ class TestGoSingleGolden:
         assert "goldenapp" in content
 
     def test_architecture_decisions_index(self) -> None:
-        sections = parse_sections(self._root / "docs" / "architecture.md")
+        sections = parse_sections(self._root / GENERATED_ARCHITECTURE)
         dec = find_section(sections, "Decisions", level=2)
         assert dec is not None
         assert "0001-stack-choice" in dec.content, (
@@ -439,13 +433,11 @@ class TestGoSingleGolden:
         )
 
     def test_adr_mentions_stack(self) -> None:
-        content = (
-            self._root / "docs" / "decisions" / "0001-stack-choice.md"
-        ).read_text()
+        content = (self._root / GENERATED_ADR).read_text()
         assert "go" in content.lower()
 
     def test_adr_has_generated_from(self) -> None:
-        adrs = find_adrs(self._root / "docs" / "decisions")
+        adrs = find_adrs((self._root / GENERATED_ADR).parent)
         assert adrs[0].generated_from == "init"
 
     def test_ci_workflow_content(self) -> None:
@@ -524,26 +516,24 @@ class TestGoAppsGolden:
         assert not content.startswith("---\n"), "AGENTS.md should not have frontmatter"
 
     def test_architecture_doc_has_frontmatter(self) -> None:
-        content = (self._root / "docs" / "architecture.md").read_text()
+        content = (self._root / GENERATED_ARCHITECTURE).read_text()
         assert content.startswith("---\n"), "architecture.md missing frontmatter"
         assert "id:" in content
 
     def test_adr_has_frontmatter(self) -> None:
-        content = (
-            self._root / "docs" / "decisions" / "0001-stack-choice.md"
-        ).read_text()
+        content = (self._root / GENERATED_ADR).read_text()
         assert content.startswith("---\n"), "ADR missing frontmatter"
         assert "id:" in content
 
     def test_architecture_has_required_sections(self) -> None:
-        sections = parse_sections(self._root / "docs" / "architecture.md")
+        sections = parse_sections(self._root / GENERATED_ARCHITECTURE)
         for name in ARCHITECTURE_REQUIRED_SECTIONS:
             assert find_section(sections, name, level=2) is not None, (
                 f"Generated architecture.md missing section '{name}'"
             )
 
     def test_adr_schema_valid(self) -> None:
-        adrs = find_adrs(self._root / "docs" / "decisions")
+        adrs = find_adrs((self._root / GENERATED_ADR).parent)
         assert len(adrs) >= 1
         for adr in adrs:
             errors = validate_adr(adr)
@@ -632,26 +622,24 @@ class TestRustSingleGolden:
         assert not content.startswith("---\n"), "AGENTS.md should not have frontmatter"
 
     def test_architecture_doc_has_frontmatter(self) -> None:
-        content = (self._root / "docs" / "architecture.md").read_text()
+        content = (self._root / GENERATED_ARCHITECTURE).read_text()
         assert content.startswith("---\n"), "architecture.md missing frontmatter"
         assert "id:" in content
 
     def test_adr_has_frontmatter(self) -> None:
-        content = (
-            self._root / "docs" / "decisions" / "0001-stack-choice.md"
-        ).read_text()
+        content = (self._root / GENERATED_ADR).read_text()
         assert content.startswith("---\n"), "ADR missing frontmatter"
         assert "id:" in content
 
     def test_architecture_has_required_sections(self) -> None:
-        sections = parse_sections(self._root / "docs" / "architecture.md")
+        sections = parse_sections(self._root / GENERATED_ARCHITECTURE)
         for name in ARCHITECTURE_REQUIRED_SECTIONS:
             assert find_section(sections, name, level=2) is not None, (
                 f"Generated architecture.md missing section '{name}'"
             )
 
     def test_adr_schema_valid(self) -> None:
-        adrs = find_adrs(self._root / "docs" / "decisions")
+        adrs = find_adrs((self._root / GENERATED_ADR).parent)
         assert len(adrs) >= 1
         for adr in adrs:
             errors = validate_adr(adr)
@@ -686,7 +674,7 @@ class TestRustSingleGolden:
         assert "goldenapp" in content
 
     def test_architecture_decisions_index(self) -> None:
-        sections = parse_sections(self._root / "docs" / "architecture.md")
+        sections = parse_sections(self._root / GENERATED_ARCHITECTURE)
         dec = find_section(sections, "Decisions", level=2)
         assert dec is not None
         assert "0001-stack-choice" in dec.content, (
@@ -694,13 +682,11 @@ class TestRustSingleGolden:
         )
 
     def test_adr_mentions_stack(self) -> None:
-        content = (
-            self._root / "docs" / "decisions" / "0001-stack-choice.md"
-        ).read_text()
+        content = (self._root / GENERATED_ADR).read_text()
         assert "rust" in content.lower()
 
     def test_adr_has_generated_from(self) -> None:
-        adrs = find_adrs(self._root / "docs" / "decisions")
+        adrs = find_adrs((self._root / GENERATED_ADR).parent)
         assert adrs[0].generated_from == "init"
 
     def test_ci_workflow_content(self) -> None:
@@ -789,26 +775,24 @@ class TestRustAppsGolden:
         assert not content.startswith("---\n"), "AGENTS.md should not have frontmatter"
 
     def test_architecture_doc_has_frontmatter(self) -> None:
-        content = (self._root / "docs" / "architecture.md").read_text()
+        content = (self._root / GENERATED_ARCHITECTURE).read_text()
         assert content.startswith("---\n"), "architecture.md missing frontmatter"
         assert "id:" in content
 
     def test_adr_has_frontmatter(self) -> None:
-        content = (
-            self._root / "docs" / "decisions" / "0001-stack-choice.md"
-        ).read_text()
+        content = (self._root / GENERATED_ADR).read_text()
         assert content.startswith("---\n"), "ADR missing frontmatter"
         assert "id:" in content
 
     def test_architecture_has_required_sections(self) -> None:
-        sections = parse_sections(self._root / "docs" / "architecture.md")
+        sections = parse_sections(self._root / GENERATED_ARCHITECTURE)
         for name in ARCHITECTURE_REQUIRED_SECTIONS:
             assert find_section(sections, name, level=2) is not None, (
                 f"Generated architecture.md missing section '{name}'"
             )
 
     def test_adr_schema_valid(self) -> None:
-        adrs = find_adrs(self._root / "docs" / "decisions")
+        adrs = find_adrs((self._root / GENERATED_ADR).parent)
         assert len(adrs) >= 1
         for adr in adrs:
             errors = validate_adr(adr)

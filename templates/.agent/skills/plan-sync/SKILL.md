@@ -1,66 +1,34 @@
 ---
 name: plan-sync
 description: >
-  Verify plan artifacts are current before pushing. Checks META.yaml status,
-  TODO completion, and that LEARNING_LOG and VALIDATION have entries.
+  Bring the active plan up to date before running sync-check. Focuses on META,
+  TODOs, learning log coverage, and required slice-local files.
 allowed-tools: Read, Edit, Glob, Grep, Bash
 ---
 
-Verify that the active plan directory is up to date before pushing.
+Prepare the active plan for `mise run plan-check`.
 
-## When to Run
+## What "current" means now
 
-Before pushing. Part of the pre-push workflow in AGENTS.md:
+The active plan is not just TODOs. It should have:
 
-1. `mise run check` — must pass
-2. **`/plan-sync`** — this skill
-3. `/spec-sync` — capture decisions, update SPEC.md if invariants changed
-4. `/context-engineering update` — update AGENTS.md if needed
-5. `/docs-workflow update` — update docs/ if needed
+- current `META.yaml` contract fields
+- current `TODO.md`
+- at least one learning-log entry once work is in progress
+- `VALIDATION.md`, `REVIEW.md`, `DECISIONS.md`
+- `artifacts/manifest.yaml`
 
 ## Process
 
-### 1. Find the active plan
+1. Find the active plan in `.ai/plans/` (prefer `status: in-progress`)
+2. Compare `META.yaml` to current reality:
+   - branch matches
+   - status matches the actual slice state
+   - `contract_change`, `decision_record`, `review_rubrics`, `evidence_required` are filled
+3. Tighten `TODO.md` so it matches the work that actually happened
+4. Ensure `LEARNING_LOG.md` has timestamped progress notes once implementation started
+5. Ensure the required slice-local files exist and are no longer empty placeholders
 
-```bash
-# Find plan directories, sorted by most recent
-ls -d .ai/plans/20*/ 2>/dev/null | sort -r | head -5
-```
+## Output
 
-Look for plans with `status: in-progress` or `status: planned` in META.yaml.
-If no active plan exists, report "no active plan" and exit.
-
-### 2. Check META.yaml
-
-- `status` should reflect reality:
-  - Has commits on branch? → should be `in-progress`, not `planned`
-  - PR open? → `pr` field should be filled in
-  - All TODOs done? → consider `complete`
-- `branch` should match current git branch
-
-### 3. Check TODO.md
-
-- Are completed items `[x]` consistent with actual changes?
-- Are there unchecked items that appear to be done (files exist, tests pass)?
-- Any items that should be added based on work done but not tracked?
-
-### 4. Check LEARNING_LOG.md
-
-- If work has been done (commits exist), there should be at least one entry
-- Recent entries should be timestamped
-
-### 5. Check VALIDATION.md
-
-- If tests have been run, there should be at least one entry
-- Should reference `mise run check` results at minimum
-
-### 6. Report
-
-- **Plan is current** — if everything checks out
-- **Updates needed** — list what should be updated, propose edits
-
-## Rules
-
-- **Don't block on empty optional files** — SPEC.md and IMPLEMENTATION.md are optional
-- **Suggest, don't rewrite** — propose specific edits, let the agent apply them
-- **Lightweight** — this should take seconds, not minutes
+Propose or apply targeted updates so `mise run plan-check` can pass.

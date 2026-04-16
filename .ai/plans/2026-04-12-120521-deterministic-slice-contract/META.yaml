@@ -1,0 +1,18 @@
+slug: deterministic-slice-contract
+branch: feat/deterministic-slice-contract
+created: 2026-04-12
+pr:
+status: complete
+source: foreman-retro
+contract_change: contract_changed
+decision_record: adr
+review_mode: external_required
+review_backend: skill:codex-review
+review_rubrics:
+  - core-quality
+  - docs-info-architecture
+evidence_required:
+  - commands
+  - report
+continues_from:
+supersedes:

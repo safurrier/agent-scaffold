@@ -2,8 +2,9 @@
 id: task-contract
 title: Task Contract
 description: >
-  Reference for all 13 mise run tasks exposed by agent-scaffold projects: fmt, lint,
-  typecheck, test, check, ci, verify, plan, and others. Same commands regardless of stack.
+  Reference for the stable mise run task contract exposed by agent-scaffold
+  projects, including both the fast engineering loop and the deterministic
+  slice-handoff checks.
 index:
   - id: contract-tasks
     keywords: [tasks, contract, stable, list, reference, plan]
@@ -17,7 +18,7 @@ index:
 
 # Task Contract
 
-Every project initialized from agent-scaffold exposes these 13 tasks. The contract is **stable** — same command names regardless of stack or shape.
+Every project initialized from agent-scaffold exposes these tasks. The contract is **stable** — same command names regardless of stack or shape.
 
 ```bash
 mise run <task>
@@ -35,6 +36,11 @@ mise run <task>
 | [`test`](#test) | Unit tests | Fast |
 | [`build`](#build) | Produce artifacts | Medium |
 | [`check`](#check) | fmt-check + lint + typecheck + test | Fast |
+| [`plan-check`](#plan-check) | Validate active slice metadata and required files | Fast |
+| [`spec-check`](#spec-check) | Validate decision promotion and reflected docs | Fast |
+| [`evidence-check`](#evidence-check) | Validate declared evidence and artifact paths | Fast |
+| [`review-check`](#review-check) | Validate external review artifacts | Fast |
+| [`sync-check`](#sync-check) | Aggregate plan/spec/evidence/review checks | Fast |
 | [`dev`](#dev) | Start local development | Long-running |
 | [`ci`](#ci) | CI entrypoint (= check) | Fast |
 | [`docs`](#docs) | Documentation server | Long-running |
@@ -180,6 +186,95 @@ This is what you run before every commit and what CI runs. It must be:
 
 ---
 
+## plan-check
+
+Validates that the active slice has a current plan and required slice-local files.
+
+```bash
+mise run plan-check
+```
+
+Checks for:
+
+- one active in-progress plan at most
+- required plan files
+- valid `META.yaml` contract fields
+- current checklist-style TODOs and learning-log coverage
+
+---
+
+## spec-check
+
+Validates that durable contract and decision updates were promoted out of the
+active plan.
+
+```bash
+mise run spec-check
+```
+
+Uses the active plan's `decision_record`:
+
+- `none` → slice-local notes only
+- `ledger` → append to `docs/explanation/decision-ledger.md`
+- `adr` → create or update an ADR under `docs/explanation/decisions/`
+
+On the scaffold repo itself, the validator also accepts the legacy ADR location
+under `docs/decisions/`.
+
+---
+
+## evidence-check
+
+Validates that declared evidence exists and points to real files.
+
+```bash
+mise run evidence-check
+```
+
+Checks:
+
+- `VALIDATION.md` contains explicit command records, not prose reminders
+- every artifact path in `artifacts/manifest.yaml` exists
+- every artifact path stays inside the active plan directory
+- every `evidence_required` type in `META.yaml` is satisfied
+
+---
+
+## review-check
+
+Validates that the active slice has an external-enough review artifact.
+
+```bash
+mise run review-check
+```
+
+Checks:
+
+- `REVIEW.md` exists and is not placeholder-only
+- the recorded review mode is external when required
+- the recorded backend is not self-review
+- the recorded reviewer is not placeholder text
+- the required rubrics were applied
+
+---
+
+## sync-check
+
+Aggregates the non-code handoff checks.
+
+```bash
+mise run sync-check
+```
+
+Runs:
+
+1. `mise run plan-check`
+2. `mise run spec-check`
+3. `mise run evidence-check`
+4. `mise run review-check`
+
+---
+
 ## dev
 
 Starts local development. Long-running — stays in the foreground.
@@ -226,7 +321,8 @@ mise run docs    # serves at http://127.0.0.1:8000
 ## plan
 
 Creates a plan directory for a new unit of work. Scaffolds META.yaml, TODO.md,
-LEARNING_LOG.md, VALIDATION.md, and optional SPEC.md and IMPLEMENTATION.md.
+LEARNING_LOG.md, VALIDATION.md, REVIEW.md, DECISIONS.md,
+`artifacts/manifest.yaml`, and optional SPEC.md / IMPLEMENTATION.md.
 
 ```bash
 git checkout -b feat/<slug>

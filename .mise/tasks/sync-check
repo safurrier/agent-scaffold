@@ -1,0 +1,23 @@
+#!/usr/bin/env -S uv run python
+# MISE description="Aggregate plan/spec/evidence/review checks for handoff readiness"
+import os
+import subprocess
+import sys
+
+sys.path.insert(0, os.path.join(os.environ["MISE_PROJECT_ROOT"], "scripts"))
+from lib import PROJECT_ROOT, log_ok, log_step  # noqa: E402
+
+TASKS = PROJECT_ROOT / ".mise" / "tasks"
+
+
+def run_task(name: str) -> None:
+    result = subprocess.run([sys.executable, str(TASKS / name)])
+    if result.returncode != 0:
+        sys.exit(result.returncode)
+
+
+log_step("Running sync-check")
+for task_name in ("plan-check", "spec-check", "evidence-check", "review-check"):
+    run_task(task_name)
+
+log_ok("Sync-check passed")

@@ -11,7 +11,15 @@ sys.path.insert(0, os.path.join(os.environ["MISE_PROJECT_ROOT"], "scripts"))
 from lib import PROJECT_ROOT, log_error, log_ok, log_step  # noqa: E402
 
 PLANS_DIR = PROJECT_ROOT / ".ai" / "plans"
-REQUIRED_PLAN_FILES = ("META.yaml", "TODO.md", "LEARNING_LOG.md", "VALIDATION.md")
+REQUIRED_PLAN_FILES = (
+    "META.yaml",
+    "TODO.md",
+    "LEARNING_LOG.md",
+    "VALIDATION.md",
+    "REVIEW.md",
+    "DECISIONS.md",
+    "artifacts/manifest.yaml",
+)
 SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 
@@ -82,8 +90,11 @@ def create_plan(slug: str, branch: str) -> Path:
 
     created = datetime.now().strftime("%Y-%m-%d")
 
-    for src in templates_dir.iterdir():
-        dst = plan_dir / src.name
+    for src in sorted(templates_dir.rglob("*")):
+        if src.is_dir():
+            continue
+        dst = plan_dir / src.relative_to(templates_dir)
+        dst.parent.mkdir(parents=True, exist_ok=True)
         content = src.read_text()
         content = content.replace("{{slug}}", slug)
         content = content.replace("{{branch}}", branch)
@@ -134,13 +145,14 @@ def main() -> None:
 
     print()
     print(f"  Files:")
-    for f in sorted(plan_dir.iterdir()):
-        print(f"    {f.name}")
+    for f in sorted(path.relative_to(plan_dir) for path in plan_dir.rglob("*") if path.is_file()):
+        print(f"    {f}")
     print()
     print(f"  Next steps:")
-    print(f"    1. Edit TODO.md with your tasks")
-    print(f"    2. Fill in META.yaml source field")
-    print(f"    3. Start working — append to LEARNING_LOG.md as you go")
+    print(f"    1. Edit TODO.md, DECISIONS.md, and any scoped SPEC/IMPLEMENTATION docs")
+    print(f"    2. Fill in META.yaml source and contract fields")
+    print(f"    3. Start working — append to LEARNING_LOG.md and VALIDATION.md as you go")
+    print(f"    4. Before handoff, complete REVIEW.md and artifacts/manifest.yaml")
 
 
 main()

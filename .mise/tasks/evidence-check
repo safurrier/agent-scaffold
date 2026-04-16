@@ -1,0 +1,57 @@
+#!/usr/bin/env -S uv run python
+# MISE description="Validate declared evidence and artifact paths for the active slice"
+import os
+import sys
+from pathlib import Path
+
+sys.path.insert(0, os.path.join(os.environ["MISE_PROJECT_ROOT"], "scripts"))
+from lib import PROJECT_ROOT, log_error, log_ok, log_step  # noqa: E402
+from plan_contract import (  # noqa: E402
+    current_plan_context,
+    parse_artifact_manifest,
+    resolve_plan_artifact_path,
+    validation_has_commands,
+)
+
+log_step("Checking evidence contract")
+
+current = current_plan_context(PROJECT_ROOT)
+if current is None:
+    log_ok("No active plan to evidence-check")
+    sys.exit(0)
+
+validation_path = current.path / "VALIDATION.md"
+if not validation_has_commands(validation_path):
+    log_error("VALIDATION.md must contain real commands or captured verification output.")
+    sys.exit(1)
+
+manifest_path = current.path / "artifacts" / "manifest.yaml"
+artifacts = parse_artifact_manifest(manifest_path)
+
+for artifact in artifacts:
+    if not artifact.type:
+        log_error(f"Artifact entry in {manifest_path.relative_to(PROJECT_ROOT)} is missing a type.")
+        sys.exit(1)
+    if not artifact.path:
+        log_error(f"Artifact entry in {manifest_path.relative_to(PROJECT_ROOT)} is missing a path.")
+        sys.exit(1)
+    target = resolve_plan_artifact_path(current.path, artifact.path)
+    if target is None:
+        log_error(
+            f"Artifact path escapes the active plan directory: {artifact.path}"
+        )
+        sys.exit(1)
+    if not target.exists():
+        log_error(f"Artifact path does not exist: {target.relative_to(PROJECT_ROOT)}")
+        sys.exit(1)
+
+for evidence_type in current.meta.evidence_required:
+    if evidence_type == "commands":
+        continue
+    if not any(artifact.type == evidence_type for artifact in artifacts):
+        log_error(
+            f"Missing declared evidence type '{evidence_type}' in artifacts/manifest.yaml."
+        )
+        sys.exit(1)
+
+log_ok(f"Evidence contract ready: {current.path.relative_to(PROJECT_ROOT)}")
