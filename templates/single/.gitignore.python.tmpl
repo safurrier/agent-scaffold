@@ -24,6 +24,7 @@ ENV/
 .coverage
 htmlcov/
 .pytest_cache/
+test-results/
 
 # OS
 .DS_Store
@@ -35,3 +36,10 @@ Thumbs.db
 # Agent scratch
 .ai/handoffs/
 .ai/research/
+.ai/plans/**/artifacts/**
+!.ai/plans/**/artifacts/
+!.ai/plans/**/artifacts/manifest.yaml
+
+# Harness-local settings
+.claude/settings.local.json
+.codex/hooks.json

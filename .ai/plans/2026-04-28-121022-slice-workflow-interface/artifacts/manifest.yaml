@@ -1,5 +1,1 @@
-artifacts:
-  # Paths are relative to this plan directory.
-  - type: report
-    path: artifacts/validation-summary.md
-    note: Validation command summary for the skill-first slice workflow.
+artifacts: []

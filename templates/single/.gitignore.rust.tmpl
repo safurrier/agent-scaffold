@@ -5,6 +5,16 @@
 __pycache__/
 *.py[cod]
 
+# Test
+test-results/
+
 # Agent scratch
 .ai/handoffs/
 .ai/research/
+.ai/plans/**/artifacts/**
+!.ai/plans/**/artifacts/
+!.ai/plans/**/artifacts/manifest.yaml
+
+# Harness-local settings
+.claude/settings.local.json
+.codex/hooks.json

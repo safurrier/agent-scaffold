@@ -14,6 +14,7 @@ __pycache__/
 *.test
 *.out
 coverage.txt
+test-results/
 tmp/
 
 # IDE
@@ -36,3 +37,10 @@ Thumbs.db
 # Agent scratch
 .ai/handoffs/
 .ai/research/
+.ai/plans/**/artifacts/**
+!.ai/plans/**/artifacts/
+!.ai/plans/**/artifacts/manifest.yaml
+
+# Harness-local settings
+.claude/settings.local.json
+.codex/hooks.json

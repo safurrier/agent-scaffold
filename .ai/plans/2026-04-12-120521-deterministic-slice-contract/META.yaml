@@ -13,6 +13,5 @@ review_rubrics:
   - docs-info-architecture
 evidence_required:
   - commands
-  - report
 continues_from:
 supersedes:

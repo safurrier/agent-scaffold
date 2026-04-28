@@ -25,6 +25,10 @@ htmlcov/
 .pytest_cache/
 test-results/
 
+# Rust
+target/
+**/*.rs.bk
+
 # Linting / type-checking
 .ruff_cache/
 .mypy_cache/
@@ -42,3 +46,10 @@ Thumbs.db
 # Agent scratch
 .ai/handoffs/
 .ai/research/
+.ai/plans/**/artifacts/**
+!.ai/plans/**/artifacts/
+!.ai/plans/**/artifacts/manifest.yaml
+
+# Harness-local settings
+.claude/settings.local.json
+.codex/hooks.json

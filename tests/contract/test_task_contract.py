@@ -134,6 +134,30 @@ def test_pre_commit_calls_mise_tasks() -> None:
     assert "mise run" in content
 
 
+@pytest.mark.parametrize(
+    "path",
+    [
+        ".gitignore",
+        "templates/single/.gitignore.python.tmpl",
+        "templates/single/.gitignore.go.tmpl",
+        "templates/single/.gitignore.rust.tmpl",
+        "templates/apps/.gitignore.tmpl",
+    ],
+)
+def test_gitignore_keeps_agent_scratch_out_of_git(path: str) -> None:
+    """Root and generated projects should ignore local agent/harness scratch."""
+    content = (SCAFFOLD_ROOT / path).read_text()
+    for pattern in [
+        ".ai/handoffs/",
+        ".ai/research/",
+        ".ai/plans/**/artifacts/**",
+        "!.ai/plans/**/artifacts/manifest.yaml",
+        ".claude/settings.local.json",
+        ".codex/hooks.json",
+    ]:
+        assert pattern in content
+
+
 def test_python_stack_has_pyproject_template() -> None:
     assert (SCAFFOLD_ROOT / "stacks" / "python" / "pyproject.toml.tmpl").exists()
 

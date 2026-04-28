@@ -1,3 +1,0 @@
-HEAD 07360d3 test: add release build and cleanup regression assertions for Rust E2E
-WORKTREE REVIEW ONLY: review scope is HEAD -> current working tree; stacked branch history is intentionally excluded.
-Excluded path: .ai/handoffs/
