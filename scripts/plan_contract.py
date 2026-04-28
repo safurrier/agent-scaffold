@@ -16,7 +16,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(os.environ.get("MISE_PROJECT_ROOT", "."))
 CHECKLIST_PREFIX = re.compile(r"^\[[ xX]\]\s+")
 COMMAND_PATTERN = re.compile(
-    r"\bmise run\b|\bcargo (?:fmt|check|test|clippy|run|build)\b|"
+    r"\bmise\s+(?:-[\w-]+\s+)*run\b|\bcargo (?:fmt|check|test|clippy|run|build)\b|"
     r"\buv run\b|\bgo test\b|\bpytest\b|\bdocker\b"
 )
 
@@ -94,6 +94,10 @@ class ArtifactEntry:
     type: str = ""
     path: str = ""
     note: str = ""
+
+
+class PlanContractError(RuntimeError):
+    """Expected plan-contract failure that should be shown without a traceback."""
 
 
 def strip_frontmatter(text: str) -> str:
@@ -238,7 +242,9 @@ def git_current_branch(root: Path = PROJECT_ROOT) -> str:
 def git_changed_paths(root: Path = PROJECT_ROOT) -> list[str]:
     git_bin = shutil.which("git")
     if git_bin is None:
-        return []
+        raise PlanContractError(
+            "git executable not found; cannot inspect changed paths."
+        )
     result = subprocess.run(  # noqa: S603
         [git_bin, "status", "--porcelain"],
         cwd=root,
@@ -246,7 +252,10 @@ def git_changed_paths(root: Path = PROJECT_ROOT) -> list[str]:
         text=True,
     )
     if result.returncode != 0:
-        return []
+        message = result.stderr.strip() or result.stdout.strip() or "unknown git error"
+        raise PlanContractError(
+            f"git status failed; cannot inspect changed paths: {message}"
+        )
 
     paths: list[str] = []
     for line in result.stdout.splitlines():
@@ -477,6 +486,14 @@ def resolve_plan_artifact_path(plan_dir: Path, artifact_path: str) -> Path | Non
     candidate = (plan_dir / artifact_path).resolve()
     plan_root = plan_dir.resolve()
     if candidate == plan_root or plan_root in candidate.parents:
+        return candidate
+    return None
+
+
+def resolve_repo_path(root: Path, raw_path: str) -> Path | None:
+    candidate = (root / raw_path).resolve()
+    repo_root = root.resolve()
+    if candidate == repo_root or repo_root in candidate.parents:
         return candidate
     return None
 

@@ -144,15 +144,19 @@ def main() -> None:
     log_ok(f"Plan created: {plan_dir.relative_to(PROJECT_ROOT)}")
 
     print()
-    print(f"  Files:")
-    for f in sorted(path.relative_to(plan_dir) for path in plan_dir.rglob("*") if path.is_file()):
+    print("  Files:")
+    for f in sorted(
+        path.relative_to(plan_dir) for path in plan_dir.rglob("*") if path.is_file()
+    ):
         print(f"    {f}")
     print()
-    print(f"  Next steps:")
-    print(f"    1. Edit TODO.md, DECISIONS.md, and any scoped SPEC/IMPLEMENTATION docs")
-    print(f"    2. Fill in META.yaml source and contract fields")
-    print(f"    3. Start working — append to LEARNING_LOG.md and VALIDATION.md as you go")
-    print(f"    4. Before handoff, complete REVIEW.md and artifacts/manifest.yaml")
+    print("  Next steps:")
+    print("    1. Edit TODO.md, DECISIONS.md, and any scoped SPEC/IMPLEMENTATION docs")
+    print("    2. Fill in META.yaml source and contract fields")
+    print(
+        "    3. Start working — append to LEARNING_LOG.md and VALIDATION.md as you go"
+    )
+    print("    4. Before handoff, complete REVIEW.md and artifacts/manifest.yaml")
 
 
 main()

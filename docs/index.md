@@ -3,7 +3,7 @@ id: agent-scaffold-overview
 title: agent-scaffold
 description: >
   Overview of agent-scaffold — an opinionated starter repo for agent-driven engineering
-  that provides a stable mise task contract across Python and Go stacks.
+  that provides a stable mise task contract across Python, Go, and Rust stacks.
 index:
   - id: what-it-is
     keywords: [scaffold, clone-and-init, task-contract, agent-native]

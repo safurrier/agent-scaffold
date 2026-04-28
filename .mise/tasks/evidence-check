@@ -2,7 +2,6 @@
 # MISE description="Validate declared evidence and artifact paths for the active slice"
 import os
 import sys
-from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.environ["MISE_PROJECT_ROOT"], "scripts"))
 from lib import PROJECT_ROOT, log_error, log_ok, log_step  # noqa: E402
@@ -22,7 +21,9 @@ if current is None:
 
 validation_path = current.path / "VALIDATION.md"
 if not validation_has_commands(validation_path):
-    log_error("VALIDATION.md must contain real commands or captured verification output.")
+    log_error(
+        "VALIDATION.md must contain real commands or captured verification output."
+    )
     sys.exit(1)
 
 manifest_path = current.path / "artifacts" / "manifest.yaml"
@@ -30,16 +31,18 @@ artifacts = parse_artifact_manifest(manifest_path)
 
 for artifact in artifacts:
     if not artifact.type:
-        log_error(f"Artifact entry in {manifest_path.relative_to(PROJECT_ROOT)} is missing a type.")
+        log_error(
+            f"Artifact entry in {manifest_path.relative_to(PROJECT_ROOT)} is missing a type."
+        )
         sys.exit(1)
     if not artifact.path:
-        log_error(f"Artifact entry in {manifest_path.relative_to(PROJECT_ROOT)} is missing a path.")
+        log_error(
+            f"Artifact entry in {manifest_path.relative_to(PROJECT_ROOT)} is missing a path."
+        )
         sys.exit(1)
     target = resolve_plan_artifact_path(current.path, artifact.path)
     if target is None:
-        log_error(
-            f"Artifact path escapes the active plan directory: {artifact.path}"
-        )
+        log_error(f"Artifact path escapes the active plan directory: {artifact.path}")
         sys.exit(1)
     if not target.exists():
         log_error(f"Artifact path does not exist: {target.relative_to(PROJECT_ROOT)}")

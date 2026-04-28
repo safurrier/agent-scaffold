@@ -10,8 +10,8 @@ from plan_contract import (  # noqa: E402
     file_has_meaningful_content,
     is_placeholder_value,
     keyed_bullets,
-    section_has_meaningful_bullets,
     section_bullets,
+    section_has_meaningful_bullets,
 )
 
 log_step("Checking review contract")
@@ -39,12 +39,14 @@ if not reviewer or is_placeholder_value(reviewer):
     log_error("REVIEW.md must record the reviewer identity or external review context.")
     sys.exit(1)
 
-if not current.meta.review_backend:
+if not current.meta.review_backend or is_placeholder_value(current.meta.review_backend):
     log_error("META.yaml must record the backend that performed the review.")
     sys.exit(1)
 
-if not backend or backend.lower() == "self":
-    log_error("An external review backend is required (subagent, skill, or manual_external).")
+if not backend or backend.lower() == "self" or is_placeholder_value(backend):
+    log_error(
+        "An external review backend is required (subagent, skill, or manual_external)."
+    )
     sys.exit(1)
 
 if current.meta.review_backend and current.meta.review_backend != backend:

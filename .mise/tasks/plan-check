@@ -6,6 +6,7 @@ import sys
 sys.path.insert(0, os.path.join(os.environ["MISE_PROJECT_ROOT"], "scripts"))
 from lib import PROJECT_ROOT, log_error, log_ok, log_step  # noqa: E402
 from plan_contract import (  # noqa: E402
+    PlanContractError,
     checklist_has_meaningful_items,
     current_plan_context,
     file_has_meaningful_content,
@@ -27,8 +28,14 @@ if len(in_progress) > 1:
     sys.exit(1)
 
 current = current_plan_context(PROJECT_ROOT)
-changed_paths = git_changed_paths(PROJECT_ROOT)
-meaningful_changes = strip_plan_local_changes(changed_paths, current.path if current else None)
+try:
+    changed_paths = git_changed_paths(PROJECT_ROOT)
+except PlanContractError as e:
+    log_error(str(e))
+    sys.exit(1)
+meaningful_changes = strip_plan_local_changes(
+    changed_paths, current.path if current else None
+)
 
 if current is None:
     if meaningful_changes:
@@ -71,7 +78,9 @@ if meaningful_changes and current.meta.status != "in-progress":
 if current.meta.status == "in-progress" and not file_has_meaningful_content(
     current.path / "LEARNING_LOG.md"
 ):
-    log_error("LEARNING_LOG.md should record at least one in-progress note once work starts.")
+    log_error(
+        "LEARNING_LOG.md should record at least one in-progress note once work starts."
+    )
     sys.exit(1)
 
 log_ok(f"Plan contract ready: {current.path.relative_to(PROJECT_ROOT)}")

@@ -27,7 +27,7 @@ Agent routing index for MkDocs-managed documentation. Structure is owned by `mkd
 
 | Doc | Description |
 |-----|-------------|
-| `task-contract.md` | All 12 mise tasks: purpose, per-stack commands, speed tier |
+| `task-contract.md` | All 22 mise tasks: purpose, per-stack commands, speed tier |
 | `decisions/` | Architectural decision records (ADRs) |
 | `stacks/index.md` | Stack comparison table, selection at init time |
 | `stacks/python.md` | Python tooling: uv, ruff, ty, pytest configuration |

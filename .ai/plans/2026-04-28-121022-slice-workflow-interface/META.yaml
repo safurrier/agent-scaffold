@@ -2,7 +2,7 @@ slug: slice-workflow-interface
 branch: feat/deterministic-slice-contract
 created: 2026-04-28
 pr:
-status: in-progress
+status: complete
 source: user co-design on skill-first slice workflow, mise task interface, prompt rendering, artifacts, and holdout sample tasks
 contract_change: contract_changed
 decision_record: adr

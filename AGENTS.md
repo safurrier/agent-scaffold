@@ -7,7 +7,7 @@ Opinionated starter repository for agent-driven engineering. Provides a **stable
 ```
 agent-scaffold/
 ├── .mise.toml                  # Tool versions + env vars (stack, shape, name)
-├── .mise/tasks/                # 18 file-based task scripts (the contract)
+├── .mise/tasks/                # 22 file-based task scripts (the contract)
 ├── .agent/skills/              # Agent skills (spec-sync, plan-sync, etc.)
 ├── .ai/plans/                  # Plan directories for units of work
 ├── scripts/

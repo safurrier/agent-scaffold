@@ -2,12 +2,18 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from scripts.plan_contract import (
+    PlanContractError,
     adr_dir,
     checklist_has_meaningful_items,
     file_has_meaningful_content,
+    git_changed_paths,
+    is_placeholder_value,
     ledger_path,
     resolve_plan_artifact_path,
+    resolve_repo_path,
     validation_has_commands,
 )
 
@@ -106,6 +112,17 @@ def test_validation_has_commands_accepts_shell_commands_in_fence(
     assert validation_has_commands(path) is True
 
 
+def test_validation_has_commands_accepts_mise_flags(tmp_path: Path) -> None:
+    path = tmp_path / "VALIDATION.md"
+    path.write_text("# Validation\n\n- `mise -q run slice-status -- --json` passed\n")
+
+    assert validation_has_commands(path) is True
+
+
+def test_placeholder_values_include_pending() -> None:
+    assert is_placeholder_value("pending") is True
+
+
 def test_resolve_plan_artifact_path_accepts_plan_local_paths(tmp_path: Path) -> None:
     plan_dir = tmp_path / ".ai" / "plans" / "2026-04-12-123456-demo"
     target = plan_dir / "artifacts" / "report.md"
@@ -123,3 +140,27 @@ def test_resolve_plan_artifact_path_rejects_parent_escape(tmp_path: Path) -> Non
     (tmp_path / "README.md").write_text("root\n")
 
     assert resolve_plan_artifact_path(plan_dir, "../../../README.md") is None
+
+
+def test_resolve_repo_path_accepts_repo_local_paths(tmp_path: Path) -> None:
+    target = tmp_path / "docs" / "task-contract.md"
+    target.parent.mkdir()
+    target.write_text("ok\n")
+
+    assert resolve_repo_path(tmp_path, "docs/task-contract.md") == target.resolve()
+
+
+def test_resolve_repo_path_rejects_parent_escape(tmp_path: Path) -> None:
+    outside = tmp_path.parent / "outside.md"
+    outside.write_text("outside\n")
+
+    assert resolve_repo_path(tmp_path, "../outside.md") is None
+
+
+def test_git_changed_paths_raises_when_git_is_unavailable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("scripts.plan_contract.shutil.which", lambda name: None)
+
+    with pytest.raises(PlanContractError, match="git executable not found"):
+        git_changed_paths(tmp_path)

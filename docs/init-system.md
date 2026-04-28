@@ -52,7 +52,7 @@ Files with the `.tmpl` extension are processed by replacing `{{placeholder}}` st
 | `{{project_name}}` | Project name (e.g. `my-service`) |
 | `{{module_name}}` | Python module name (`my_service`) |
 | `{{project_description}}` | Project description |
-| `{{project_stack}}` | `python` or `go` |
+| `{{project_stack}}` | `python`, `go`, or `rust` |
 | `{{go_module}}` | Go module path (e.g. `github.com/org/my-service`) |
 | `{{author_name}}` | Author name |
 | `{{author_email}}` | Author email |

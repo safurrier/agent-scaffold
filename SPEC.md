@@ -50,10 +50,10 @@ agent-scaffold is an opinionated starter repository for agent-driven engineering
 - `mise run ci` produces identical results to `mise run check` (CI parity)
 - Pre-commit hooks call the same tasks as CI
 - Non-interactive init fails fast with clear errors on missing required inputs
-- Generated projects include `AGENTS.md`, `SPEC.md`, `docs/architecture.md`, `docs/decisions/`, and CI workflow
+- Generated projects include `AGENTS.md`, `SPEC.md`, `docs/explanation/architecture.md`, `docs/explanation/decisions/`, and CI workflow
 - All generated docs have valid YAML frontmatter with `id`, `title`, `description`, and `index` fields
 - ADRs have Status (from allowed values), Context, Decision, and Consequences sections
-- `mise run plan -- <slug>` creates a plan directory with META.yaml, TODO.md, LEARNING_LOG.md, VALIDATION.md; invalid or duplicate slugs fail with clear errors
+- `mise run plan -- <slug>` creates a plan directory with META.yaml, TODO.md, LEARNING_LOG.md, VALIDATION.md, REVIEW.md, DECISIONS.md, and artifacts/manifest.yaml; invalid or duplicate slugs fail with clear errors
 - `mise run slice-plan`, `slice-implement`, and `slice-review` render provider-neutral prompts into the active plan's `prompts/` directory
 - `mise -q run slice-status -- --json` emits machine-readable active slice state
 - Generated projects include `.ai/plans/` with routing AGENTS.md, templates, and example
