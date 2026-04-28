@@ -25,9 +25,6 @@ jobs:
       - name: Install mise
         uses: jdx/mise-action@v2
 
-      - name: Point mise at system Python
-        run: mise use python@system
-
       - name: Setup
         run: mise run setup
 
