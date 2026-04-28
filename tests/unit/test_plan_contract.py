@@ -12,6 +12,7 @@ from scripts.plan_contract import (
     git_changed_paths,
     is_placeholder_value,
     ledger_path,
+    parse_artifact_manifest,
     resolve_plan_artifact_path,
     resolve_repo_path,
     validation_has_commands,
@@ -132,6 +133,29 @@ def test_resolve_plan_artifact_path_accepts_plan_local_paths(tmp_path: Path) -> 
     assert (
         resolve_plan_artifact_path(plan_dir, "artifacts/report.md") == target.resolve()
     )
+
+
+def test_parse_artifact_manifest_ignores_unknown_keys(tmp_path: Path) -> None:
+    manifest = tmp_path / "manifest.yaml"
+    manifest.write_text(
+        "\n".join(
+            [
+                "artifacts:",
+                "  - type: report",
+                "    path: artifacts/report.md",
+                "    note: validation summary",
+                "    sha256: future-field",
+                "",
+            ]
+        )
+    )
+
+    entries = parse_artifact_manifest(manifest)
+
+    assert len(entries) == 1
+    assert entries[0].type == "report"
+    assert entries[0].path == "artifacts/report.md"
+    assert entries[0].note == "validation summary"
 
 
 def test_resolve_plan_artifact_path_rejects_parent_escape(tmp_path: Path) -> None:

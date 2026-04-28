@@ -432,7 +432,13 @@ def parse_artifact_manifest(path: Path) -> list[ArtifactEntry]:
 
         if raw_line.startswith("  - "):
             if current is not None:
-                entries.append(ArtifactEntry(**current))
+                entries.append(
+                    ArtifactEntry(
+                        type=current.get("type", ""),
+                        path=current.get("path", ""),
+                        note=current.get("note", ""),
+                    )
+                )
             current = {}
             key_value = raw_line[4:].strip()
             if ":" in key_value:
@@ -445,7 +451,13 @@ def parse_artifact_manifest(path: Path) -> list[ArtifactEntry]:
             current[key.strip()] = value.strip()
 
     if current is not None:
-        entries.append(ArtifactEntry(**current))
+        entries.append(
+            ArtifactEntry(
+                type=current.get("type", ""),
+                path=current.get("path", ""),
+                note=current.get("note", ""),
+            )
+        )
 
     return entries
 
