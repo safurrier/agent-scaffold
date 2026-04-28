@@ -59,6 +59,6 @@ mise -q run slice-status -- --json
 This project uses [mise](https://mise.jdx.dev/) as the task runner. All quality gates
 are accessible via `mise run <task>`.
 
-CI calls a single entrypoint: `mise run ci`.
+CI calls mise entrypoints: `mise run ci` and `mise run sync-check`.
 Slice prompts are rendered separately via `mise run slice-*`; slice completion
-is enforced separately via `mise run sync-check`.
+is enforced via the same `mise run sync-check` handoff gate.

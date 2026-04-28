@@ -109,9 +109,19 @@ def test_ci_workflow_exists() -> None:
 
 
 def test_ci_workflow_calls_mise_ci() -> None:
-    """The CI workflow must use 'mise run ci' as its sole quality gate."""
+    """The CI workflow must use 'mise run ci' for its quality gate."""
     workflow = (SCAFFOLD_ROOT / ".github" / "workflows" / "ci.yml").read_text()
     assert "mise run ci" in workflow
+
+
+def test_ci_workflow_runs_sync_check_and_stack_smokes() -> None:
+    """Repository CI must enforce handoff checks and smoke every supported stack."""
+    workflow = (SCAFFOLD_ROOT / ".github" / "workflows" / "ci.yml").read_text()
+    assert "name: Sync Contract" in workflow
+    assert "mise run sync-check" in workflow
+    assert "stack: python" in workflow
+    assert "stack: go" in workflow
+    assert "stack: rust" in workflow
 
 
 def test_pre_commit_config_exists() -> None:
@@ -214,11 +224,12 @@ def test_ci_template_exists() -> None:
 
 
 def test_ci_template_is_two_tier() -> None:
-    """Generated CI template must include both check and verify jobs."""
+    """Generated CI template must include check, sync, and verify jobs."""
     content = (
         SCAFFOLD_ROOT / "templates" / ".github" / "workflows" / "ci.yml.tmpl"
     ).read_text()
     assert "mise run ci" in content
+    assert "mise run sync-check" in content
     assert "mise run verify" in content
     assert "upload-artifact" in content
 

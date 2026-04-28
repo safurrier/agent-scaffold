@@ -84,7 +84,7 @@ Two contract test files verify the scaffold itself before any init:
 - Every task file has a `# MISE description=` header
 - Every task file uses `#!/usr/bin/env -S uv run python` shebang
 - `scripts/lib.py` exists
-- CI workflow calls `mise run ci`
+- CI workflow calls `mise run ci` and `mise run sync-check`
 - Pre-commit config calls `mise run` tasks
 
 **`test_docs_contract.py`** — documentation structure:

@@ -21,7 +21,7 @@ Agent routing index for MkDocs-managed documentation. Structure is owned by `mkd
 | `index.md` | Project overview, design philosophy, quick start |
 | `shapes.md` | Single-project vs apps workspace: layouts, workspace.toml, task behavior |
 | `init-system.md` | How init transforms the scaffold: sequence, templates, cleanup |
-| `ci.md` | CI workflow design: single entrypoint, pre-commit parity |
+| `ci.md` | CI workflow design: mise entrypoints, sync contract, pre-commit parity |
 
 ## Reference
 

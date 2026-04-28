@@ -113,11 +113,12 @@ class TestPythonSingleHappyPath:
             assert claude_skills.is_dir()
 
     def test_ci_workflow_is_two_tier(self, py_single_ready: Path) -> None:
-        """Generated CI must have check + verify jobs with artifact upload."""
+        """Generated CI must have check + sync + verify jobs with artifact upload."""
         ci = py_single_ready / ".github" / "workflows" / "ci.yml"
         assert ci.exists()
         content = ci.read_text()
         assert "mise run ci" in content
+        assert "mise run sync-check" in content
         assert "mise run verify" in content
         assert "upload-artifact" in content
 

@@ -36,8 +36,8 @@ mise run verify     # heavier validation: integration, security, docker  ← bef
 {% if project_shape == "apps" %}mise run dev -- <module>  # start local development for a module{% else %}mise run dev        # start local development{% endif %}
 ```
 
-CI calls `mise run ci` (= `check`). `sync-check` is a repo-local completion gate,
-not a replacement for code/test validation.
+CI calls `mise run ci` (= `check`) and `mise run sync-check`. `sync-check` is a
+handoff completion gate, not a replacement for code/test validation.
 
 ## Stack: {{project_stack}}
 

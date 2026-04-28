@@ -131,7 +131,7 @@ class Stack(Protocol):
 
 ## Invariants
 
-- **CI parity**: `mise run check` locally MUST match what CI runs. Pre-commit hooks call the same tasks. Violation causes green-local/red-CI divergence.
+- **CI parity**: `mise run check` locally MUST match the CI quality gate, and CI MUST also run `mise run sync-check` for handoff-contract coverage. Pre-commit hooks call the same quality tasks. Violation causes green-local/red-CI divergence or missing handoff evidence.
 - **Golden path guarantee**: A freshly initialized project (`mise run init`) MUST pass `mise run check` out of the box. Violation breaks first-run experience.
 - **Worktree safety**: All tasks must run from a clean checkout or Git worktree. No reliance on absolute paths, mutable global state, or undeclared local artifacts.
 - **Stack dispatch via env**: Tasks read `SCAFFOLD_PROJECT_STACK` from `.mise.toml` to dispatch to the correct toolchain. Wrong dispatch = wrong tools run.
@@ -142,6 +142,7 @@ class Stack(Protocol):
 
 ```bash
 mise run check          # fast: fmt-check + lint + typecheck + all tests
+mise run sync-check     # handoff: plan/spec/evidence/review contract
 mise run verify         # heavy: integration, e2e, docker (when applicable)
 ```
 
