@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
 from agent_scaffold.config import SCAFFOLD_ROOT, Config
-from agent_scaffold.templates import copy_tree
+from agent_scaffold.templates import copy_tree, render_template
 
 
 class RustStack:
@@ -37,8 +38,6 @@ The Rust stack uses:
 
         rustfmt = stack_dir / "rustfmt.toml"
         if rustfmt.exists():
-            import shutil
-
             shutil.copy2(rustfmt, root / "rustfmt.toml")
 
         gitignore = SCAFFOLD_ROOT / "templates" / "single" / ".gitignore.rust.tmpl"
@@ -90,8 +89,6 @@ def _build_context(config: Config) -> dict[str, str]:
 
 
 def _write(src: Path, dst: Path, context: dict[str, str]) -> None:
-    from agent_scaffold.templates import render_template
-
     dst.parent.mkdir(parents=True, exist_ok=True)
     dst.write_text(render_template(src, context))
 

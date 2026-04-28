@@ -14,6 +14,8 @@ index:
     keywords: [verify, heavy, integration, docker, slow]
   - id: ci
     keywords: [ci, entrypoint, github-actions]
+  - id: slice-workflow
+    keywords: [slice-plan, slice-implement, slice-review, slice-status, prompts]
 ---
 
 # Task Contract
@@ -41,6 +43,10 @@ mise run <task>
 | [`evidence-check`](#evidence-check) | Validate declared evidence and artifact paths | Fast |
 | [`review-check`](#review-check) | Validate external review artifacts | Fast |
 | [`sync-check`](#sync-check) | Aggregate plan/spec/evidence/review checks | Fast |
+| [`slice-plan`](#slice-plan) | Render planner prompt for the active slice | Fast |
+| [`slice-implement`](#slice-implement) | Render implementer prompt for the active slice | Fast |
+| [`slice-review`](#slice-review) | Render reviewer prompt for the active slice | Fast |
+| [`slice-status`](#slice-status) | Show active slice status | Fast |
 | [`dev`](#dev) | Start local development | Long-running |
 | [`ci`](#ci) | CI entrypoint (= check) | Fast |
 | [`docs`](#docs) | Documentation server | Long-running |
@@ -76,6 +82,11 @@ Installs all project dependencies. Safe to re-run.
     go mod download
     ```
 
+=== "Rust"
+    ```bash
+    cargo fetch
+    ```
+
 For the apps workspace shape, `setup` iterates `workspace.toml` and runs the appropriate install per module.
 
 ---
@@ -94,6 +105,12 @@ Auto-formats code in-place. Pass `--check` to fail without modifying (used by `c
     ```bash
     gofumpt -w .   # format
     gofumpt -l .   # check only
+    ```
+
+=== "Rust"
+    ```bash
+    cargo fmt          # format
+    cargo fmt --check  # check only
     ```
 
 ```bash
@@ -117,6 +134,11 @@ Non-modifying lint checks. Fails on any violation.
     golangci-lint run ./...
     ```
 
+=== "Rust"
+    ```bash
+    cargo clippy --all-targets --all-features -- -D warnings
+    ```
+
 ---
 
 ## typecheck
@@ -131,6 +153,11 @@ Static type analysis.
 === "Go"
     ```bash
     go vet ./...
+    ```
+
+=== "Rust"
+    ```bash
+    cargo check --all-targets --all-features
     ```
 
 !!! note "Go typecheck"
@@ -152,6 +179,11 @@ Unit tests only — no integration tests, no external services.
     CGO_ENABLED=0 go test ./...
     ```
 
+=== "Rust"
+    ```bash
+    cargo test --all-features
+    ```
+
 ---
 
 ## build
@@ -166,6 +198,11 @@ Produces distributable artifacts.
 === "Go"
     ```bash
     CGO_ENABLED=0 go build -o bin/ ./cmd/...
+    ```
+
+=== "Rust"
+    ```bash
+    cargo build --release
     ```
 
 ---
@@ -275,6 +312,59 @@ Runs:
 
 ---
 
+## slice-plan
+
+Renders the planner prompt for the active slice. The task snapshots the incoming
+task into `TASK.md` and writes the rendered prompt to `prompts/planner.md`.
+
+```bash
+mise run slice-plan -- --task path/to/task.md
+mise run slice-plan -- --task-text "Add --dry-run to the init command"
+```
+
+This task does not launch an agent. Paste the rendered prompt into the Codex,
+Claude, or other harness session you already have open.
+
+---
+
+## slice-implement
+
+Renders the implementer prompt for the active slice.
+
+```bash
+mise run slice-implement
+```
+
+Writes `prompts/implementer.md` using the current plan files as context.
+
+---
+
+## slice-review
+
+Renders the reviewer prompt for the active slice.
+
+```bash
+mise run slice-review
+```
+
+Writes `prompts/reviewer.md` and points the reviewer at the plan, validation
+log, durable decision notes, and configured rubrics.
+
+---
+
+## slice-status
+
+Shows active slice state in human-readable text or JSON.
+
+```bash
+mise run slice-status
+mise -q run slice-status -- --json
+```
+
+The JSON mode is intended for agents, CI experiments, and wrapper scripts.
+
+---
+
 ## dev
 
 Starts local development. Long-running — stays in the foreground.
@@ -287,6 +377,11 @@ Starts local development. Long-running — stays in the foreground.
 === "Go"
     ```bash
     go run ./cmd/...
+    ```
+
+=== "Rust"
+    ```bash
+    cargo run
     ```
 
 For the apps workspace shape:

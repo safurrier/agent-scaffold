@@ -28,6 +28,10 @@ CONTRACT_TASKS = [
     "evidence-check",
     "review-check",
     "sync-check",
+    "slice-plan",
+    "slice-implement",
+    "slice-review",
+    "slice-status",
     "dev",
     "ci",
     "verify",
@@ -175,6 +179,31 @@ def test_agent_skills_has_example_skill() -> None:
     """Skills template must include an example-skill starter with SKILL.md."""
     assert (
         SCAFFOLD_ROOT / "templates" / ".agent" / "skills" / "example-skill" / "SKILL.md"
+    ).exists()
+
+
+def test_agent_skills_has_slice_workflow_skill() -> None:
+    """Skills template must include the canonical slice workflow skill."""
+    assert (
+        SCAFFOLD_ROOT
+        / "templates"
+        / ".agent"
+        / "skills"
+        / "slice-workflow"
+        / "SKILL.md"
+    ).exists()
+
+
+def test_slice_workflow_has_holdout_tasks_reference() -> None:
+    """Prompt-quality fixtures should ship with the workflow skill."""
+    assert (
+        SCAFFOLD_ROOT
+        / "templates"
+        / ".agent"
+        / "skills"
+        / "slice-workflow"
+        / "references"
+        / "holdout-sample-tasks.md"
     ).exists()
 
 

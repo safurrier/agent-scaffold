@@ -52,6 +52,7 @@ agent-scaffold/
 mise install                    # install tool versions from .mise.toml ✅
 mise run setup                  # uv sync --all-extras ✅
 mise run check                  # fast quality gate (fmt-check + lint + typecheck + test) ✅
+mise run slice-plan -- --task task.md  # render planner prompt for current harness ✅
 mise run sync-check             # plan/spec/evidence/review handoff gate ✅
 mise run fmt                    # auto-format ✅
 mise run lint                   # ruff check ✅
@@ -65,7 +66,7 @@ mise run verify                 # heavy validation (integration, docker) ⏸️ 
 
 ## System Invariants
 
-- **Stable 18-task contract**: Every `.mise/tasks/` script must exist, be executable, have a `# MISE description=` header, and use `#!/usr/bin/env -S uv run python` shebang. Violation causes: contract test failures, agents cannot rely on the command surface.
+- **Stable 22-task contract**: Every `.mise/tasks/` script must exist, be executable, have a `# MISE description=` header, and use `#!/usr/bin/env -S uv run python` shebang. Violation causes: contract test failures, agents cannot rely on the command surface.
 - **CI parity**: `mise run check` locally must match what CI runs (`mise run ci` delegates to `check`). Pre-commit hooks call the same tasks. Violation causes: green local / red CI divergence.
 - **Golden path guarantee**: A freshly initialized project (`mise run init`) must pass `mise run check` out of the box. Violation causes: broken first-run experience for users and agents.
 - **Deterministic slice contract**: meaningful work is not done until `mise run sync-check` passes. Violation causes: half-finished slices with missing evidence or review.
@@ -86,7 +87,7 @@ mise run verify                 # heavy validation (integration, docker) ⏸️ 
 |-----|-------|
 | `docs/index.md` | Project overview and quick start |
 | `docs/getting-started.md` | Full install and init walkthrough |
-| `docs/task-contract.md` | All 18 tasks: purpose, per-stack commands |
+| `docs/task-contract.md` | All 22 tasks: purpose, per-stack commands |
 | `docs/shapes.md` | Single vs apps workspace shapes |
 | `docs/init-system.md` | How init transforms the scaffold |
 | `docs/ci.md` | GitHub Actions workflow and pre-commit hooks |

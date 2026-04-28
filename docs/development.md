@@ -79,7 +79,7 @@ Two contract test files verify the scaffold itself before any init:
 
 **`test_task_contract.py`** — task file structure:
 
-- All 13 task files exist in `.mise/tasks/`
+- All 22 task files exist in `.mise/tasks/`
 - Every task file is executable
 - Every task file has a `# MISE description=` header
 - Every task file uses `#!/usr/bin/env -S uv run python` shebang

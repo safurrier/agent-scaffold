@@ -43,7 +43,7 @@ def cli(ctx: click.Context, debug: bool) -> None:
     "--stack",
     type=click.Choice(list(SUPPORTED_STACKS)),
     default=None,
-    help="Language stack: python or go",
+    help="Language stack: python, go, or rust",
 )
 @click.option(
     "--modules", default=None, help="Comma-separated module names (apps shape)"

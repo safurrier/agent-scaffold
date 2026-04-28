@@ -1,6 +1,6 @@
 """Verify the task contract holds after init.
 
-After init transforms the scaffold into a project, all 13 task files must
+After init transforms the scaffold into a project, all contract task files must
 still exist and be executable. This catches regressions where init or
 cleanup_scaffold accidentally removes task scripts.
 """
@@ -31,6 +31,10 @@ CONTRACT_TASKS = [
     "evidence-check",
     "review-check",
     "sync-check",
+    "slice-plan",
+    "slice-implement",
+    "slice-review",
+    "slice-status",
     "dev",
     "ci",
     "verify",

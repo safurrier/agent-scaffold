@@ -35,7 +35,7 @@ class Config:
     name: str
     description: str
     shape: str  # "single" | "apps"
-    stack: str  # "python" | "go"
+    stack: str  # "python" | "go" | "rust"
     modules: list[str] = field(default_factory=list)
     author_name: str = ""
     author_email: str = ""

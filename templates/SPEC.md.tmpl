@@ -63,6 +63,10 @@ index:
 | Command | Purpose |
 |---------|---------|
 | `mise run check` | Fast quality gate (fmt + lint + typecheck + test) |
+| `mise run slice-plan` | Render planner prompt for the active slice |
+| `mise run slice-implement` | Render implementer prompt for the active slice |
+| `mise run slice-review` | Render reviewer prompt for the active slice |
+| `mise run slice-status` | Show active slice status, with JSON for automation |
 | `mise run sync-check` | Handoff gate for plan/spec/evidence/review completeness |
 | `mise run verify` | Heavy validation (integration, docker, security) |
 | `mise run ci` | CI entrypoint (delegates to `check`) |

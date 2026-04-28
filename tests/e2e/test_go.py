@@ -86,6 +86,10 @@ class TestGoSingleHappyPath:
         assert skills.is_dir()
         assert (skills / "README.md").exists()
         assert (skills / "example-skill" / "SKILL.md").exists()
+        assert (skills / "slice-workflow" / "SKILL.md").exists()
+        assert (
+            skills / "slice-workflow" / "references" / "holdout-sample-tasks.md"
+        ).exists()
         assert (skills / "slice-planner" / "SKILL.md").exists()
         assert (skills / "slice-reviewer" / "SKILL.md").exists()
 

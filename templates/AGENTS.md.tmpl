@@ -48,6 +48,8 @@ not a replacement for code/test validation.
 ```bash
 git checkout -b feat/<slug>
 mise run plan -- <slug>    # creates .ai/plans/YYYY-MM-DD-HHmmSS-<slug>/
+mise run slice-plan -- --task path/to/task.md # renders prompts/planner.md
+mise -q run slice-status -- --json # inspect active slice state as JSON
 ```
 
 `mise run plan` refuses to run on the default branch. Slugs must be lowercase
@@ -63,9 +65,10 @@ See `.ai/plans/AGENTS.md` for the full plan structure and `_example/` for a refe
 
 1. `mise run check` — must pass
 2. Update the active plan: TODO, LEARNING_LOG, DECISIONS, VALIDATION, REVIEW, artifacts
-3. Use vendored skills if helpful: `/plan-sync`, `/spec-sync`, `/context-engineering update`, `/docs-workflow update`
-4. `mise run sync-check` — repo-enforced handoff gate
-5. `mise run verify` — when the slice needs heavier validation before merge
+3. Render phase prompts if useful: `mise run slice-implement`, then `mise run slice-review`
+4. Use vendored skills if helpful: `slice-workflow`, `/plan-sync`, `/spec-sync`, `/context-engineering update`, `/docs-workflow update`
+5. `mise run sync-check` — repo-enforced handoff gate
+6. `mise run verify` — when the slice needs heavier validation before merge
 
 The skills above are helpers. The hard contract is the `mise` task surface.
 

@@ -20,7 +20,7 @@ index:
 
 ## Summary
 
-agent-scaffold is an opinionated starter repository for agent-driven engineering. Clone it, run `mise run init`, and it transforms itself into a fully configured project with a stable 13-task command surface. Both humans and AI agents benefit from a language-agnostic, CI-parity contract where `mise run check` always works regardless of stack.
+agent-scaffold is an opinionated starter repository for agent-driven engineering. Clone it, run `mise run init`, and it transforms itself into a fully configured project with a stable 22-task command surface. Both humans and AI agents benefit from a language-agnostic, CI-parity contract where `mise run check` always works regardless of stack and `mise run slice-*` renders provider-neutral slice workflow prompts.
 
 ## Goals / Non-Goals
 
@@ -45,7 +45,7 @@ agent-scaffold is an opinionated starter repository for agent-driven engineering
 
 - `mise run init` supports interactive and non-interactive modes
 - `mise run init -- --non-interactive` with explicit flags produces deterministic output
-- All 13 task scripts exist in `.mise/tasks/`, are executable, and have `# MISE description=` headers
+- All 22 task scripts exist in `.mise/tasks/`, are executable, and have `# MISE description=` headers
 - `mise run check` passes on a freshly initialized project without manual intervention (golden path)
 - `mise run ci` produces identical results to `mise run check` (CI parity)
 - Pre-commit hooks call the same tasks as CI
@@ -54,7 +54,10 @@ agent-scaffold is an opinionated starter repository for agent-driven engineering
 - All generated docs have valid YAML frontmatter with `id`, `title`, `description`, and `index` fields
 - ADRs have Status (from allowed values), Context, Decision, and Consequences sections
 - `mise run plan -- <slug>` creates a plan directory with META.yaml, TODO.md, LEARNING_LOG.md, VALIDATION.md; invalid or duplicate slugs fail with clear errors
+- `mise run slice-plan`, `slice-implement`, and `slice-review` render provider-neutral prompts into the active plan's `prompts/` directory
+- `mise -q run slice-status -- --json` emits machine-readable active slice state
 - Generated projects include `.ai/plans/` with routing AGENTS.md, templates, and example
+- Generated projects include `.agent/skills/slice-workflow/` with artifact policy, handoff rubric, holdout sample tasks, and prompt templates
 - Plan META.yaml has required fields: `slug`, `created` (YYYY-MM-DD), `status` (from allowed values)
 
 ### SHOULD
@@ -66,7 +69,7 @@ agent-scaffold is an opinionated starter repository for agent-driven engineering
 
 ### MAY
 
-- Support additional stacks beyond Python and Go (Rust, Web/TS planned)
+- Support additional stacks beyond Python, Go, and Rust (Web/TS planned)
 - Support `workspace.toml` module registry for apps-shape repos
 - Support custom task scripts via plugin directories
 
@@ -79,14 +82,14 @@ agent-scaffold init [OPTIONS]
   --non-interactive     Skip prompts, require all flags
   --name TEXT           Project name (required)
   --shape [single|apps] Repo shape (required)
-  --stack [python|go]   Primary stack (required)
+  --stack [python|go|rust] Primary stack (required)
   --modules TEXT        Comma-separated module names (apps shape)
   --go-module TEXT      Go module path (Go stack)
   --no-hooks            Skip pre-commit hook installation
   --no-examples         Remove example code after init
 ```
 
-**13-task contract:**
+**22-task contract:**
 
 | Task | Purpose | Composition |
 |------|---------|-------------|
@@ -102,6 +105,15 @@ agent-scaffold init [OPTIONS]
 | `ci` | CI entrypoint | Delegates to `check` |
 | `docs` | Documentation server | MkDocs dev server |
 | `plan` | Create plan directory | Scaffolds `.ai/plans/<slug>/` |
+| `plan-check` | Validate active plan metadata | Checks required slice files |
+| `spec-check` | Validate decision promotion | Checks ledger/ADR reflection |
+| `evidence-check` | Validate evidence artifacts | Checks validation commands and manifest |
+| `review-check` | Validate review artifact | Checks external-enough review fields |
+| `sync-check` | Handoff readiness gate | Runs plan/spec/evidence/review checks |
+| `slice-plan` | Render planner prompt | Writes `prompts/planner.md` |
+| `slice-implement` | Render implementer prompt | Writes `prompts/implementer.md` |
+| `slice-review` | Render reviewer prompt | Writes `prompts/reviewer.md` |
+| `slice-status` | Show active slice state | Text or JSON status |
 | `verify` | Heavy validation | Integration, docker, security |
 
 **Stack Protocol:**
