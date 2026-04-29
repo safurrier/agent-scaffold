@@ -7,11 +7,12 @@ Opinionated starter repository for agent-driven engineering. Provides a **stable
 ```
 agent-scaffold/
 ├── .mise.toml                  # Tool versions + env vars (stack, shape, name)
-├── .mise/tasks/                # 13 file-based task scripts (the contract)
+├── .mise/tasks/                # 22 file-based task scripts (the contract)
 ├── .agent/skills/              # Agent skills (spec-sync, plan-sync, etc.)
 ├── .ai/plans/                  # Plan directories for units of work
 ├── scripts/
-│   └── lib.py                  # Shared helpers (stack dispatch, module iteration)
+│   ├── lib.py                  # Shared helpers (stack dispatch, module iteration)
+│   └── plan_contract.py        # Shared helpers for plan/spec/evidence/review checks
 ├── stacks/                     # Per-stack template files (removed after init)
 │   ├── python/                 # Python stack templates (.tmpl + source)
 │   ├── go/                     # Go stack templates
@@ -41,8 +42,9 @@ agent-scaffold/
 
 1. **Explore**: `mise tasks` lists all available commands
 2. **Validate**: `mise run check` runs fmt-check + lint + typecheck + test
-3. **Test fast**: `uv run pytest -m "not slow"` skips Go E2E tests
-4. **Docs**: `mise run docs` starts the MkDocs dev server
+3. **Handoff**: `mise run sync-check` validates plan/spec/evidence/review completeness
+4. **Test fast**: `uv run pytest -m "not slow"` skips Go E2E tests
+5. **Docs**: `mise run docs` starts the MkDocs dev server
 
 ## Common Commands
 
@@ -50,6 +52,8 @@ agent-scaffold/
 mise install                    # install tool versions from .mise.toml ✅
 mise run setup                  # uv sync --all-extras ✅
 mise run check                  # fast quality gate (fmt-check + lint + typecheck + test) ✅
+mise run slice-plan -- --task task.md  # render planner prompt for current harness ✅
+mise run sync-check             # plan/spec/evidence/review handoff gate ✅
 mise run fmt                    # auto-format ✅
 mise run lint                   # ruff check ✅
 mise run typecheck              # ty check ⏸️ (may produce warnings on active codebase)
@@ -62,9 +66,10 @@ mise run verify                 # heavy validation (integration, docker) ⏸️ 
 
 ## System Invariants
 
-- **Stable 13-task contract**: Every `.mise/tasks/` script must exist, be executable, have a `# MISE description=` header, and use `#!/usr/bin/env -S uv run python` shebang. Violation causes: contract test failures, agents cannot rely on the command surface.
+- **Stable 22-task contract**: Every `.mise/tasks/` script must exist, be executable, have a `# MISE description=` header, and use `#!/usr/bin/env -S uv run python` shebang. Violation causes: contract test failures, agents cannot rely on the command surface.
 - **CI parity**: `mise run check` locally must match what CI runs (`mise run ci` delegates to `check`). Pre-commit hooks call the same tasks. Violation causes: green local / red CI divergence.
 - **Golden path guarantee**: A freshly initialized project (`mise run init`) must pass `mise run check` out of the box. Violation causes: broken first-run experience for users and agents.
+- **Deterministic slice contract**: meaningful work is not done until `mise run sync-check` passes. Violation causes: half-finished slices with missing evidence or review.
 - **Stack dispatch via env**: Tasks read `SCAFFOLD_PROJECT_STACK` from `.mise.toml` to dispatch to the correct toolchain. Violation causes: tasks run wrong language tools.
 
 ## Gotchas
@@ -82,7 +87,7 @@ mise run verify                 # heavy validation (integration, docker) ⏸️ 
 |-----|-------|
 | `docs/index.md` | Project overview and quick start |
 | `docs/getting-started.md` | Full install and init walkthrough |
-| `docs/task-contract.md` | All 13 tasks: purpose, per-stack commands |
+| `docs/task-contract.md` | All 22 tasks: purpose, per-stack commands |
 | `docs/shapes.md` | Single vs apps workspace shapes |
 | `docs/init-system.md` | How init transforms the scaffold |
 | `docs/ci.md` | GitHub Actions workflow and pre-commit hooks |

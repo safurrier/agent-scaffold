@@ -25,8 +25,8 @@ def to_module_name(name: str) -> str:
     return name.replace("-", "_")
 
 
-SUPPORTED_STACKS = ("python", "go")
-PLANNED_STACKS = ("rust", "web")
+SUPPORTED_STACKS = ("python", "go", "rust")
+PLANNED_STACKS = ("web",)
 SUPPORTED_SHAPES = ("single", "apps")
 
 
@@ -35,7 +35,7 @@ class Config:
     name: str
     description: str
     shape: str  # "single" | "apps"
-    stack: str  # "python" | "go"
+    stack: str  # "python" | "go" | "rust"
     modules: list[str] = field(default_factory=list)
     author_name: str = ""
     author_email: str = ""

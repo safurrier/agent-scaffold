@@ -1,0 +1,79 @@
+#!/usr/bin/env -S uv run python
+# MISE description="Aggregate plan/spec/evidence/review checks for handoff readiness"
+import os
+import subprocess
+import sys
+
+sys.path.insert(0, os.path.join(os.environ["MISE_PROJECT_ROOT"], "scripts"))
+from lib import PROJECT_ROOT, log_error, log_ok, log_step  # noqa: E402
+from plan_contract import (  # noqa: E402
+    PlanContractError,
+    changed_plan_contexts,
+    git_diff_paths,
+    strip_changed_plan_paths,
+)
+
+TASKS = PROJECT_ROOT / ".mise" / "tasks"
+CONTRACT_TASKS = ("plan-check", "spec-check", "evidence-check", "review-check")
+
+
+def run_task(name: str, *args: str) -> None:
+    result = subprocess.run([sys.executable, str(TASKS / name), *args])
+    if result.returncode != 0:
+        sys.exit(result.returncode)
+
+
+def run_contract_for_plan(plan_dir: str) -> None:
+    log_step(f"Checking plan: {plan_dir}")
+    for task_name in CONTRACT_TASKS:
+        run_task(task_name, "--plan-dir", plan_dir)
+
+
+def run_changed_plans(refspec: str) -> None:
+    try:
+        contexts = changed_plan_contexts(PROJECT_ROOT, refspec)
+        changed_paths = git_diff_paths(PROJECT_ROOT, refspec)
+    except PlanContractError as e:
+        log_error(str(e))
+        sys.exit(1)
+
+    meaningful_paths = strip_changed_plan_paths(changed_paths, contexts, PROJECT_ROOT)
+    if not contexts:
+        if meaningful_paths:
+            log_error("Meaningful branch changes exist, but no changed plan was found.")
+            for path in meaningful_paths:
+                print(f"  - {path}", file=sys.stderr)
+            sys.exit(1)
+        log_ok("No changed plans and no meaningful branch changes")
+        return
+
+    if meaningful_paths:
+        log_step("Non-plan branch changes covered by changed plan validation")
+        for path in meaningful_paths:
+            print(f"  - {path}")
+
+    for context in contexts:
+        if context.meta.status != "complete":
+            log_error(
+                "Changed plans must be marked complete before PR sync-check passes: "
+                f"{context.path.relative_to(PROJECT_ROOT)}"
+            )
+            sys.exit(1)
+        run_contract_for_plan(str(context.path.relative_to(PROJECT_ROOT)))
+
+
+log_step("Running sync-check")
+
+args = sys.argv[1:]
+if not args:
+    for task_name in CONTRACT_TASKS:
+        run_task(task_name)
+elif len(args) == 2 and args[0] == "--plan-dir":
+    run_contract_for_plan(args[1])
+elif len(args) == 2 and args[0] == "--changed-plans":
+    run_changed_plans(args[1])
+else:
+    log_error("Usage: sync-check [--plan-dir PATH | --changed-plans GIT_REFSPEC]")
+    sys.exit(1)
+
+log_ok("Sync-check passed")

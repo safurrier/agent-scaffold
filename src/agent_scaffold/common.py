@@ -63,15 +63,11 @@ def generate_docs(root: Path, context: dict[str, Any]) -> None:
         _write(agents_tmpl, root / "AGENTS.md", context)
         _make_symlink(root / "CLAUDE.md", "AGENTS.md", fallback_src=root / "AGENTS.md")
 
-    # docs/architecture.md
-    arch_tmpl = tmpl_dir / "docs" / "architecture.md.tmpl"
-    if arch_tmpl.exists():
-        _write(arch_tmpl, root / "docs" / "architecture.md", context)
-
-    # docs/decisions/0001-stack-choice.md
-    adr_tmpl = tmpl_dir / "docs" / "decisions" / "0001-stack-choice.md.tmpl"
-    if adr_tmpl.exists():
-        _write(adr_tmpl, root / "docs" / "decisions" / "0001-stack-choice.md", context)
+    # docs/ (intent-structured tree, review rubrics, decision ledger, ADR seed)
+    docs_src = tmpl_dir / "docs"
+    if docs_src.exists():
+        scaffold_docs.mkdir(parents=True, exist_ok=True)
+        copy_tree(docs_src, scaffold_docs, context)
 
     # .agent/skills/ (full tree, includes example-skill/)
     # Remove scaffold's own skills before copying template skills
@@ -147,7 +143,7 @@ def cleanup_scaffold(root: Path, config: Config) -> None:
     to_remove = [
         root / "stacks",
         root / "templates",
-        root / "src",
+        root / "src" / "agent_scaffold",  # scaffold CLI package (not whole src/)
         root / "mkdocs.yml",  # scaffold's MkDocs config
         root / "scripts" / "init_project.py",  # legacy, may not exist
     ]
@@ -161,6 +157,11 @@ def cleanup_scaffold(root: Path, config: Config) -> None:
             shutil.rmtree(path)
         elif path.is_file():
             path.unlink(missing_ok=True)
+
+    # Remove src/ only if empty (Rust init_single writes src/main.rs there)
+    src_dir = root / "src"
+    if src_dir.is_dir() and not any(src_dir.iterdir()):
+        src_dir.rmdir()
 
     scripts_dir = root / "scripts"
     if scripts_dir.exists() and not any(scripts_dir.iterdir()):

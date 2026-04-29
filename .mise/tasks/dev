@@ -34,6 +34,11 @@ def dev_go(cwd=PROJECT_ROOT):
     run(["go", "run", "./cmd/..."], cwd=cwd)
 
 
+def dev_rust(cwd=PROJECT_ROOT):
+    log_step("Starting Rust development server")
+    run(["cargo", "run"], cwd=cwd)
+
+
 shape = get_shape()
 
 if shape == "apps":
@@ -53,10 +58,10 @@ if shape == "apps":
     mod = modules[target]
     cwd = PROJECT_ROOT / mod["path"]
     log_step(f"[{target}] dev")
-    fn = {"python": dev_python, "go": dev_go}.get(mod["kind"])
+    fn = {"python": dev_python, "go": dev_go, "rust": dev_rust}.get(mod["kind"])
     if fn:
         fn(cwd=cwd)
     else:
         log_warn(f"{mod['kind']} stack: not yet implemented")
 else:
-    dispatch_stack({"python": dev_python, "go": dev_go})
+    dispatch_stack({"python": dev_python, "go": dev_go, "rust": dev_rust})

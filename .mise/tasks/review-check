@@ -1,0 +1,74 @@
+#!/usr/bin/env -S uv run python
+# MISE description="Validate external review evidence for the active slice"
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.environ["MISE_PROJECT_ROOT"], "scripts"))
+from lib import PROJECT_ROOT, log_error, log_ok, log_step  # noqa: E402
+from plan_contract import (  # noqa: E402
+    PlanContractError,
+    file_has_meaningful_content,
+    is_placeholder_value,
+    keyed_bullets,
+    section_bullets,
+    section_has_meaningful_bullets,
+    selected_plan_context,
+)
+
+log_step("Checking review contract")
+
+try:
+    current, _explicit_plan = selected_plan_context(PROJECT_ROOT, sys.argv[1:])
+except PlanContractError as e:
+    log_error(str(e))
+    sys.exit(1)
+if current is None:
+    log_ok("No active plan to review-check")
+    sys.exit(0)
+
+review_path = current.path / "REVIEW.md"
+if not file_has_meaningful_content(review_path):
+    log_error("REVIEW.md must contain a completed review, not only placeholders.")
+    sys.exit(1)
+
+context = keyed_bullets(review_path, "Review Context")
+mode = context.get("mode", "")
+backend = context.get("backend", "") or current.meta.review_backend
+reviewer = context.get("reviewer", "")
+
+if current.meta.review_mode == "external_required" and mode != "external":
+    log_error("REVIEW.md must record Mode: external when external review is required.")
+    sys.exit(1)
+
+if not reviewer or is_placeholder_value(reviewer):
+    log_error("REVIEW.md must record the reviewer identity or external review context.")
+    sys.exit(1)
+
+if not current.meta.review_backend or is_placeholder_value(current.meta.review_backend):
+    log_error("META.yaml must record the backend that performed the review.")
+    sys.exit(1)
+
+if not backend or backend.lower() == "self" or is_placeholder_value(backend):
+    log_error(
+        "An external review backend is required (subagent, skill, or manual_external)."
+    )
+    sys.exit(1)
+
+if current.meta.review_backend and current.meta.review_backend != backend:
+    log_error("META.yaml review_backend does not match REVIEW.md.")
+    sys.exit(1)
+
+rubrics = set(section_bullets(review_path, "Rubrics"))
+missing_rubrics = [name for name in current.meta.review_rubrics if name not in rubrics]
+if missing_rubrics:
+    log_error("REVIEW.md is missing rubric coverage for:")
+    for rubric in missing_rubrics:
+        print(f"  - {rubric}", file=sys.stderr)
+    sys.exit(1)
+
+for heading in ("Findings", "Disposition"):
+    if not section_has_meaningful_bullets(review_path, heading):
+        log_error(f"REVIEW.md needs a meaningful '{heading}' section.")
+        sys.exit(1)
+
+log_ok(f"Review contract ready: {current.path.relative_to(PROJECT_ROOT)}")

@@ -3,7 +3,7 @@ id: agent-scaffold-overview
 title: agent-scaffold
 description: >
   Overview of agent-scaffold — an opinionated starter repo for agent-driven engineering
-  that provides a stable mise task contract across Python and Go stacks.
+  that provides a stable mise task contract across Python, Go, and Rust stacks.
 index:
   - id: what-it-is
     keywords: [scaffold, clone-and-init, task-contract, agent-native]
@@ -23,13 +23,13 @@ Opinionated starter repository for agent-driven engineering. Provides a **stable
 
 agent-scaffold is a **clone-and-init** template. You clone it, run `mise run init`, and it transforms itself into your project — removing scaffold scaffolding, applying your project name, and verifying the golden path passes before handing control over.
 
-Every generated project ships with a **three-doc split**:
+Every generated project ships with a **three-surface split**:
 
 - **`SPEC.md`** — correctness envelope (requirements, contracts, invariants)
 - **`AGENTS.md`** — how to work here (commands, repo map, workflow)
-- **`docs/architecture.md`** — system description (principles, decisions, module map)
+- **`docs/`** — routed durable docs with explanation/reference/tutorial/how-to structure
 
-The key insight: agents (and humans) benefit from a **fixed command surface**. Regardless of language, repo shape, or tooling choices, every project initialized from this scaffold exposes the same 13 tasks:
+The key insight: agents (and humans) benefit from a **fixed command surface**. Regardless of language, repo shape, or tooling choices, every project initialized from this scaffold exposes the same stable task contract:
 
 ```bash
 mise run fmt        # format
@@ -38,6 +38,7 @@ mise run typecheck  # type checking
 mise run test       # unit tests
 mise run check      # all of the above (fast gate)
 mise run plan       # create a plan directory for a unit of work on a feature branch
+mise run sync-check # verify the slice is fully planned, evidenced, and reviewed
 mise run verify     # heavy validation (integration, docker, etc.)
 ```
 
@@ -70,5 +71,5 @@ See [Getting Started](getting-started.md) for the full walkthrough.
 |--------|----------------|----------------|-------------|------------|-------------|
 | Python | ruff format    | ruff check     | ty          | pytest     | ✅ Available |
 | Go     | gofumpt        | golangci-lint  | go vet      | go test    | ✅ Available |
-| Rust   | cargo fmt      | cargo clippy   | cargo check | cargo test | 🔜 Planned  |
+| Rust   | cargo fmt      | cargo clippy   | cargo check | cargo test | ✅ Available |
 | Web    | prettier       | eslint         | tsc         | vitest     | 🔜 Planned  |

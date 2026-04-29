@@ -1,0 +1,9 @@
+#!/usr/bin/env -S uv run python
+# MISE description="Render the planner prompt for the active slice"
+import os
+import sys
+
+sys.path.insert(0, os.environ["MISE_PROJECT_ROOT"])
+from scripts.slice_workflow import main  # noqa: E402
+
+main("planner")

@@ -144,7 +144,7 @@ def test_mkdocs_nav_entries_exist() -> None:
 
 # ── Architecture.md template structure ───────────────────────────────────
 
-ARCH_TEMPLATE = TEMPLATES_DIR / "docs" / "architecture.md.tmpl"
+ARCH_TEMPLATE = TEMPLATES_DIR / "docs" / "explanation" / "architecture.md.tmpl"
 
 
 @pytest.mark.parametrize("section_name", ARCHITECTURE_REQUIRED_SECTIONS)
@@ -189,7 +189,11 @@ def test_architecture_template_has_decisions_index_table() -> None:
 
 # ── ADR template structure ───────────────────────────────────────────────
 
-ADR_TEMPLATE = TEMPLATES_DIR / "docs" / "decisions" / "0001-stack-choice.md.tmpl"
+ADR_TEMPLATE = (
+    TEMPLATES_DIR / "docs" / "explanation" / "decisions" / "0001-stack-choice.md.tmpl"
+)
+
+LEDGER_TEMPLATE = TEMPLATES_DIR / "docs" / "explanation" / "decision-ledger.md.tmpl"
 
 
 def test_adr_template_has_status_field() -> None:
@@ -214,6 +218,17 @@ def test_adr_template_has_required_sections() -> None:
         assert match is not None, (
             f"ADR template missing required section '## {required}'"
         )
+
+
+def test_decision_ledger_template_exists() -> None:
+    assert LEDGER_TEMPLATE.exists(), "decision-ledger.md.tmpl not found"
+
+
+def test_decision_ledger_template_mentions_append_only() -> None:
+    content = LEDGER_TEMPLATE.read_text().lower()
+    assert "append-only" in content, (
+        "decision ledger template must state append-only behavior"
+    )
 
 
 # ── SPEC.md template structure ───────────────────────────────────────────

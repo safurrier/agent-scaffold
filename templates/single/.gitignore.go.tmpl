@@ -6,10 +6,15 @@ bin/
 *.so
 *.dylib
 
+# Python helpers used by scaffold tasks
+__pycache__/
+*.py[cod]
+
 # Test
 *.test
 *.out
 coverage.txt
+test-results/
 tmp/
 
 # IDE
@@ -28,3 +33,18 @@ Thumbs.db
 
 # mise
 .mise.local.toml
+
+# Agent scratch
+.ai/handoffs/
+.ai/research/
+.ai/plans/**/artifacts/**
+!.ai/plans/**/artifacts/
+!.ai/plans/**/artifacts/manifest.yaml
+!.ai/plans/**/artifacts/*.md
+!.ai/plans/**/artifacts/*.txt
+!.ai/plans/**/artifacts/*.log
+!.ai/plans/**/artifacts/*.png
+
+# Harness-local settings
+.claude/settings.local.json
+.codex/hooks.json

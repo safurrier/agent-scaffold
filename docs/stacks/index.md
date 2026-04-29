@@ -2,7 +2,7 @@
 id: stacks-overview
 title: Stacks
 description: >
-  Overview of supported language stacks (Python, Go) and planned stacks (Rust, Web),
+  Overview of supported language stacks (Python, Go, Rust) and planned stacks (Web),
   with a per-stack tool comparison table and how to select a stack at init time.
 index:
   - id: stack-comparison
@@ -19,7 +19,7 @@ A **stack** is the set of language-native tools wired into the task contract. Ev
 
 | | Python | Go | Rust | Web (TS) |
 |--|--------|-----|------|----------|
-| **Status** | ✅ Available | ✅ Available | 🔜 Planned | 🔜 Planned |
+| **Status** | ✅ Available | ✅ Available | ✅ Available | 🔜 Planned |
 | **fmt** | ruff format | gofumpt | cargo fmt | prettier |
 | **lint** | ruff check | golangci-lint | cargo clippy | eslint |
 | **typecheck** | ty | go vet | cargo check | tsc --noEmit |
@@ -34,6 +34,7 @@ Set at `init` time via `--stack`:
 ```bash
 mise run init -- --non-interactive --name myapp --stack python
 mise run init -- --non-interactive --name myservice --stack go
+mise run init -- --non-interactive --name mydaemon --stack rust
 ```
 
 After init, the stack is recorded in `.mise.toml`:
@@ -49,3 +50,4 @@ All task scripts read this variable to dispatch to the correct toolchain.
 
 - [Python stack](python.md)
 - [Go stack](go.md)
+- [Rust stack](rust.md)

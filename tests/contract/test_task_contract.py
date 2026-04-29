@@ -23,6 +23,15 @@ CONTRACT_TASKS = [
     "test",
     "build",
     "check",
+    "plan-check",
+    "spec-check",
+    "evidence-check",
+    "review-check",
+    "sync-check",
+    "slice-plan",
+    "slice-implement",
+    "slice-review",
+    "slice-status",
     "dev",
     "ci",
     "verify",
@@ -91,14 +100,30 @@ def test_stacks_go_exists() -> None:
     assert (SCAFFOLD_ROOT / "stacks" / "go").is_dir()
 
 
+def test_stacks_rust_exists() -> None:
+    assert (SCAFFOLD_ROOT / "stacks" / "rust").is_dir()
+
+
 def test_ci_workflow_exists() -> None:
     assert (SCAFFOLD_ROOT / ".github" / "workflows" / "ci.yml").exists()
 
 
 def test_ci_workflow_calls_mise_ci() -> None:
-    """The CI workflow must use 'mise run ci' as its sole quality gate."""
+    """The CI workflow must use 'mise run ci' for its quality gate."""
     workflow = (SCAFFOLD_ROOT / ".github" / "workflows" / "ci.yml").read_text()
     assert "mise run ci" in workflow
+
+
+def test_ci_workflow_runs_sync_check_and_stack_smokes() -> None:
+    """Repository CI must enforce handoff checks and smoke every supported stack."""
+    workflow = (SCAFFOLD_ROOT / ".github" / "workflows" / "ci.yml").read_text()
+    assert "name: Sync Contract" in workflow
+    assert "mise run sync-check" in workflow
+    assert "--changed-plans" in workflow
+    assert "fetch-depth: 0" in workflow
+    assert "stack: python" in workflow
+    assert "stack: go" in workflow
+    assert "stack: rust" in workflow
 
 
 def test_pre_commit_config_exists() -> None:
@@ -111,12 +136,44 @@ def test_pre_commit_calls_mise_tasks() -> None:
     assert "mise run" in content
 
 
+@pytest.mark.parametrize(
+    "path",
+    [
+        ".gitignore",
+        "templates/single/.gitignore.python.tmpl",
+        "templates/single/.gitignore.go.tmpl",
+        "templates/single/.gitignore.rust.tmpl",
+        "templates/apps/.gitignore.tmpl",
+    ],
+)
+def test_gitignore_keeps_agent_scratch_out_of_git(path: str) -> None:
+    """Root and generated projects should ignore local agent/harness scratch."""
+    content = (SCAFFOLD_ROOT / path).read_text()
+    for pattern in [
+        ".ai/handoffs/",
+        ".ai/research/",
+        ".ai/plans/**/artifacts/**",
+        "!.ai/plans/**/artifacts/manifest.yaml",
+        "!.ai/plans/**/artifacts/*.md",
+        "!.ai/plans/**/artifacts/*.txt",
+        "!.ai/plans/**/artifacts/*.log",
+        "!.ai/plans/**/artifacts/*.png",
+        ".claude/settings.local.json",
+        ".codex/hooks.json",
+    ]:
+        assert pattern in content
+
+
 def test_python_stack_has_pyproject_template() -> None:
     assert (SCAFFOLD_ROOT / "stacks" / "python" / "pyproject.toml.tmpl").exists()
 
 
 def test_go_stack_has_go_mod_template() -> None:
     assert (SCAFFOLD_ROOT / "stacks" / "go" / "go.mod.tmpl").exists()
+
+
+def test_rust_stack_has_cargo_toml_template() -> None:
+    assert (SCAFFOLD_ROOT / "stacks" / "rust" / "Cargo.toml.tmpl").exists()
 
 
 def test_go_stack_has_golangci_config() -> None:
@@ -138,12 +195,19 @@ def test_agents_md_template_exists() -> None:
 
 
 def test_architecture_template_exists() -> None:
-    assert (SCAFFOLD_ROOT / "templates" / "docs" / "architecture.md.tmpl").exists()
+    assert (
+        SCAFFOLD_ROOT / "templates" / "docs" / "explanation" / "architecture.md.tmpl"
+    ).exists()
 
 
 def test_adr_template_exists() -> None:
     assert (
-        SCAFFOLD_ROOT / "templates" / "docs" / "decisions" / "0001-stack-choice.md.tmpl"
+        SCAFFOLD_ROOT
+        / "templates"
+        / "docs"
+        / "explanation"
+        / "decisions"
+        / "0001-stack-choice.md.tmpl"
     ).exists()
 
 
@@ -158,6 +222,31 @@ def test_agent_skills_has_example_skill() -> None:
     ).exists()
 
 
+def test_agent_skills_has_slice_workflow_skill() -> None:
+    """Skills template must include the canonical slice workflow skill."""
+    assert (
+        SCAFFOLD_ROOT
+        / "templates"
+        / ".agent"
+        / "skills"
+        / "slice-workflow"
+        / "SKILL.md"
+    ).exists()
+
+
+def test_slice_workflow_has_holdout_tasks_reference() -> None:
+    """Prompt-quality fixtures should ship with the workflow skill."""
+    assert (
+        SCAFFOLD_ROOT
+        / "templates"
+        / ".agent"
+        / "skills"
+        / "slice-workflow"
+        / "references"
+        / "holdout-sample-tasks.md"
+    ).exists()
+
+
 def test_ci_template_exists() -> None:
     assert (
         SCAFFOLD_ROOT / "templates" / ".github" / "workflows" / "ci.yml.tmpl"
@@ -165,11 +254,14 @@ def test_ci_template_exists() -> None:
 
 
 def test_ci_template_is_two_tier() -> None:
-    """Generated CI template must include both check and verify jobs."""
+    """Generated CI template must include check, sync, and verify jobs."""
     content = (
         SCAFFOLD_ROOT / "templates" / ".github" / "workflows" / "ci.yml.tmpl"
     ).read_text()
     assert "mise run ci" in content
+    assert "mise run sync-check" in content
+    assert "--changed-plans" in content
+    assert "fetch-depth: 0" in content
     assert "mise run verify" in content
     assert "upload-artifact" in content
 
@@ -195,7 +287,15 @@ def test_plan_templates_dir_exists() -> None:
 
 @pytest.mark.parametrize(
     "filename",
-    ["META.yaml", "TODO.md", "LEARNING_LOG.md", "VALIDATION.md"],
+    [
+        "META.yaml",
+        "TODO.md",
+        "LEARNING_LOG.md",
+        "VALIDATION.md",
+        "REVIEW.md",
+        "DECISIONS.md",
+        "artifacts/manifest.yaml",
+    ],
 )
 def test_plan_template_required_file_exists(filename: str) -> None:
     """Every required plan template file must exist."""
@@ -211,7 +311,15 @@ def test_plan_example_dir_exists() -> None:
 
 @pytest.mark.parametrize(
     "filename",
-    ["META.yaml", "TODO.md", "LEARNING_LOG.md", "VALIDATION.md"],
+    [
+        "META.yaml",
+        "TODO.md",
+        "LEARNING_LOG.md",
+        "VALIDATION.md",
+        "REVIEW.md",
+        "DECISIONS.md",
+        "artifacts/manifest.yaml",
+    ],
 )
 def test_plan_example_has_required_file(filename: str) -> None:
     """Example plan must include all required files."""

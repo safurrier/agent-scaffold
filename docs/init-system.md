@@ -29,7 +29,7 @@ index:
 3. Process .tmpl files — replace {{placeholders}} with project values
 4. Rewrite .mise.toml with project name, shape, stack, and tool versions
 5. Generate SPEC.md, README.md, AGENTS.md (+ CLAUDE.md symlink) from templates
-6. Generate docs/architecture.md and docs/decisions/0001-stack-choice.md from templates
+6. Generate the routed docs tree, including architecture, decision ledger, ADR seed, and review rubrics
 7. Generate .agent/skills/ (+ .claude/skills symlink) from templates
 8. Generate .github/workflows/ci.yml from template
 9. Generate .gitignore for the target stack
@@ -52,7 +52,7 @@ Files with the `.tmpl` extension are processed by replacing `{{placeholder}}` st
 | `{{project_name}}` | Project name (e.g. `my-service`) |
 | `{{module_name}}` | Python module name (`my_service`) |
 | `{{project_description}}` | Project description |
-| `{{project_stack}}` | `python` or `go` |
+| `{{project_stack}}` | `python`, `go`, or `rust` |
 | `{{go_module}}` | Go module path (e.g. `github.com/org/my-service`) |
 | `{{author_name}}` | Author name |
 | `{{author_email}}` | Author email |
@@ -81,8 +81,11 @@ Generated for all stacks and shapes from `templates/`:
 SPEC.md.tmpl                              →  SPEC.md (correctness envelope)
 AGENTS.md.tmpl                            →  AGENTS.md (+ CLAUDE.md symlink)
 README.md.tmpl                            →  README.md
-docs/architecture.md.tmpl                 →  docs/architecture.md
-docs/decisions/0001-stack-choice.md.tmpl  →  docs/decisions/0001-stack-choice.md
+docs/README.md.tmpl                              →  docs/README.md
+docs/AGENTS.md.tmpl                              →  docs/AGENTS.md
+docs/explanation/architecture.md.tmpl            →  docs/explanation/architecture.md
+docs/explanation/decision-ledger.md.tmpl         →  docs/explanation/decision-ledger.md
+docs/explanation/decisions/0001-stack-choice.md.tmpl  →  docs/explanation/decisions/0001-stack-choice.md
 .github/workflows/ci.yml.tmpl            →  .github/workflows/ci.yml
 ```
 

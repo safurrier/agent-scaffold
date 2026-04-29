@@ -134,7 +134,7 @@ def test_invalid_stack_rejected(runner: CliRunner) -> None:
             "--shape",
             "single",
             "--stack",
-            "rust",
+            "ruby",
         ],
     )
     assert result.exit_code != 0

@@ -49,6 +49,7 @@ markers = [
     "e2e: full init+setup+check workflows against temp projects",
     "slow: tests that take a long time (deselect with '-m not slow')",
     "go: tests requiring the Go toolchain",
+    "rust: tests requiring the Rust toolchain",
 ]
 
 # ── ty ───────────────────────────────────────

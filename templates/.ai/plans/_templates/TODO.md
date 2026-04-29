@@ -8,4 +8,4 @@ description: >
 
 # TODO — {{slug}}
 
-- [ ]
+- [ ] Replace this placeholder with the actual slice tasks

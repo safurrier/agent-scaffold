@@ -53,6 +53,15 @@ Every agent-scaffold project exposes these commands:
 | `mise run test` | Unit tests |
 | `mise run build` | Build artifacts |
 | `mise run check` | Fast quality gate |
+| `mise run plan-check` | Validate the active plan and metadata |
+| `mise run spec-check` | Validate decision promotion and reflected docs |
+| `mise run evidence-check` | Validate declared evidence artifacts |
+| `mise run review-check` | Validate external review artifacts |
+| `mise run sync-check` | Aggregate handoff readiness checks |
+| `mise run slice-plan` | Render the planner prompt for the active slice |
+| `mise run slice-implement` | Render the implementer prompt for the active slice |
+| `mise run slice-review` | Render the reviewer prompt for the active slice |
+| `mise run slice-status` | Show active slice state; use `mise -q run slice-status -- --json` for automation |
 | `mise run dev` | Local development |
 | `mise run ci` | CI entrypoint (= check) |
 | `mise run docs` | Documentation server |
@@ -68,7 +77,7 @@ Every agent-scaffold project exposes these commands:
 | Rust | cargo fmt | cargo clippy | cargo check | cargo test |
 | Web (TS) | prettier | eslint | tsc --noEmit | vitest |
 
-> Rust and Web stacks are planned — task stubs exist but templates are not yet available.
+> Web is planned. Python, Go, and Rust ship with templates and task wiring.
 
 ## Repo Shapes
 
@@ -81,4 +90,5 @@ Every agent-scaffold project exposes these commands:
 2. **Thin orchestration** — mise delegates to language-native tools
 3. **Fast `check`, explicit `verify`** — `check` is deterministic and fast; `verify` is heavier
 4. **Deterministic CI** — GitHub Actions calls `mise run ci` and nothing else
-5. **CI parity** — pre-commit hooks call the same tasks as CI
+5. **Deterministic slice handoff** — `sync-check` keeps plan/spec/evidence/review in lockstep
+6. **CI parity** — pre-commit hooks call the same tasks as CI

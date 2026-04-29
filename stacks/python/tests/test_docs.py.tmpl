@@ -53,8 +53,11 @@ def _parse_frontmatter_id(path: Path) -> str | None:
 EXPECTED_DOCS = [
     p
     for p in [
-        DOCS_DIR / "architecture.md",
-        DOCS_DIR / "decisions" / "0001-stack-choice.md",
+        DOCS_DIR / "README.md",
+        DOCS_DIR / "explanation" / "architecture.md",
+        DOCS_DIR / "explanation" / "decision-ledger.md",
+        DOCS_DIR / "explanation" / "decisions" / "0001-stack-choice.md",
+        DOCS_DIR / "reference" / "review-rubrics" / "core-quality.md",
     ]
     if p.exists()
 ]
@@ -66,6 +69,7 @@ EXPECTED_DOCS = [
 def test_agents_md_exists() -> None:
     """AGENTS.md must exist at repo root."""
     assert (PROJECT_ROOT / "AGENTS.md").exists()
+    assert (DOCS_DIR / "AGENTS.md").exists()
 
 
 def test_agents_md_has_required_sections() -> None:

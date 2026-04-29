@@ -13,7 +13,17 @@ index:
 
 # Skills
 
-Optional opinionated workflow plugins for agents and humans working in this repo.
+Vendored workflow helpers for agents and humans working in this repo.
+
+Most skills are helpers rather than canonical source of truth. A workflow skill
+may be canonical for prompt policy when its deterministic command surface lives
+in `mise` tasks. These skills exist to help satisfy the repo's hard contract:
+
+- `mise run plan-check`
+- `mise run spec-check`
+- `mise run evidence-check`
+- `mise run review-check`
+- `mise run sync-check`
 
 Each skill follows this structure:
 
@@ -41,8 +51,20 @@ Reference the skill from `AGENTS.md` if it applies broadly.
 
 ## Policy
 
-Skills are **preference-based**. Canonical truth stays in `docs/`.
+Skills are workflow helpers. System truth stays in `docs/` and the active plan;
+repeatable prompt policy can live in a skill when the `mise` task contract is
+the deterministic interface.
 
-- If a workflow is universally agreed → may become default practice (document in `AGENTS.md`)
-- If preference-based → keep as optional Skill
-- If critical and objective → encode in CI/tooling instead
+- If a workflow is universally agreed and objective → encode it in `mise` tasks
+- If a workflow is repeatable but harness-specific → vendor it here as a skill
+- If a standard becomes durable repo knowledge → move it into `docs/`
+
+## Bundled Skills
+
+- `slice-workflow` - canonical plan/implement/review workflow and prompt policy
+- `slice-planner` - shape or update the active slice before coding
+- `slice-implementer` - keep plan, validation, and evidence current while coding
+- `slice-reviewer` - perform external-enough review and write `REVIEW.md`
+- `plan-sync` - helper for getting the active plan ready for `sync-check`
+- `spec-sync` - helper for promoting decisions into the ledger or ADRs
+- `context-engineering` - helper for keeping docs routing and repo context current

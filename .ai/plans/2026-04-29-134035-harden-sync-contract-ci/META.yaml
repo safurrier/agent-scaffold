@@ -1,0 +1,17 @@
+slug: harden-sync-contract-ci
+branch: feat/deterministic-slice-contract
+created: 2026-04-29
+pr:
+status: complete
+source: external review feedback on PR #5
+contract_change: contract_changed
+decision_record: adr
+review_mode: external_required
+review_backend: skill:codex-handoff-review
+review_rubrics:
+  - core-quality
+evidence_required:
+  - commands
+  - report
+continues_from:
+supersedes: .ai/plans/2026-04-12-120521-deterministic-slice-contract

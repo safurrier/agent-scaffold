@@ -111,6 +111,44 @@ def go_apps_ready(tmp_path_factory: pytest.TempPathFactory) -> Path:
     return dest
 
 
+@pytest.fixture(scope="module")
+def rust_single_ready(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Initialized + set-up Rust single project (module scope)."""
+    dest = tmp_path_factory.mktemp("rust-single") / "scaffold"
+    shutil.copytree(SCAFFOLD_ROOT, dest, ignore=COPY_IGNORE)
+    trust_mise(dest)
+
+    result = init_project(dest, name="testrustapp", shape="single", stack="rust")
+    assert result.returncode == 0, f"init failed:\n{result.stderr}"
+
+    trust_mise(dest)
+
+    result = mise("setup", dest, timeout=300)
+    assert result.returncode == 0, f"setup failed:\n{result.stderr}"
+
+    return dest
+
+
+@pytest.fixture(scope="module")
+def rust_apps_ready(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Initialized + set-up Rust apps workspace (module scope)."""
+    dest = tmp_path_factory.mktemp("rust-apps") / "scaffold"
+    shutil.copytree(SCAFFOLD_ROOT, dest, ignore=COPY_IGNORE)
+    trust_mise(dest)
+
+    result = init_project(
+        dest, name="testrustplatform", shape="apps", stack="rust", modules="svc-a,svc-b"
+    )
+    assert result.returncode == 0, f"init failed:\n{result.stderr}"
+
+    trust_mise(dest)
+
+    result = mise("setup", dest, timeout=300)
+    assert result.returncode == 0, f"setup failed:\n{result.stderr}"
+
+    return dest
+
+
 # ── Function-scoped "mutable" copies for negative-path tests ─────────────
 
 
@@ -129,6 +167,16 @@ def go_single_mut(go_single_ready: Path, tmp_path: Path) -> Path:
     """Mutable copy of the initialized Go single project (re-runs setup)."""
     dest = tmp_path / "go-single"
     shutil.copytree(go_single_ready, dest, ignore=COPY_IGNORE)
+    trust_mise(dest)
+    mise("setup", dest, timeout=180)
+    return dest
+
+
+@pytest.fixture()
+def rust_single_mut(rust_single_ready: Path, tmp_path: Path) -> Path:
+    """Mutable copy of the initialized Rust single project (re-runs setup)."""
+    dest = tmp_path / "rust-single"
+    shutil.copytree(rust_single_ready, dest, ignore=COPY_IGNORE)
     trust_mise(dest)
     mise("setup", dest, timeout=180)
     return dest

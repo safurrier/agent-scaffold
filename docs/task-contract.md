@@ -2,8 +2,9 @@
 id: task-contract
 title: Task Contract
 description: >
-  Reference for all 13 mise run tasks exposed by agent-scaffold projects: fmt, lint,
-  typecheck, test, check, ci, verify, plan, and others. Same commands regardless of stack.
+  Reference for the stable mise run task contract exposed by agent-scaffold
+  projects, including both the fast engineering loop and the deterministic
+  slice-handoff checks.
 index:
   - id: contract-tasks
     keywords: [tasks, contract, stable, list, reference, plan]
@@ -13,11 +14,13 @@ index:
     keywords: [verify, heavy, integration, docker, slow]
   - id: ci
     keywords: [ci, entrypoint, github-actions]
+  - id: slice-workflow
+    keywords: [slice-plan, slice-implement, slice-review, slice-status, prompts]
 ---
 
 # Task Contract
 
-Every project initialized from agent-scaffold exposes these 13 tasks. The contract is **stable** — same command names regardless of stack or shape.
+Every project initialized from agent-scaffold exposes these tasks. The contract is **stable** — same command names regardless of stack or shape.
 
 ```bash
 mise run <task>
@@ -35,6 +38,15 @@ mise run <task>
 | [`test`](#test) | Unit tests | Fast |
 | [`build`](#build) | Produce artifacts | Medium |
 | [`check`](#check) | fmt-check + lint + typecheck + test | Fast |
+| [`plan-check`](#plan-check) | Validate active slice metadata and required files | Fast |
+| [`spec-check`](#spec-check) | Validate decision promotion and reflected docs | Fast |
+| [`evidence-check`](#evidence-check) | Validate declared evidence and artifact paths | Fast |
+| [`review-check`](#review-check) | Validate external review artifacts | Fast |
+| [`sync-check`](#sync-check) | Aggregate active or changed-plan handoff checks | Fast |
+| [`slice-plan`](#slice-plan) | Render planner prompt for the active slice | Fast |
+| [`slice-implement`](#slice-implement) | Render implementer prompt for the active slice | Fast |
+| [`slice-review`](#slice-review) | Render reviewer prompt for the active slice | Fast |
+| [`slice-status`](#slice-status) | Show active slice status | Fast |
 | [`dev`](#dev) | Start local development | Long-running |
 | [`ci`](#ci) | CI entrypoint (= check) | Fast |
 | [`docs`](#docs) | Documentation server | Long-running |
@@ -70,6 +82,11 @@ Installs all project dependencies. Safe to re-run.
     go mod download
     ```
 
+=== "Rust"
+    ```bash
+    cargo fetch
+    ```
+
 For the apps workspace shape, `setup` iterates `workspace.toml` and runs the appropriate install per module.
 
 ---
@@ -88,6 +105,12 @@ Auto-formats code in-place. Pass `--check` to fail without modifying (used by `c
     ```bash
     gofumpt -w .   # format
     gofumpt -l .   # check only
+    ```
+
+=== "Rust"
+    ```bash
+    cargo fmt          # format
+    cargo fmt --check  # check only
     ```
 
 ```bash
@@ -111,6 +134,11 @@ Non-modifying lint checks. Fails on any violation.
     golangci-lint run ./...
     ```
 
+=== "Rust"
+    ```bash
+    cargo clippy --all-targets --all-features -- -D warnings
+    ```
+
 ---
 
 ## typecheck
@@ -125,6 +153,11 @@ Static type analysis.
 === "Go"
     ```bash
     go vet ./...
+    ```
+
+=== "Rust"
+    ```bash
+    cargo check --all-targets --all-features
     ```
 
 !!! note "Go typecheck"
@@ -146,6 +179,11 @@ Unit tests only — no integration tests, no external services.
     CGO_ENABLED=0 go test ./...
     ```
 
+=== "Rust"
+    ```bash
+    cargo test --all-features
+    ```
+
 ---
 
 ## build
@@ -160,6 +198,11 @@ Produces distributable artifacts.
 === "Go"
     ```bash
     CGO_ENABLED=0 go build -o bin/ ./cmd/...
+    ```
+
+=== "Rust"
+    ```bash
+    cargo build --release
     ```
 
 ---
@@ -180,6 +223,165 @@ This is what you run before every commit and what CI runs. It must be:
 
 ---
 
+## plan-check
+
+Validates that the active slice has a current plan and required slice-local files.
+When called with `--plan-dir`, validates that specific plan even if it is
+already complete.
+
+```bash
+mise run plan-check
+mise run plan-check -- --plan-dir .ai/plans/2026-04-29-134035-example
+```
+
+Checks for:
+
+- one active in-progress plan at most
+- required plan files
+- valid `META.yaml` contract fields
+- current checklist-style TODOs and learning-log coverage
+
+---
+
+## spec-check
+
+Validates that durable contract and decision updates were promoted out of the
+active plan, or a specific plan when called with `--plan-dir`.
+
+```bash
+mise run spec-check
+mise run spec-check -- --plan-dir .ai/plans/2026-04-29-134035-example
+```
+
+Uses the active plan's `decision_record`:
+
+- `none` → slice-local notes only
+- `ledger` → append to `docs/explanation/decision-ledger.md`
+- `adr` → create or update an ADR under `docs/explanation/decisions/`
+
+On the scaffold repo itself, the validator also accepts the legacy ADR location
+under `docs/decisions/`.
+
+---
+
+## evidence-check
+
+Validates that declared evidence exists and points to real files.
+
+```bash
+mise run evidence-check
+mise run evidence-check -- --plan-dir .ai/plans/2026-04-29-134035-example
+```
+
+Checks:
+
+- `VALIDATION.md` contains explicit command records, not prose reminders
+- every artifact path in `artifacts/manifest.yaml` exists
+- every artifact path stays inside the active plan directory
+- every artifact path is not ignored by git and is tracked or staged
+- every `evidence_required` type in `META.yaml` is satisfied
+- small committed evidence summaries are preferred over raw scratch artifacts
+
+---
+
+## review-check
+
+Validates that the active slice has an external-enough review artifact, or a
+specific plan when called with `--plan-dir`.
+
+```bash
+mise run review-check
+mise run review-check -- --plan-dir .ai/plans/2026-04-29-134035-example
+```
+
+Checks:
+
+- `REVIEW.md` exists and is not placeholder-only
+- the recorded review mode is external when required
+- the recorded backend is not self-review
+- the recorded reviewer is not placeholder text
+- the required rubrics were applied
+
+---
+
+## sync-check
+
+Aggregates the non-code handoff checks.
+
+```bash
+mise run sync-check
+mise run sync-check -- --plan-dir .ai/plans/2026-04-29-134035-example
+mise run sync-check -- --changed-plans origin/main...HEAD
+```
+
+Default local mode runs:
+
+1. `mise run plan-check`
+2. `mise run spec-check`
+3. `mise run evidence-check`
+4. `mise run review-check`
+
+`--plan-dir` runs those same checks against one explicit plan directory,
+including completed plans. `--changed-plans` is intended for PR CI: it finds
+changed `.ai/plans/<timestamp>-<slug>/` directories in the supplied git diff,
+requires each changed plan to be `status: complete`, and validates each one. If
+meaningful branch changes exist without a changed plan, the PR-mode check fails.
+
+---
+
+## slice-plan
+
+Renders the planner prompt for the active slice. The task snapshots the incoming
+task into `TASK.md` and writes the rendered prompt to `prompts/planner.md`.
+
+```bash
+mise run slice-plan -- --task path/to/task.md
+mise run slice-plan -- --task-text "Add --dry-run to the init command"
+```
+
+This task does not launch an agent. Paste the rendered prompt into the Codex,
+Claude, or other harness session you already have open.
+
+---
+
+## slice-implement
+
+Renders the implementer prompt for the active slice.
+
+```bash
+mise run slice-implement
+```
+
+Writes `prompts/implementer.md` using the current plan files as context.
+
+---
+
+## slice-review
+
+Renders the reviewer prompt for the active slice.
+
+```bash
+mise run slice-review
+```
+
+Writes `prompts/reviewer.md` and points the reviewer at the plan, validation
+log, durable decision notes, and configured rubrics.
+
+---
+
+## slice-status
+
+Shows active slice state in human-readable text or JSON.
+
+```bash
+mise run slice-status
+mise -q run slice-status -- --json
+```
+
+The JSON mode is intended for agents, CI experiments, and wrapper scripts.
+
+---
+
 ## dev
 
 Starts local development. Long-running — stays in the foreground.
@@ -192,6 +394,11 @@ Starts local development. Long-running — stays in the foreground.
 === "Go"
     ```bash
     go run ./cmd/...
+    ```
+
+=== "Rust"
+    ```bash
+    cargo run
     ```
 
 For the apps workspace shape:
@@ -226,7 +433,8 @@ mise run docs    # serves at http://127.0.0.1:8000
 ## plan
 
 Creates a plan directory for a new unit of work. Scaffolds META.yaml, TODO.md,
-LEARNING_LOG.md, VALIDATION.md, and optional SPEC.md and IMPLEMENTATION.md.
+LEARNING_LOG.md, VALIDATION.md, REVIEW.md, DECISIONS.md,
+`artifacts/manifest.yaml`, and optional SPEC.md / IMPLEMENTATION.md.
 
 ```bash
 git checkout -b feat/<slug>

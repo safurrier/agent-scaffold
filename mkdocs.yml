@@ -37,11 +37,16 @@ nav:
       - Overview: stacks/index.md
       - Python: stacks/python.md
       - Go: stacks/go.md
+      - Rust: stacks/rust.md
   - Init System: init-system.md
   - CI & Hooks: ci.md
   - Development: development.md
   - Decisions:
       - ADR 0001 — Spec-Driven Decision Loop: decisions/0001-spec-driven-decision-loop.md
+      - ADR 0002 — Plan Workflow: decisions/0002-plan-workflow.md
+      - ADR 0003 — Deterministic Slice Contract: decisions/0003-deterministic-slice-contract.md
+      - ADR 0004 — Skill-First Slice Workflow: decisions/0004-skill-first-slice-workflow.md
+      - ADR 0005 — Harden Sync Contract CI: decisions/0005-harden-sync-contract-ci.md
 
 markdown_extensions:
   - admonition

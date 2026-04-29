@@ -29,10 +29,19 @@ def lint_go(cwd=PROJECT_ROOT):
     log_ok("Go lint")
 
 
+def lint_rust(cwd=PROJECT_ROOT):
+    log_step("Linting Rust code")
+    run(
+        ["cargo", "clippy", "--all-targets", "--all-features", "--", "-D", "warnings"],
+        cwd=cwd,
+    )
+    log_ok("Rust lint")
+
+
 if get_shape() == "apps":
     run_per_module(
         "lint",
-        dispatch_module({"python": lint_python, "go": lint_go}),
+        dispatch_module({"python": lint_python, "go": lint_go, "rust": lint_rust}),
     )
 else:
-    dispatch_stack({"python": lint_python, "go": lint_go})
+    dispatch_stack({"python": lint_python, "go": lint_go, "rust": lint_rust})

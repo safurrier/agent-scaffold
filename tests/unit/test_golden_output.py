@@ -18,6 +18,8 @@ from agent_scaffold.common import run_init
 from agent_scaffold.config import Config
 from tests._docs_helpers import (
     ARCHITECTURE_REQUIRED_SECTIONS,
+    GENERATED_ADR,
+    GENERATED_ARCHITECTURE,
     PLAN_REQUIRED_FILES,
     SPEC_REQUIRED_SECTIONS,
     find_adrs,
@@ -117,14 +119,12 @@ class TestPythonSingleGolden:
         assert not content.startswith("---\n"), "AGENTS.md should not have frontmatter"
 
     def test_architecture_doc_has_frontmatter(self) -> None:
-        content = (self._root / "docs" / "architecture.md").read_text()
+        content = (self._root / GENERATED_ARCHITECTURE).read_text()
         assert content.startswith("---\n"), "architecture.md missing frontmatter"
         assert "id:" in content
 
     def test_adr_has_frontmatter(self) -> None:
-        content = (
-            self._root / "docs" / "decisions" / "0001-stack-choice.md"
-        ).read_text()
+        content = (self._root / GENERATED_ADR).read_text()
         assert content.startswith("---\n"), "ADR missing frontmatter"
         assert "id:" in content
 
@@ -143,11 +143,11 @@ class TestPythonSingleGolden:
         assert "upload-artifact" in content
 
     def test_architecture_doc(self) -> None:
-        content = (self._root / "docs" / "architecture.md").read_text()
+        content = (self._root / GENERATED_ARCHITECTURE).read_text()
         assert "Invariants" in content
 
     def test_architecture_has_required_sections(self) -> None:
-        arch = self._root / "docs" / "architecture.md"
+        arch = self._root / GENERATED_ARCHITECTURE
         sections = parse_sections(arch)
         for name in ARCHITECTURE_REQUIRED_SECTIONS:
             assert find_section(sections, name, level=2) is not None, (
@@ -155,7 +155,7 @@ class TestPythonSingleGolden:
             )
 
     def test_architecture_decisions_index(self) -> None:
-        sections = parse_sections(self._root / "docs" / "architecture.md")
+        sections = parse_sections(self._root / GENERATED_ARCHITECTURE)
         dec = find_section(sections, "Decisions", level=2)
         assert dec is not None
         assert "0001-stack-choice" in dec.content, (
@@ -163,20 +163,18 @@ class TestPythonSingleGolden:
         )
 
     def test_adr_mentions_stack(self) -> None:
-        content = (
-            self._root / "docs" / "decisions" / "0001-stack-choice.md"
-        ).read_text()
+        content = (self._root / GENERATED_ADR).read_text()
         assert "python" in content
 
     def test_adr_schema_valid(self) -> None:
-        adrs = find_adrs(self._root / "docs" / "decisions")
+        adrs = find_adrs((self._root / GENERATED_ADR).parent)
         assert len(adrs) >= 1, "Expected at least one ADR"
         for adr in adrs:
             errors = validate_adr(adr)
             assert not errors, f"ADR {adr.filename} errors: {'; '.join(errors)}"
 
     def test_adr_has_generated_from(self) -> None:
-        adrs = find_adrs(self._root / "docs" / "decisions")
+        adrs = find_adrs((self._root / GENERATED_ADR).parent)
         assert adrs[0].generated_from == "init"
 
     def test_spec_md_exists(self) -> None:
@@ -275,26 +273,24 @@ class TestPythonAppsGolden:
         assert not content.startswith("---\n"), "AGENTS.md should not have frontmatter"
 
     def test_architecture_doc_has_frontmatter(self) -> None:
-        content = (self._root / "docs" / "architecture.md").read_text()
+        content = (self._root / GENERATED_ARCHITECTURE).read_text()
         assert content.startswith("---\n"), "architecture.md missing frontmatter"
         assert "id:" in content
 
     def test_adr_has_frontmatter(self) -> None:
-        content = (
-            self._root / "docs" / "decisions" / "0001-stack-choice.md"
-        ).read_text()
+        content = (self._root / GENERATED_ADR).read_text()
         assert content.startswith("---\n"), "ADR missing frontmatter"
         assert "id:" in content
 
     def test_architecture_has_required_sections(self) -> None:
-        sections = parse_sections(self._root / "docs" / "architecture.md")
+        sections = parse_sections(self._root / GENERATED_ARCHITECTURE)
         for name in ARCHITECTURE_REQUIRED_SECTIONS:
             assert find_section(sections, name, level=2) is not None, (
                 f"Generated architecture.md missing section '{name}'"
             )
 
     def test_adr_schema_valid(self) -> None:
-        adrs = find_adrs(self._root / "docs" / "decisions")
+        adrs = find_adrs((self._root / GENERATED_ADR).parent)
         assert len(adrs) >= 1
         for adr in adrs:
             errors = validate_adr(adr)
@@ -367,26 +363,24 @@ class TestGoSingleGolden:
         assert not content.startswith("---\n"), "AGENTS.md should not have frontmatter"
 
     def test_architecture_doc_has_frontmatter(self) -> None:
-        content = (self._root / "docs" / "architecture.md").read_text()
+        content = (self._root / GENERATED_ARCHITECTURE).read_text()
         assert content.startswith("---\n"), "architecture.md missing frontmatter"
         assert "id:" in content
 
     def test_adr_has_frontmatter(self) -> None:
-        content = (
-            self._root / "docs" / "decisions" / "0001-stack-choice.md"
-        ).read_text()
+        content = (self._root / GENERATED_ADR).read_text()
         assert content.startswith("---\n"), "ADR missing frontmatter"
         assert "id:" in content
 
     def test_architecture_has_required_sections(self) -> None:
-        sections = parse_sections(self._root / "docs" / "architecture.md")
+        sections = parse_sections(self._root / GENERATED_ARCHITECTURE)
         for name in ARCHITECTURE_REQUIRED_SECTIONS:
             assert find_section(sections, name, level=2) is not None, (
                 f"Generated architecture.md missing section '{name}'"
             )
 
     def test_adr_schema_valid(self) -> None:
-        adrs = find_adrs(self._root / "docs" / "decisions")
+        adrs = find_adrs((self._root / GENERATED_ADR).parent)
         assert len(adrs) >= 1
         for adr in adrs:
             errors = validate_adr(adr)
@@ -402,9 +396,89 @@ class TestGoSingleGolden:
                 f"Generated SPEC.md missing section '{name}'"
             )
 
+    def test_readme_has_project_name(self) -> None:
+        content = (self._root / "README.md").read_text()
+        assert "goldenapp" in content
+
+    def test_readme_includes_plan_workflow(self) -> None:
+        content = (self._root / "README.md").read_text()
+        assert "git checkout -b feat/<slug>" in content
+        assert "mise run plan -- <slug>" in content
+
+    def test_agents_md_structure(self) -> None:
+        content = (self._root / "AGENTS.md").read_text()
+        assert "goldenapp" in content
+        assert "## WHY" in content
+        assert "## WHAT" in content
+        assert "## HOW" in content
+
+    def test_agents_md_includes_plan_workflow(self) -> None:
+        content = (self._root / "AGENTS.md").read_text()
+        assert "git checkout -b feat/<slug>" in content
+        assert "mise run plan -- <slug>" in content
+
+    def test_spec_md_has_frontmatter(self) -> None:
+        assert has_frontmatter(self._root / "SPEC.md")
+
+    def test_spec_md_has_project_name(self) -> None:
+        content = (self._root / "SPEC.md").read_text()
+        assert "goldenapp" in content
+
+    def test_architecture_decisions_index(self) -> None:
+        sections = parse_sections(self._root / GENERATED_ARCHITECTURE)
+        dec = find_section(sections, "Decisions", level=2)
+        assert dec is not None
+        assert "0001-stack-choice" in dec.content, (
+            "Decisions index doesn't reference initial ADR"
+        )
+
+    def test_adr_mentions_stack(self) -> None:
+        content = (self._root / GENERATED_ADR).read_text()
+        assert "go" in content.lower()
+
+    def test_adr_has_generated_from(self) -> None:
+        adrs = find_adrs((self._root / GENERATED_ADR).parent)
+        assert adrs[0].generated_from == "init"
+
+    def test_ci_workflow_content(self) -> None:
+        content = (self._root / ".github" / "workflows" / "ci.yml").read_text()
+        assert "mise run ci" in content
+        assert "mise run verify" in content
+        assert "upload-artifact" in content
+
     def test_plan_templates_generated(self) -> None:
-        assert (self._root / ".ai" / "plans" / "AGENTS.md").exists()
-        assert (self._root / ".ai" / "plans" / "_templates").is_dir()
+        plans = self._root / ".ai" / "plans"
+        assert plans.is_dir()
+        assert (plans / "AGENTS.md").exists()
+        assert (plans / "_templates").is_dir()
+        assert (plans / "_example").is_dir()
+
+    def test_plan_example_meta_valid(self) -> None:
+        meta = parse_meta_yaml(self._root / ".ai" / "plans" / "_example" / "META.yaml")
+        assert meta is not None
+        errors = validate_meta_yaml(meta)
+        assert not errors, f"Example META.yaml errors: {'; '.join(errors)}"
+
+    def test_plan_example_has_required_files(self) -> None:
+        example = self._root / ".ai" / "plans" / "_example"
+        for filename in PLAN_REQUIRED_FILES:
+            assert (example / filename).exists(), f"Example missing {filename}"
+
+    def test_plan_templates_have_required_files(self) -> None:
+        templates = self._root / ".ai" / "plans" / "_templates"
+        for filename in PLAN_REQUIRED_FILES:
+            assert (templates / filename).exists(), f"Template missing {filename}"
+
+    def test_readme_dev_command_no_module(self) -> None:
+        content = (self._root / "README.md").read_text()
+        assert "mise run dev" in content
+        assert "mise run dev -- <module>" not in content
+
+    def test_agent_skills_generated(self) -> None:
+        assert (self._root / ".agent" / "skills" / "README.md").exists()
+        assert (
+            self._root / ".agent" / "skills" / "example-skill" / "SKILL.md"
+        ).exists()
 
     def test_scaffold_artifacts_removed(self) -> None:
         assert not (self._root / "stacks").exists()
@@ -442,26 +516,24 @@ class TestGoAppsGolden:
         assert not content.startswith("---\n"), "AGENTS.md should not have frontmatter"
 
     def test_architecture_doc_has_frontmatter(self) -> None:
-        content = (self._root / "docs" / "architecture.md").read_text()
+        content = (self._root / GENERATED_ARCHITECTURE).read_text()
         assert content.startswith("---\n"), "architecture.md missing frontmatter"
         assert "id:" in content
 
     def test_adr_has_frontmatter(self) -> None:
-        content = (
-            self._root / "docs" / "decisions" / "0001-stack-choice.md"
-        ).read_text()
+        content = (self._root / GENERATED_ADR).read_text()
         assert content.startswith("---\n"), "ADR missing frontmatter"
         assert "id:" in content
 
     def test_architecture_has_required_sections(self) -> None:
-        sections = parse_sections(self._root / "docs" / "architecture.md")
+        sections = parse_sections(self._root / GENERATED_ARCHITECTURE)
         for name in ARCHITECTURE_REQUIRED_SECTIONS:
             assert find_section(sections, name, level=2) is not None, (
                 f"Generated architecture.md missing section '{name}'"
             )
 
     def test_adr_schema_valid(self) -> None:
-        adrs = find_adrs(self._root / "docs" / "decisions")
+        adrs = find_adrs((self._root / GENERATED_ADR).parent)
         assert len(adrs) >= 1
         for adr in adrs:
             errors = validate_adr(adr)
@@ -478,8 +550,294 @@ class TestGoAppsGolden:
             )
 
     def test_plan_templates_generated(self) -> None:
-        assert (self._root / ".ai" / "plans" / "AGENTS.md").exists()
-        assert (self._root / ".ai" / "plans" / "_templates").is_dir()
+        plans = self._root / ".ai" / "plans"
+        assert plans.is_dir()
+        assert (plans / "AGENTS.md").exists()
+        assert (plans / "_templates").is_dir()
+        assert (plans / "_example").is_dir()
+
+    def test_plan_example_meta_valid(self) -> None:
+        meta = parse_meta_yaml(self._root / ".ai" / "plans" / "_example" / "META.yaml")
+        assert meta is not None
+        errors = validate_meta_yaml(meta)
+        assert not errors, f"Example META.yaml errors: {'; '.join(errors)}"
+
+    def test_plan_example_has_required_files(self) -> None:
+        example = self._root / ".ai" / "plans" / "_example"
+        for filename in PLAN_REQUIRED_FILES:
+            assert (example / filename).exists(), f"Example missing {filename}"
+
+    def test_plan_templates_have_required_files(self) -> None:
+        templates = self._root / ".ai" / "plans" / "_templates"
+        for filename in PLAN_REQUIRED_FILES:
+            assert (templates / filename).exists(), f"Template missing {filename}"
+
+    def test_readme_dev_command_shows_module(self) -> None:
+        content = (self._root / "README.md").read_text()
+        assert "mise run dev -- <module>" in content
+
+    def test_agents_md_dev_command_shows_module(self) -> None:
+        content = (self._root / "AGENTS.md").read_text()
+        assert "mise run dev -- <module>" in content
+
+    def test_ci_workflow_apps_artifacts(self) -> None:
+        content = (self._root / ".github" / "workflows" / "ci.yml").read_text()
+        assert "apps/*/test-results/" in content
+
+    def test_scaffold_artifacts_removed(self) -> None:
+        assert not (self._root / "stacks").exists()
+        assert not (self._root / "templates").exists()
+
+
+# ── Rust Single ───────────────────────────────────────────────────────────
+
+
+class TestRustSingleGolden:
+    @pytest.fixture(autouse=True)
+    def project(self, tmp_path: Path) -> None:
+        self._root = _init(_scaffold_copy(tmp_path), shape="single", stack="rust")
+
+    def test_cargo_toml_content(self) -> None:
+        content = (self._root / "Cargo.toml").read_text()
+        assert 'name = "goldenapp"' in content
+
+    def test_mise_toml_rust_tools(self) -> None:
+        content = (self._root / ".mise.toml").read_text()
+        assert 'python = "3.12"' in content
+        assert 'uv = "latest"' in content
+        assert 'rust = "stable"' in content
+
+    def test_gitignore_has_rust_entries(self) -> None:
+        content = (self._root / ".gitignore").read_text()
+        assert "/target/" in content
+
+    def test_dockerfile_generated(self) -> None:
+        assert (self._root / "Dockerfile").exists()
+
+    def test_rustfmt_toml_generated(self) -> None:
+        assert (self._root / "rustfmt.toml").exists()
+
+    def test_agents_md_no_frontmatter(self) -> None:
+        content = (self._root / "AGENTS.md").read_text()
+        assert not content.startswith("---\n"), "AGENTS.md should not have frontmatter"
+
+    def test_architecture_doc_has_frontmatter(self) -> None:
+        content = (self._root / GENERATED_ARCHITECTURE).read_text()
+        assert content.startswith("---\n"), "architecture.md missing frontmatter"
+        assert "id:" in content
+
+    def test_adr_has_frontmatter(self) -> None:
+        content = (self._root / GENERATED_ADR).read_text()
+        assert content.startswith("---\n"), "ADR missing frontmatter"
+        assert "id:" in content
+
+    def test_architecture_has_required_sections(self) -> None:
+        sections = parse_sections(self._root / GENERATED_ARCHITECTURE)
+        for name in ARCHITECTURE_REQUIRED_SECTIONS:
+            assert find_section(sections, name, level=2) is not None, (
+                f"Generated architecture.md missing section '{name}'"
+            )
+
+    def test_adr_schema_valid(self) -> None:
+        adrs = find_adrs((self._root / GENERATED_ADR).parent)
+        assert len(adrs) >= 1
+        for adr in adrs:
+            errors = validate_adr(adr)
+            assert not errors, f"ADR {adr.filename} errors: {'; '.join(errors)}"
+
+    def test_readme_has_project_name(self) -> None:
+        content = (self._root / "README.md").read_text()
+        assert "goldenapp" in content
+
+    def test_readme_includes_plan_workflow(self) -> None:
+        content = (self._root / "README.md").read_text()
+        assert "git checkout -b feat/<slug>" in content
+        assert "mise run plan -- <slug>" in content
+
+    def test_agents_md_structure(self) -> None:
+        content = (self._root / "AGENTS.md").read_text()
+        assert "goldenapp" in content
+        assert "## WHY" in content
+        assert "## WHAT" in content
+        assert "## HOW" in content
+
+    def test_agents_md_includes_plan_workflow(self) -> None:
+        content = (self._root / "AGENTS.md").read_text()
+        assert "git checkout -b feat/<slug>" in content
+        assert "mise run plan -- <slug>" in content
+
+    def test_spec_md_has_frontmatter(self) -> None:
+        assert has_frontmatter(self._root / "SPEC.md")
+
+    def test_spec_md_has_project_name(self) -> None:
+        content = (self._root / "SPEC.md").read_text()
+        assert "goldenapp" in content
+
+    def test_architecture_decisions_index(self) -> None:
+        sections = parse_sections(self._root / GENERATED_ARCHITECTURE)
+        dec = find_section(sections, "Decisions", level=2)
+        assert dec is not None
+        assert "0001-stack-choice" in dec.content, (
+            "Decisions index doesn't reference initial ADR"
+        )
+
+    def test_adr_mentions_stack(self) -> None:
+        content = (self._root / GENERATED_ADR).read_text()
+        assert "rust" in content.lower()
+
+    def test_adr_has_generated_from(self) -> None:
+        adrs = find_adrs((self._root / GENERATED_ADR).parent)
+        assert adrs[0].generated_from == "init"
+
+    def test_ci_workflow_content(self) -> None:
+        content = (self._root / ".github" / "workflows" / "ci.yml").read_text()
+        assert "mise run ci" in content
+        assert "mise run verify" in content
+        assert "upload-artifact" in content
+
+    def test_spec_md_exists(self) -> None:
+        assert (self._root / "SPEC.md").exists()
+
+    def test_spec_md_has_required_sections(self) -> None:
+        sections = parse_sections(self._root / "SPEC.md")
+        for name in SPEC_REQUIRED_SECTIONS:
+            assert find_section(sections, name, level=2) is not None, (
+                f"Generated SPEC.md missing section '{name}'"
+            )
+
+    def test_plan_templates_generated(self) -> None:
+        plans = self._root / ".ai" / "plans"
+        assert plans.is_dir()
+        assert (plans / "AGENTS.md").exists()
+        assert (plans / "_templates").is_dir()
+        assert (plans / "_example").is_dir()
+
+    def test_plan_example_meta_valid(self) -> None:
+        meta = parse_meta_yaml(self._root / ".ai" / "plans" / "_example" / "META.yaml")
+        assert meta is not None
+        errors = validate_meta_yaml(meta)
+        assert not errors, f"Example META.yaml errors: {'; '.join(errors)}"
+
+    def test_plan_example_has_required_files(self) -> None:
+        example = self._root / ".ai" / "plans" / "_example"
+        for filename in PLAN_REQUIRED_FILES:
+            assert (example / filename).exists(), f"Example missing {filename}"
+
+    def test_plan_templates_have_required_files(self) -> None:
+        templates = self._root / ".ai" / "plans" / "_templates"
+        for filename in PLAN_REQUIRED_FILES:
+            assert (templates / filename).exists(), f"Template missing {filename}"
+
+    def test_readme_dev_command_no_module(self) -> None:
+        content = (self._root / "README.md").read_text()
+        assert "mise run dev" in content
+        assert "mise run dev -- <module>" not in content
+
+    def test_agent_skills_generated(self) -> None:
+        assert (self._root / ".agent" / "skills" / "README.md").exists()
+        assert (
+            self._root / ".agent" / "skills" / "example-skill" / "SKILL.md"
+        ).exists()
+
+    def test_scaffold_artifacts_removed(self) -> None:
+        assert not (self._root / "stacks").exists()
+        assert not (self._root / "templates").exists()
+
+
+# ── Rust Apps ─────────────────────────────────────────────────────────────
+
+
+class TestRustAppsGolden:
+    @pytest.fixture(autouse=True)
+    def project(self, tmp_path: Path) -> None:
+        self._root = _init(
+            _scaffold_copy(tmp_path),
+            shape="apps",
+            stack="rust",
+            modules=["svc-a", "svc-b"],
+        )
+
+    def test_workspace_toml(self) -> None:
+        content = (self._root / "workspace.toml").read_text()
+        assert "[modules.svc-a]" in content
+        assert "[modules.svc-b]" in content
+
+    def test_per_module_cargo_toml(self) -> None:
+        for mod in ["svc-a", "svc-b"]:
+            cargo = self._root / "apps" / mod / "Cargo.toml"
+            assert cargo.exists(), f"Missing Cargo.toml for {mod}"
+
+    def test_gitignore_exists(self) -> None:
+        assert (self._root / ".gitignore").exists()
+
+    def test_agents_md_no_frontmatter(self) -> None:
+        content = (self._root / "AGENTS.md").read_text()
+        assert not content.startswith("---\n"), "AGENTS.md should not have frontmatter"
+
+    def test_architecture_doc_has_frontmatter(self) -> None:
+        content = (self._root / GENERATED_ARCHITECTURE).read_text()
+        assert content.startswith("---\n"), "architecture.md missing frontmatter"
+        assert "id:" in content
+
+    def test_adr_has_frontmatter(self) -> None:
+        content = (self._root / GENERATED_ADR).read_text()
+        assert content.startswith("---\n"), "ADR missing frontmatter"
+        assert "id:" in content
+
+    def test_architecture_has_required_sections(self) -> None:
+        sections = parse_sections(self._root / GENERATED_ARCHITECTURE)
+        for name in ARCHITECTURE_REQUIRED_SECTIONS:
+            assert find_section(sections, name, level=2) is not None, (
+                f"Generated architecture.md missing section '{name}'"
+            )
+
+    def test_adr_schema_valid(self) -> None:
+        adrs = find_adrs((self._root / GENERATED_ADR).parent)
+        assert len(adrs) >= 1
+        for adr in adrs:
+            errors = validate_adr(adr)
+            assert not errors, f"ADR {adr.filename} errors: {'; '.join(errors)}"
+
+    def test_spec_md_exists(self) -> None:
+        assert (self._root / "SPEC.md").exists()
+
+    def test_spec_md_has_required_sections(self) -> None:
+        sections = parse_sections(self._root / "SPEC.md")
+        for name in SPEC_REQUIRED_SECTIONS:
+            assert find_section(sections, name, level=2) is not None, (
+                f"Generated SPEC.md missing section '{name}'"
+            )
+
+    def test_plan_templates_generated(self) -> None:
+        plans = self._root / ".ai" / "plans"
+        assert plans.is_dir()
+        assert (plans / "AGENTS.md").exists()
+        assert (plans / "_templates").is_dir()
+        assert (plans / "_example").is_dir()
+
+    def test_plan_example_meta_valid(self) -> None:
+        meta = parse_meta_yaml(self._root / ".ai" / "plans" / "_example" / "META.yaml")
+        assert meta is not None
+        errors = validate_meta_yaml(meta)
+        assert not errors, f"Example META.yaml errors: {'; '.join(errors)}"
+
+    def test_plan_example_has_required_files(self) -> None:
+        example = self._root / ".ai" / "plans" / "_example"
+        for filename in PLAN_REQUIRED_FILES:
+            assert (example / filename).exists(), f"Example missing {filename}"
+
+    def test_plan_templates_have_required_files(self) -> None:
+        templates = self._root / ".ai" / "plans" / "_templates"
+        for filename in PLAN_REQUIRED_FILES:
+            assert (templates / filename).exists(), f"Template missing {filename}"
+
+    def test_readme_dev_command_shows_module(self) -> None:
+        content = (self._root / "README.md").read_text()
+        assert "mise run dev -- <module>" in content
+
+    def test_agents_md_dev_command_shows_module(self) -> None:
+        content = (self._root / "AGENTS.md").read_text()
+        assert "mise run dev -- <module>" in content
 
     def test_ci_workflow_apps_artifacts(self) -> None:
         content = (self._root / ".github" / "workflows" / "ci.yml").read_text()
