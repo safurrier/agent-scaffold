@@ -11,15 +11,14 @@ agent-scaffold/
 ├── .agent/skills/              # Agent skills (spec-sync, plan-sync, etc.)
 ├── .ai/plans/                  # Plan directories for units of work
 ├── scripts/
-│   ├── lib.py                  # Shared helpers (stack dispatch, module iteration)
-│   └── plan_contract.py        # Shared helpers for plan/spec/evidence/review checks
+│   └── lib.py                  # Shared helpers (stack dispatch, module iteration)
 ├── stacks/                     # Per-stack template files (removed after init)
 │   ├── python/                 # Python stack templates (.tmpl + source)
 │   ├── go/                     # Go stack templates
 │   ├── rust/                   # Rust stack templates
 │   └── web/                    # Web/TS stack templates
 ├── templates/                  # Shared templates: README, CLAUDE.md, .gitignore
-│   ├── .agent/skills/          # Skills shipped to generated repos
+│   ├── .agent/skills/          # Skills shipped to generated repos, including slice-workflow/cli
 │   └── .ai/plans/              # Plan templates + example for generated repos
 ├── src/agent_scaffold/         # CLI package (click-based)
 ├── tests/                      # Scaffold self-tests

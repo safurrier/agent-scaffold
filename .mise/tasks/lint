@@ -3,6 +3,7 @@
 # MISE depends=["setup"]
 import os
 import sys
+from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.environ["MISE_PROJECT_ROOT"], "scripts"))
 from lib import (  # noqa: E402
@@ -16,10 +17,22 @@ from lib import (  # noqa: E402
     run_per_module,
 )
 
+SLICE_WORKFLOW_CLI_SRCS = (
+    "templates/.agent/skills/slice-workflow/cli/src",
+)
+
+
+def python_lint_paths(cwd: Path) -> list[str]:
+    paths = ["."]
+    for rel_path in SLICE_WORKFLOW_CLI_SRCS:
+        if (cwd / rel_path).exists():
+            paths.append(rel_path)
+    return paths
+
 
 def lint_python(cwd=PROJECT_ROOT):
     log_step("Linting Python code")
-    run(["uv", "run", "ruff", "check", "."], cwd=cwd)
+    run(["uv", "run", "ruff", "check", *python_lint_paths(cwd)], cwd=cwd)
     log_ok("Python lint")
 
 

@@ -15,6 +15,11 @@ Use this skill to keep a slice legible from first plan through handoff.
 The public interface is `mise`. This skill explains the workflow and judgment
 standard behind those tasks.
 
+The deterministic implementation lives in `cli/`, a tiny uv-backed Python
+project that uses only the standard library at runtime. The `.mise/tasks/*`
+wrappers call its `slice-workflow` command, so the capability moves with the
+skill when scaffold generates a new repo.
+
 ## Command Flow
 
 ```bash

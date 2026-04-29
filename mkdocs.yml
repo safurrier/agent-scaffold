@@ -35,6 +35,7 @@ nav:
   - Repo Shapes: shapes.md
   - Stacks:
       - Overview: stacks/index.md
+      - Acceptance Rubric: stacks/acceptance-rubric.md
       - Python: stacks/python.md
       - Go: stacks/go.md
       - Rust: stacks/rust.md
@@ -47,6 +48,7 @@ nav:
       - ADR 0003 — Deterministic Slice Contract: decisions/0003-deterministic-slice-contract.md
       - ADR 0004 — Skill-First Slice Workflow: decisions/0004-skill-first-slice-workflow.md
       - ADR 0005 — Harden Sync Contract CI: decisions/0005-harden-sync-contract-ci.md
+      - ADR 0006 — Plan Contract Modules and Stack Rubric: decisions/0006-followup-contract-stack-rubric.md
 
 markdown_extensions:
   - admonition

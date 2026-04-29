@@ -247,6 +247,54 @@ def test_slice_workflow_has_holdout_tasks_reference() -> None:
     ).exists()
 
 
+def test_slice_workflow_skill_has_uv_cli_project() -> None:
+    """slice-workflow owns the Python execution layer behind the mise tasks."""
+    cli_dir = (
+        SCAFFOLD_ROOT / "templates" / ".agent" / "skills" / "slice-workflow" / "cli"
+    )
+    assert (cli_dir / "pyproject.toml").exists()
+    assert (cli_dir / "src" / "slice_workflow_cli" / "cli.py").exists()
+    assert (cli_dir / "src" / "slice_workflow_cli" / "__main__.py").exists()
+
+    pyproject = (cli_dir / "pyproject.toml").read_text()
+    assert 'slice-workflow = "slice_workflow_cli.cli:main"' in pyproject
+
+
+@pytest.mark.parametrize(
+    "task",
+    [
+        "plan",
+        "plan-check",
+        "spec-check",
+        "evidence-check",
+        "review-check",
+        "sync-check",
+        "slice-plan",
+        "slice-implement",
+        "slice-review",
+        "slice-status",
+    ],
+)
+def test_slice_workflow_tasks_delegate_to_skill_cli(task: str) -> None:
+    """Workflow tasks should call the skill-local CLI, not repo-local helpers."""
+    content = (TASKS_DIR / task).read_text()
+    assert "slice-workflow" in content
+    assert ".agent/skills/slice-workflow/cli" in content
+    assert "templates/.agent/skills/slice-workflow/cli" in content
+    assert "scripts.plan_contract" not in content
+    assert "scripts.slice_workflow" not in content
+    assert "from plan_contract import" not in content
+
+
+def test_python_quality_tasks_include_slice_workflow_cli() -> None:
+    """Scaffold Python quality gates should include the template skill CLI."""
+    lint = (TASKS_DIR / "lint").read_text()
+    fmt = (TASKS_DIR / "fmt").read_text()
+
+    assert "slice-workflow/cli/src" in lint
+    assert "slice-workflow/cli/src" in fmt
+
+
 def test_ci_template_exists() -> None:
     assert (
         SCAFFOLD_ROOT / "templates" / ".github" / "workflows" / "ci.yml.tmpl"

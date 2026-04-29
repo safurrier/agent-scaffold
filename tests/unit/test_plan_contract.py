@@ -1,11 +1,23 @@
 from __future__ import annotations
 
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
-from scripts.plan_contract import (
+SKILL_CLI_SRC = (
+    Path(__file__).resolve().parents[2]
+    / "templates"
+    / ".agent"
+    / "skills"
+    / "slice-workflow"
+    / "cli"
+    / "src"
+)
+sys.path.insert(0, str(SKILL_CLI_SRC))
+
+from slice_workflow_cli.contract import (  # noqa: E402
     PlanContractError,
     adr_dir,
     changed_plan_dir_names,
@@ -23,6 +35,7 @@ from scripts.plan_contract import (
     strip_plan_local_changes,
     validation_has_commands,
 )
+from slice_workflow_cli.contract import git as contract_git  # noqa: E402
 
 
 def test_ledger_path_prefers_generated_layout(tmp_path: Path) -> None:
@@ -190,7 +203,7 @@ def test_resolve_repo_path_rejects_parent_escape(tmp_path: Path) -> None:
 def test_git_changed_paths_raises_when_git_is_unavailable(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr("scripts.plan_contract.shutil.which", lambda name: None)
+    monkeypatch.setattr(contract_git.shutil, "which", lambda name: None)
 
     with pytest.raises(PlanContractError, match="git executable not found"):
         git_changed_paths(tmp_path)
@@ -206,6 +219,20 @@ def test_strip_plan_local_changes_ignores_nested_bootstrap_lockfiles() -> None:
     ]
 
     assert strip_plan_local_changes(paths, None) == ["src/lib.rs"]
+
+
+def test_strip_plan_local_changes_uses_explicit_repo_root(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    plan_dir = root / ".ai" / "plans" / "2026-04-30-120000-demo"
+    plan_dir.mkdir(parents=True)
+
+    paths = [
+        ".ai/plans/2026-04-30-120000-demo/META.yaml",
+        ".ai/plans/2026-04-30-120000-demo/TODO.md",
+        "src/lib.rs",
+    ]
+
+    assert strip_plan_local_changes(paths, plan_dir, root) == ["src/lib.rs"]
 
 
 def test_changed_plan_dir_names_finds_timestamped_plan_dirs() -> None:

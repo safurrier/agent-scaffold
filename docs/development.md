@@ -129,7 +129,13 @@ mise run docs    # start local MkDocs dev server at http://127.0.0.1:8000
 2. **Task scripts**: Add `<task>_<name>(cwd)` functions to each `.mise/tasks/<task>` script and register them in the `dispatch_stack` / `dispatch_module` calls
 3. **Init script**: Add the stack to `SUPPORTED_STACKS` in `scripts/init_project.py`, add prompts/handling in `gather_interactive()`, add template copying in `init_single()` / `init_apps()`
 4. **Docs**: Add `docs/stacks/<name>.md` and link it from `docs/stacks/index.md`
-5. **Tests**: Add `tests/e2e/test_<name>.py` with happy path and gate tests
+5. **Tests**: Add `tests/e2e/test_<name>.py` with single/apps happy paths, setup-then-sync-check coverage, and gate tests for formatter, linter, typecheck or compile check, and test runner
+6. **CI**: Add the stack to the generated-project smoke matrix once it is a supported `init --stack` value
+
+Use [the stack acceptance rubric](stacks/acceptance-rubric.md) as the reviewer
+checklist before merging a new supported stack. Planned or experimental stacks
+may omit pieces only when the stack docs say what is missing and the stack is not
+advertised as supported.
 
 ## Updating tool versions
 

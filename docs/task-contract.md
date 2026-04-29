@@ -327,6 +327,35 @@ changed `.ai/plans/<timestamp>-<slug>/` directories in the supplied git diff,
 requires each changed plan to be `status: complete`, and validates each one. If
 meaningful branch changes exist without a changed plan, the PR-mode check fails.
 
+### Implementation Boundary
+
+The task wrappers stay in `.mise/tasks/` because those files are the stable
+agent-facing interface. The implementation for planning, prompt rendering,
+status, and deterministic slice checks lives inside the `slice-workflow` skill:
+
+- scaffold source: `templates/.agent/skills/slice-workflow/cli`
+- generated repos: `.agent/skills/slice-workflow/cli`
+
+The skill-local CLI is a small uv project with a `slice-workflow` console
+command. Its package is `slice_workflow_cli`:
+
+- `plan.py` — plan directory creation from repo templates
+- `workflow.py` — prompt rendering and slice status output
+- `checks.py` — `plan-check`, `spec-check`, `evidence-check`, `review-check`,
+  and `sync-check` orchestration
+- `contract/plans.py` — plan discovery, metadata validation, changed-plan
+  selection
+- `contract/git.py` — changed paths, branch names, ignored-path and tracked-path
+  checks
+- `contract/markdown.py` — frontmatter stripping, section parsing, placeholder
+  checks
+- `contract/artifacts.py` — manifest parsing and validation evidence detection
+- `contract/docs.py` — repo path safety and decision-record lookup
+
+The wrappers delegate to that CLI instead of importing repo-local helper
+scripts. This keeps the workflow capability with the skill while preserving the
+stable `mise run ...` interface.
+
 ---
 
 ## slice-plan
