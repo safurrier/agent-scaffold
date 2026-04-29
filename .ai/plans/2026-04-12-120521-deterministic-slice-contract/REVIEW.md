@@ -37,5 +37,4 @@ description: >
 ## Disposition
 
 - Accepted after addressing the Codex findings in the shared contract layer.
-- External review evidence is persisted in
-  `artifacts/codex-review/review.md` alongside the captured patch scope.
+- External review evidence is summarized in `artifacts/review-summary.md`.

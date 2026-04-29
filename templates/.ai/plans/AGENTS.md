@@ -67,6 +67,24 @@ status: complete             → after merge
 - `mise run evidence-check`
 - `mise run review-check`
 
+Local default mode validates the active planned/in-progress slice. PR CI should
+use `mise run sync-check -- --changed-plans origin/main...HEAD` so changed plans
+must be marked `status: complete` and validated before merge. Each contract task
+also accepts `--plan-dir .ai/plans/<plan-dir>` for explicit completed-plan
+checks.
+
+## Artifacts
+
+Prefer small committed evidence artifacts when they help handoff:
+
+- validation summaries
+- review summaries
+- concise command transcripts
+- screenshots only when they carry review evidence
+
+Keep raw scratch transcripts, huge diffs, and temporary captures out of git.
+Every manifest entry must point at a real file under that plan directory.
+
 ## Example
 
 See `_example/` for a complete reference plan showing the progression from

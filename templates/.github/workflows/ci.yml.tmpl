@@ -37,6 +37,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install mise
         uses: jdx/mise-action@v2
@@ -45,7 +47,12 @@ jobs:
         run: mise run setup
 
       - name: Sync check
-        run: mise run sync-check
+        run: |
+          if [ "{% raw %}${{ github.event_name }}{% endraw %}" = "pull_request" ]; then
+            mise run sync-check -- --changed-plans "origin/{% raw %}${{ github.base_ref }}{% endraw %}...HEAD"
+          else
+            mise run sync-check
+          fi
 
   verify:
     name: Full Validation

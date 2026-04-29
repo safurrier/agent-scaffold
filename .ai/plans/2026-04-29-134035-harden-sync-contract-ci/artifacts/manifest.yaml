@@ -1,0 +1,7 @@
+artifacts:
+  - type: report
+    path: artifacts/validation-summary.md
+    note: Compact summary of focused validation and regression coverage.
+  - type: report
+    path: artifacts/review-summary.md
+    note: Compact summary of external handoff review findings and disposition.

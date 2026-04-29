@@ -42,7 +42,7 @@ mise run <task>
 | [`spec-check`](#spec-check) | Validate decision promotion and reflected docs | Fast |
 | [`evidence-check`](#evidence-check) | Validate declared evidence and artifact paths | Fast |
 | [`review-check`](#review-check) | Validate external review artifacts | Fast |
-| [`sync-check`](#sync-check) | Aggregate plan/spec/evidence/review checks | Fast |
+| [`sync-check`](#sync-check) | Aggregate active or changed-plan handoff checks | Fast |
 | [`slice-plan`](#slice-plan) | Render planner prompt for the active slice | Fast |
 | [`slice-implement`](#slice-implement) | Render implementer prompt for the active slice | Fast |
 | [`slice-review`](#slice-review) | Render reviewer prompt for the active slice | Fast |
@@ -226,9 +226,12 @@ This is what you run before every commit and what CI runs. It must be:
 ## plan-check
 
 Validates that the active slice has a current plan and required slice-local files.
+When called with `--plan-dir`, validates that specific plan even if it is
+already complete.
 
 ```bash
 mise run plan-check
+mise run plan-check -- --plan-dir .ai/plans/2026-04-29-134035-example
 ```
 
 Checks for:
@@ -243,10 +246,11 @@ Checks for:
 ## spec-check
 
 Validates that durable contract and decision updates were promoted out of the
-active plan.
+active plan, or a specific plan when called with `--plan-dir`.
 
 ```bash
 mise run spec-check
+mise run spec-check -- --plan-dir .ai/plans/2026-04-29-134035-example
 ```
 
 Uses the active plan's `decision_record`:
@@ -266,6 +270,7 @@ Validates that declared evidence exists and points to real files.
 
 ```bash
 mise run evidence-check
+mise run evidence-check -- --plan-dir .ai/plans/2026-04-29-134035-example
 ```
 
 Checks:
@@ -273,16 +278,20 @@ Checks:
 - `VALIDATION.md` contains explicit command records, not prose reminders
 - every artifact path in `artifacts/manifest.yaml` exists
 - every artifact path stays inside the active plan directory
+- every artifact path is not ignored by git and is tracked or staged
 - every `evidence_required` type in `META.yaml` is satisfied
+- small committed evidence summaries are preferred over raw scratch artifacts
 
 ---
 
 ## review-check
 
-Validates that the active slice has an external-enough review artifact.
+Validates that the active slice has an external-enough review artifact, or a
+specific plan when called with `--plan-dir`.
 
 ```bash
 mise run review-check
+mise run review-check -- --plan-dir .ai/plans/2026-04-29-134035-example
 ```
 
 Checks:
@@ -301,14 +310,22 @@ Aggregates the non-code handoff checks.
 
 ```bash
 mise run sync-check
+mise run sync-check -- --plan-dir .ai/plans/2026-04-29-134035-example
+mise run sync-check -- --changed-plans origin/main...HEAD
 ```
 
-Runs:
+Default local mode runs:
 
 1. `mise run plan-check`
 2. `mise run spec-check`
 3. `mise run evidence-check`
 4. `mise run review-check`
+
+`--plan-dir` runs those same checks against one explicit plan directory,
+including completed plans. `--changed-plans` is intended for PR CI: it finds
+changed `.ai/plans/<timestamp>-<slug>/` directories in the supplied git diff,
+requires each changed plan to be `status: complete`, and validates each one. If
+meaningful branch changes exist without a changed plan, the PR-mode check fails.
 
 ---
 

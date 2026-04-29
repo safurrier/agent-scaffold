@@ -6,19 +6,24 @@ import sys
 sys.path.insert(0, os.path.join(os.environ["MISE_PROJECT_ROOT"], "scripts"))
 from lib import PROJECT_ROOT, log_error, log_ok, log_step  # noqa: E402
 from plan_contract import (  # noqa: E402
+    PlanContractError,
     adr_dir,
-    current_plan_context,
     extract_paths_from_bullets,
     file_has_meaningful_content,
     ledger_path,
     plan_reference_present,
     resolve_repo_path,
     section_has_meaningful_bullets,
+    selected_plan_context,
 )
 
 log_step("Checking spec and decision contract")
 
-current = current_plan_context(PROJECT_ROOT)
+try:
+    current, _explicit_plan = selected_plan_context(PROJECT_ROOT, sys.argv[1:])
+except PlanContractError as e:
+    log_error(str(e))
+    sys.exit(1)
 if current is None:
     log_ok("No active plan to spec-check")
     sys.exit(0)

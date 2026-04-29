@@ -105,11 +105,11 @@ agent-scaffold init [OPTIONS]
 | `ci` | CI entrypoint | Delegates to `check` |
 | `docs` | Documentation server | MkDocs dev server |
 | `plan` | Create plan directory | Scaffolds `.ai/plans/<slug>/` |
-| `plan-check` | Validate active plan metadata | Checks required slice files |
+| `plan-check` | Validate plan metadata | Checks active or explicit plan files |
 | `spec-check` | Validate decision promotion | Checks ledger/ADR reflection |
 | `evidence-check` | Validate evidence artifacts | Checks validation commands and manifest |
 | `review-check` | Validate review artifact | Checks external-enough review fields |
-| `sync-check` | Handoff readiness gate | Runs plan/spec/evidence/review checks |
+| `sync-check` | Handoff readiness gate | Runs active, explicit, or changed-plan checks |
 | `slice-plan` | Render planner prompt | Writes `prompts/planner.md` |
 | `slice-implement` | Render implementer prompt | Writes `prompts/implementer.md` |
 | `slice-review` | Render reviewer prompt | Writes `prompts/reviewer.md` |
@@ -131,7 +131,7 @@ class Stack(Protocol):
 
 ## Invariants
 
-- **CI parity**: `mise run check` locally MUST match the CI quality gate, and CI MUST also run `mise run sync-check` for handoff-contract coverage. Pre-commit hooks call the same quality tasks. Violation causes green-local/red-CI divergence or missing handoff evidence.
+- **CI parity**: `mise run check` locally MUST match the CI quality gate, and CI MUST also run `mise run sync-check` for handoff-contract coverage. Pull request CI MUST validate changed completed plans with `sync-check --changed-plans`. Pre-commit hooks call the same quality tasks. Violation causes green-local/red-CI divergence or missing handoff evidence.
 - **Golden path guarantee**: A freshly initialized project (`mise run init`) MUST pass `mise run check` out of the box. Violation breaks first-run experience.
 - **Worktree safety**: All tasks must run from a clean checkout or Git worktree. No reliance on absolute paths, mutable global state, or undeclared local artifacts.
 - **Stack dispatch via env**: Tasks read `SCAFFOLD_PROJECT_STACK` from `.mise.toml` to dispatch to the correct toolchain. Wrong dispatch = wrong tools run.

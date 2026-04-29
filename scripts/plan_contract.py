@@ -29,6 +29,7 @@ PLAN_REQUIRED_FILES = (
     Path("DECISIONS.md"),
     Path("artifacts") / "manifest.yaml",
 )
+PLAN_DIR_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-\d{6}-")
 PLAN_ACTIVE_STATUSES = {"planned", "in-progress"}
 ALLOWED_META_STATUSES = {"planned", "in-progress", "complete", "abandoned"}
 ALLOWED_CONTRACT_CHANGES = {"implementation_only", "docs_only", "contract_changed"}
@@ -56,6 +57,7 @@ NON_SLICE_BOOTSTRAP_PATHS = {
     "test-results",
     "test-results/",
 }
+NON_SLICE_BOOTSTRAP_FILENAMES = {"uv.lock", "go.sum", "Cargo.lock"}
 
 
 @dataclass
@@ -198,13 +200,42 @@ def list_plan_contexts(root: Path = PROJECT_ROOT) -> list[PlanContext]:
         return []
     contexts: list[PlanContext] = []
     for path in sorted(plans_root.iterdir()):
-        if not path.is_dir() or not re.match(r"^\d{4}-\d{2}-\d{2}-\d{6}-", path.name):
+        if not path.is_dir() or not PLAN_DIR_RE.match(path.name):
             continue
         meta = parse_meta_yaml(path / "META.yaml")
         if meta is None:
             continue
         contexts.append(PlanContext(path=path, meta=meta))
     return contexts
+
+
+def plan_context_from_dir(root: Path, raw_path: str) -> PlanContext:
+    target = resolve_repo_path(root, raw_path)
+    if target is None:
+        raise PlanContractError(f"Plan path escapes the repository: {raw_path}")
+    if not target.is_dir():
+        raise PlanContractError(f"Plan path is not a directory: {raw_path}")
+
+    plans_root = (root / ".ai" / "plans").resolve()
+    if target.parent != plans_root:
+        raise PlanContractError(f"Plan path is not under .ai/plans: {raw_path}")
+    if not PLAN_DIR_RE.match(target.name):
+        raise PlanContractError(f"Plan directory name is invalid: {target.name}")
+
+    meta = parse_meta_yaml(target / "META.yaml")
+    if meta is None:
+        raise PlanContractError(f"Plan is missing META.yaml: {raw_path}")
+    return PlanContext(path=target, meta=meta)
+
+
+def selected_plan_context(
+    root: Path, args: list[str]
+) -> tuple[PlanContext | None, bool]:
+    if not args:
+        return current_plan_context(root), False
+    if len(args) == 2 and args[0] == "--plan-dir":
+        return plan_context_from_dir(root, args[1]), True
+    raise PlanContractError("Usage: [--plan-dir .ai/plans/<plan-dir>]")
 
 
 def current_plan_context(root: Path = PROJECT_ROOT) -> PlanContext | None:
@@ -268,9 +299,105 @@ def git_changed_paths(root: Path = PROJECT_ROOT) -> list[str]:
     return paths
 
 
+def git_diff_paths(root: Path, refspec: str) -> list[str]:
+    git_bin = shutil.which("git")
+    if git_bin is None:
+        raise PlanContractError(
+            "git executable not found; cannot inspect branch diff paths."
+        )
+    result = subprocess.run(  # noqa: S603
+        [git_bin, "diff", "--name-only", refspec],
+        cwd=root,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        message = result.stderr.strip() or result.stdout.strip() or "unknown git error"
+        raise PlanContractError(
+            f"git diff failed for '{refspec}'; cannot inspect changed plans: {message}"
+        )
+    return [path.strip() for path in result.stdout.splitlines() if path.strip()]
+
+
+def git_path_is_ignored(root: Path, path: Path) -> bool:
+    git_bin = shutil.which("git")
+    if git_bin is None:
+        raise PlanContractError(
+            "git executable not found; cannot inspect artifact ignore status."
+        )
+    try:
+        relative = str(path.resolve().relative_to(root.resolve()))
+    except ValueError as e:
+        raise PlanContractError(f"Path is outside the repository: {path}") from e
+    result = subprocess.run(  # noqa: S603
+        [git_bin, "check-ignore", "--quiet", "--", relative],
+        cwd=root,
+    )
+    if result.returncode == 0:
+        return True
+    if result.returncode == 1:
+        return False
+    raise PlanContractError(f"git check-ignore failed for artifact path: {relative}")
+
+
+def git_path_is_tracked(root: Path, path: Path) -> bool:
+    git_bin = shutil.which("git")
+    if git_bin is None:
+        raise PlanContractError(
+            "git executable not found; cannot inspect artifact tracked status."
+        )
+    try:
+        relative = str(path.resolve().relative_to(root.resolve()))
+    except ValueError as e:
+        raise PlanContractError(f"Path is outside the repository: {path}") from e
+    result = subprocess.run(  # noqa: S603
+        [git_bin, "ls-files", "--error-unmatch", "--", relative],
+        cwd=root,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode == 0:
+        return True
+    if result.returncode == 1:
+        return False
+    message = result.stderr.strip() or result.stdout.strip() or "unknown git error"
+    raise PlanContractError(
+        f"git ls-files failed for artifact path {relative}: {message}"
+    )
+
+
+def changed_plan_dir_names(paths: list[str]) -> list[str]:
+    names: set[str] = set()
+    for path in paths:
+        parts = Path(path).parts
+        if len(parts) >= 3 and parts[0] == ".ai" and parts[1] == "plans":
+            if PLAN_DIR_RE.match(parts[2]):
+                names.add(parts[2])
+    return sorted(names)
+
+
+def changed_plan_contexts(root: Path, refspec: str) -> list[PlanContext]:
+    names = changed_plan_dir_names(git_diff_paths(root, refspec))
+    return [plan_context_from_dir(root, f".ai/plans/{name}") for name in names]
+
+
+def strip_changed_plan_paths(
+    paths: list[str], contexts: list[PlanContext], root: Path = PROJECT_ROOT
+) -> list[str]:
+    prefixes = {str(ctx.path.relative_to(root)) for ctx in contexts}
+    return [
+        path
+        for path in paths
+        if path not in prefixes
+        and not any(path.startswith(f"{prefix}/") for prefix in prefixes)
+    ]
+
+
 def strip_plan_local_changes(paths: list[str], plan_dir: Path | None) -> list[str]:
     def _is_ignored(path: str) -> bool:
         if path in NON_SLICE_BOOTSTRAP_PATHS:
+            return True
+        if Path(path).name in NON_SLICE_BOOTSTRAP_FILENAMES:
             return True
         if (
             "__pycache__/" in path

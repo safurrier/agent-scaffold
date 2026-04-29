@@ -8,34 +8,43 @@ from lib import PROJECT_ROOT, log_error, log_ok, log_step  # noqa: E402
 from plan_contract import (  # noqa: E402
     PlanContractError,
     checklist_has_meaningful_items,
-    current_plan_context,
     file_has_meaningful_content,
     git_changed_paths,
     git_current_branch,
     in_progress_plan_contexts,
     missing_required_plan_files,
+    selected_plan_context,
     strip_plan_local_changes,
     validate_meta_yaml,
 )
 
 log_step("Checking plan contract")
 
-in_progress = in_progress_plan_contexts(PROJECT_ROOT)
-if len(in_progress) > 1:
-    log_error("Multiple plans are marked in-progress. Keep exactly one active slice.")
-    for ctx in in_progress:
-        print(f"  - {ctx.path.relative_to(PROJECT_ROOT)}", file=sys.stderr)
-    sys.exit(1)
-
-current = current_plan_context(PROJECT_ROOT)
 try:
-    changed_paths = git_changed_paths(PROJECT_ROOT)
+    current, explicit_plan = selected_plan_context(PROJECT_ROOT, sys.argv[1:])
 except PlanContractError as e:
     log_error(str(e))
     sys.exit(1)
-meaningful_changes = strip_plan_local_changes(
-    changed_paths, current.path if current else None
-)
+
+meaningful_changes: list[str] = []
+if not explicit_plan:
+    in_progress = in_progress_plan_contexts(PROJECT_ROOT)
+    if len(in_progress) > 1:
+        log_error(
+            "Multiple plans are marked in-progress. Keep exactly one active slice."
+        )
+        for ctx in in_progress:
+            print(f"  - {ctx.path.relative_to(PROJECT_ROOT)}", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        changed_paths = git_changed_paths(PROJECT_ROOT)
+    except PlanContractError as e:
+        log_error(str(e))
+        sys.exit(1)
+    meaningful_changes = strip_plan_local_changes(
+        changed_paths, current.path if current else None
+    )
 
 if current is None:
     if meaningful_changes:
@@ -71,13 +80,14 @@ if not checklist_has_meaningful_items(current.path / "TODO.md"):
     log_error("TODO.md must contain at least one meaningful checklist item.")
     sys.exit(1)
 
-if meaningful_changes and current.meta.status != "in-progress":
+if not explicit_plan and meaningful_changes and current.meta.status != "in-progress":
     log_error("Meaningful changes require the active plan status to be 'in-progress'.")
     sys.exit(1)
 
-if current.meta.status == "in-progress" and not file_has_meaningful_content(
-    current.path / "LEARNING_LOG.md"
-):
+if current.meta.status in {
+    "in-progress",
+    "complete",
+} and not file_has_meaningful_content(current.path / "LEARNING_LOG.md"):
     log_error(
         "LEARNING_LOG.md should record at least one in-progress note once work starts."
     )

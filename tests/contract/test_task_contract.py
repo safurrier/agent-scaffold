@@ -119,6 +119,8 @@ def test_ci_workflow_runs_sync_check_and_stack_smokes() -> None:
     workflow = (SCAFFOLD_ROOT / ".github" / "workflows" / "ci.yml").read_text()
     assert "name: Sync Contract" in workflow
     assert "mise run sync-check" in workflow
+    assert "--changed-plans" in workflow
+    assert "fetch-depth: 0" in workflow
     assert "stack: python" in workflow
     assert "stack: go" in workflow
     assert "stack: rust" in workflow
@@ -152,6 +154,10 @@ def test_gitignore_keeps_agent_scratch_out_of_git(path: str) -> None:
         ".ai/research/",
         ".ai/plans/**/artifacts/**",
         "!.ai/plans/**/artifacts/manifest.yaml",
+        "!.ai/plans/**/artifacts/*.md",
+        "!.ai/plans/**/artifacts/*.txt",
+        "!.ai/plans/**/artifacts/*.log",
+        "!.ai/plans/**/artifacts/*.png",
         ".claude/settings.local.json",
         ".codex/hooks.json",
     ]:
@@ -254,6 +260,8 @@ def test_ci_template_is_two_tier() -> None:
     ).read_text()
     assert "mise run ci" in content
     assert "mise run sync-check" in content
+    assert "--changed-plans" in content
+    assert "fetch-depth: 0" in content
     assert "mise run verify" in content
     assert "upload-artifact" in content
 

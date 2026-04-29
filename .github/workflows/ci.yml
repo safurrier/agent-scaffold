@@ -44,6 +44,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
@@ -57,7 +59,12 @@ jobs:
         run: mise run setup
 
       - name: Sync check
-        run: mise run sync-check
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            mise run sync-check -- --changed-plans "origin/${{ github.base_ref }}...HEAD"
+          else
+            mise run sync-check
+          fi
 
   smoke-test:
     name: Init Smoke Test (${{ matrix.stack }})

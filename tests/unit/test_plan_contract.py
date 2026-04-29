@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -7,14 +8,19 @@ import pytest
 from scripts.plan_contract import (
     PlanContractError,
     adr_dir,
+    changed_plan_dir_names,
     checklist_has_meaningful_items,
     file_has_meaningful_content,
     git_changed_paths,
+    git_path_is_ignored,
+    git_path_is_tracked,
     is_placeholder_value,
     ledger_path,
     parse_artifact_manifest,
     resolve_plan_artifact_path,
     resolve_repo_path,
+    strip_changed_plan_paths,
+    strip_plan_local_changes,
     validation_has_commands,
 )
 
@@ -188,3 +194,65 @@ def test_git_changed_paths_raises_when_git_is_unavailable(
 
     with pytest.raises(PlanContractError, match="git executable not found"):
         git_changed_paths(tmp_path)
+
+
+def test_strip_plan_local_changes_ignores_nested_bootstrap_lockfiles() -> None:
+    paths = [
+        "Cargo.lock",
+        "apps/svc-a/Cargo.lock",
+        "apps/svc-b/go.sum",
+        "apps/api/uv.lock",
+        "src/lib.rs",
+    ]
+
+    assert strip_plan_local_changes(paths, None) == ["src/lib.rs"]
+
+
+def test_changed_plan_dir_names_finds_timestamped_plan_dirs() -> None:
+    paths = [
+        ".ai/plans/2026-04-29-134035-harden-sync-contract-ci/META.yaml",
+        ".ai/plans/2026-04-29-134035-harden-sync-contract-ci/VALIDATION.md",
+        ".ai/plans/_templates/META.yaml",
+        "src/agent_scaffold/cli.py",
+    ]
+
+    assert changed_plan_dir_names(paths) == [
+        "2026-04-29-134035-harden-sync-contract-ci"
+    ]
+
+
+def test_strip_changed_plan_paths_keeps_lockfile_only_branch_changes() -> None:
+    paths = ["apps/svc-a/Cargo.lock", "go.sum"]
+
+    assert strip_changed_plan_paths(paths, [], Path(".")) == paths
+
+
+def test_git_path_is_ignored_detects_ignored_artifact(tmp_path: Path) -> None:
+    subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
+    (tmp_path / ".gitignore").write_text("artifacts/raw/\n")
+    ignored = tmp_path / "artifacts" / "raw" / "review.md"
+    ignored.parent.mkdir(parents=True)
+    ignored.write_text("ignored\n")
+    committed = tmp_path / "artifacts" / "summary.md"
+    committed.write_text("committable\n")
+
+    assert git_path_is_ignored(tmp_path, ignored) is True
+    assert git_path_is_ignored(tmp_path, committed) is False
+
+
+def test_git_path_is_tracked_requires_index_entry(tmp_path: Path) -> None:
+    subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
+    artifact = tmp_path / "artifacts" / "summary.md"
+    artifact.parent.mkdir()
+    artifact.write_text("summary\n")
+
+    assert git_path_is_tracked(tmp_path, artifact) is False
+
+    subprocess.run(
+        ["git", "add", "artifacts/summary.md"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+    )
+
+    assert git_path_is_tracked(tmp_path, artifact) is True

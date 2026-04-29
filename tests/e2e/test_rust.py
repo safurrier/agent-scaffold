@@ -111,6 +111,7 @@ class TestRustSingleHappyPath:
         content = ci.read_text()
         assert "mise run ci" in content
         assert "mise run sync-check" in content
+        assert "--changed-plans" in content
         assert "mise run verify" in content
         assert "upload-artifact" in content
 
@@ -187,6 +188,16 @@ class TestRustAppsHappyPath:
         result = mise("check", rust_apps_ready, timeout=300)
         assert result.returncode == 0, (
             f"check failed:\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
+        )
+
+    def test_sync_check_passes_after_setup(self, rust_apps_ready: Path) -> None:
+        """Setup-created module Cargo.lock files must not look like unplanned work."""
+        assert (rust_apps_ready / "apps" / "svc-a" / "Cargo.lock").exists()
+        assert (rust_apps_ready / "apps" / "svc-b" / "Cargo.lock").exists()
+
+        result = mise("sync-check", rust_apps_ready, timeout=60)
+        assert result.returncode == 0, (
+            f"sync-check failed:\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
         )
 
 

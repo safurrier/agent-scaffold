@@ -1,1 +1,7 @@
-artifacts: []
+artifacts:
+  - type: report
+    path: artifacts/validation-summary.md
+    note: Compact summary of validation commands and generated Rust slice proof.
+  - type: report
+    path: artifacts/review-summary.md
+    note: Compact summary of external Codex review findings and disposition.

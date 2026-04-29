@@ -1,1 +1,7 @@
-artifacts: []
+artifacts:
+  - type: report
+    path: artifacts/validation-summary.md
+    note: Compact summary of prompt-rendering, generated-project, and review-fix validation.
+  - type: report
+    path: artifacts/review-summary.md
+    note: Compact summary of reviewer prompt and GitHub Codex review findings.

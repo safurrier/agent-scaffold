@@ -20,15 +20,15 @@ description: >
 - `mise run review-check` — passed
 - `mise run sync-check` — passed
 - final scaffold `mise run check` — passed (`580 passed`)
-- Codex CLI review over the captured `HEAD -> working tree` patch — completed; findings persisted in `artifacts/codex-review/review.md`
+- Codex CLI review over the captured `HEAD -> working tree` patch — completed; compact findings persisted in `artifacts/review-summary.md`
 - Generated repo: `mise run init -- --non-interactive --name mini-foreman --shape single --stack rust --no-hooks` — passed
 - Generated repo: `mise run check` — passed before and after the worker slice
 - Generated repo: `mise run review-check && mise run sync-check` — passed after the reviewer subagent completed the external-review leg
 
 ## Evidence
 
-- See `artifacts/manifest.yaml` for the generated-repo validation summary artifact
-- Codex review scope and findings live under `artifacts/codex-review/`
+- See `artifacts/manifest.yaml` for the committed validation and review summary artifacts
+- Codex review scope and findings are summarized in `artifacts/review-summary.md`
 - Worker slice repo: `/tmp/agent-scaffold-e2e-uujZiQ/scaffold`
 
 ## Notes
@@ -37,7 +37,7 @@ description: >
   - implementer: built the dashboard-style status renderer and plan artifacts
   - reviewer: completed external review and pushed the slice through `sync-check`
 - The successful Codex review pass found validator holes, not task wiring
-  regressions. The persisted review artifact summarizes those findings after
-  they were fixed.
+  regressions. The committed review summary captures those findings after they
+  were fixed.
 - The scaffold branch itself now clears `review-check`, `sync-check`, and the
   normal fast gate after the Codex-driven validator hardening.

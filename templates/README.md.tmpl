@@ -60,5 +60,7 @@ This project uses [mise](https://mise.jdx.dev/) as the task runner. All quality 
 are accessible via `mise run <task>`.
 
 CI calls mise entrypoints: `mise run ci` and `mise run sync-check`.
+Pull request CI uses changed-plan mode so completed plan directories are
+validated after handoff.
 Slice prompts are rendered separately via `mise run slice-*`; slice completion
 is enforced via the same `mise run sync-check` handoff gate.

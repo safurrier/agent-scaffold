@@ -110,6 +110,7 @@ class TestGoSingleHappyPath:
         content = ci.read_text()
         assert "mise run ci" in content
         assert "mise run sync-check" in content
+        assert "--changed-plans" in content
         assert "mise run verify" in content
         assert "upload-artifact" in content
 
