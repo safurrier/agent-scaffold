@@ -1,10 +1,22 @@
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import pytest
 
-from scripts.slice_workflow import (
+SKILL_CLI_SRC = (
+    Path(__file__).resolve().parents[2]
+    / "templates"
+    / ".agent"
+    / "skills"
+    / "slice-workflow"
+    / "cli"
+    / "src"
+)
+sys.path.insert(0, str(SKILL_CLI_SRC))
+
+from slice_workflow_cli.workflow import (  # noqa: E402
     SliceWorkflowError,
     inspect_status,
     render_phase_prompt,

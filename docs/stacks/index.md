@@ -9,6 +9,8 @@ index:
     keywords: [python, go, rust, web, fmt, lint, typecheck, test, comparison]
   - id: stack-selection
     keywords: [select, init, scaffold-project-stack, env-var]
+  - id: acceptance-rubric
+    keywords: [acceptance, rubric, future-stack, checklist]
 ---
 
 # Stacks
@@ -48,6 +50,7 @@ All task scripts read this variable to dispatch to the correct toolchain.
 
 ## Detailed docs
 
+- [Stack acceptance rubric](acceptance-rubric.md)
 - [Python stack](python.md)
 - [Go stack](go.md)
 - [Rust stack](rust.md)

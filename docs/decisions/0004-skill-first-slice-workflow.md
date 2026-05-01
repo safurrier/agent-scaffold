@@ -41,7 +41,7 @@ Generated repos now expose:
 - `mise run slice-plan`, `slice-implement`, `slice-review`, and `slice-status`
   as deterministic command entrypoints
 
-The `slice-*` tasks render prompts into the active plan's `prompts/` directory.
+The `slice-*` tasks render prompts into the active plan's prompts directory.
 They do not launch Codex, Claude, App Server, or any other harness in v1.
 
 ## Consequences

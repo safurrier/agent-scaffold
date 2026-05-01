@@ -51,10 +51,10 @@ specific completed plan without pretending it is active.
 
 Plan artifact policy is tightened:
 
-- `artifacts/manifest.yaml` remains committed
+- the artifact manifest remains committed
 - small top-level `.md`, `.txt`, `.log`, and `.png` evidence artifacts may be
   committed when useful
-- raw scratch subtrees remain ignored
+- raw artifact scratch subtrees remain ignored
 - a manifest entry is a promise that the referenced file exists and is tracked
   or staged for commit
 
@@ -87,4 +87,4 @@ PR mode requires every changed plan to be marked `status: complete`.
 |---|---|
 | Keep CI in active-plan mode only | Too easy for completed plans to escape validation |
 | Add a separate `sync-check-pr` task | More task surface area; flags preserve the stable task list |
-| Commit every artifact under `artifacts/` | Too much raw transcript and scratch noise |
+| Commit every artifact under the plan artifact directory | Too much raw transcript and scratch noise |

@@ -53,7 +53,7 @@ Files with the `.tmpl` extension are processed by replacing `{{placeholder}}` st
 | `{{module_name}}` | Python module name (`my_service`) |
 | `{{project_description}}` | Project description |
 | `{{project_stack}}` | `python`, `go`, or `rust` |
-| `{{go_module}}` | Go module path (e.g. `github.com/org/my-service`) |
+| `{{go_module}}` | Go module path, for example github.com/org/my-service |
 | `{{author_name}}` | Author name |
 | `{{author_email}}` | Author email |
 | `{{authors_line}}` | Full `authors = [...]` TOML line |
@@ -67,7 +67,7 @@ After init, the following scaffold artifacts are deleted:
 - `src/` — scaffold CLI package
 - `docs/` — scaffold's MkDocs site (replaced with generated project docs)
 - `mkdocs.yml` — scaffold's MkDocs config
-- `scripts/init_project.py` — legacy init script (if present)
+- legacy init script, if present
 
 The scaffold's test suite (`tests/`, `pyproject.toml`) is only removed for non-Python stacks. For Python single projects, the test suite itself becomes the project's test suite.
 
@@ -114,6 +114,19 @@ internal/app/app.go      →  internal/app/app.go
 internal/app/app_test.go →  internal/app/app_test.go
 Dockerfile.tmpl          →  Dockerfile
 .golangci.yml            →  .golangci.yml
+```
+
+### Rust
+
+Copies from `stacks/rust/`:
+
+```
+Cargo.toml.tmpl  →  Cargo.toml
+src/main.rs.tmpl →  src/main.rs
+src/lib.rs       →  src/lib.rs
+Dockerfile.tmpl  →  Dockerfile
+rustfmt.toml     →  rustfmt.toml
+README.md        →  README.md
 ```
 
 ## Apps workspace shape

@@ -29,6 +29,7 @@ pytestmark = pytest.mark.contract
 
 DOCS_DIR = SCAFFOLD_ROOT / "docs"
 TEMPLATES_DIR = SCAFFOLD_ROOT / "templates"
+STACK_RUBRIC = DOCS_DIR / "stacks" / "acceptance-rubric.md"
 
 # All docs/*.md files that MUST have frontmatter (excludes docs/AGENTS.md)
 DOCS_WITH_FRONTMATTER = find_doc_files(DOCS_DIR)
@@ -140,6 +141,57 @@ def test_mkdocs_nav_entries_exist() -> None:
         assert md_path.exists(), (
             f"mkdocs.yml references {m.group(1)} but {md_path} does not exist"
         )
+
+
+# ── Stack acceptance rubric ──────────────────────────────────────────────
+
+
+def test_stack_acceptance_rubric_exists() -> None:
+    assert STACK_RUBRIC.exists(), "docs/stacks/acceptance-rubric.md is missing"
+
+
+def test_stack_acceptance_rubric_covers_required_contract() -> None:
+    content = " ".join(STACK_RUBRIC.read_text().lower().split())
+    required_terms = [
+        "single-project",
+        "apps-shape",
+        "setup",
+        "fmt",
+        "lint",
+        "typecheck",
+        "test",
+        "build",
+        "generated-project smoke matrix",
+        "release build",
+        "docker",
+        "reviewer checklist",
+    ]
+
+    for term in required_terms:
+        assert term in content, f"Stack rubric missing required term: {term}"
+
+
+def test_development_guide_links_stack_rubric() -> None:
+    content = (DOCS_DIR / "development.md").read_text()
+    assert "stacks/acceptance-rubric.md" in content
+
+
+def test_task_contract_docs_plan_contract_modules() -> None:
+    content = (DOCS_DIR / "task-contract.md").read_text()
+    for module in [
+        "templates/.agent/skills/slice-workflow/cli",
+        ".agent/skills/slice-workflow/cli",
+        "slice_workflow_cli",
+        "contract/",
+        "workflow.py",
+        "checks.py",
+        "plans.py",
+        "git.py",
+        "markdown.py",
+        "artifacts.py",
+        "docs.py",
+    ]:
+        assert module in content
 
 
 # ── Architecture.md template structure ───────────────────────────────────

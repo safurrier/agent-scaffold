@@ -4,6 +4,7 @@
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.environ["MISE_PROJECT_ROOT"], "scripts"))
 from lib import (  # noqa: E402
@@ -19,6 +20,17 @@ from lib import (  # noqa: E402
 )
 
 check = "--check" in sys.argv[1:]
+SLICE_WORKFLOW_CLI_SRCS = (
+    "templates/.agent/skills/slice-workflow/cli/src",
+)
+
+
+def python_format_paths(cwd: Path) -> list[str]:
+    paths = ["."]
+    for rel_path in SLICE_WORKFLOW_CLI_SRCS:
+        if (cwd / rel_path).exists():
+            paths.append(rel_path)
+    return paths
 
 
 def fmt_python(cwd=PROJECT_ROOT):
@@ -26,7 +38,7 @@ def fmt_python(cwd=PROJECT_ROOT):
     cmd = ["uv", "run", "ruff", "format"]
     if check:
         cmd.append("--check")
-    cmd.append(".")
+    cmd.extend(python_format_paths(cwd))
     run(cmd, cwd=cwd)
     log_ok("Python format")
 

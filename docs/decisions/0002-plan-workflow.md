@@ -38,7 +38,8 @@ Add a plan-based workflow to agent-scaffold:
 - **4 required files**: META.yaml (machine-readable metadata), TODO.md (task list),
   LEARNING_LOG.md (dev diary), VALIDATION.md (verification log)
 - **2 optional files**: SPEC.md (requirements), IMPLEMENTATION.md (approach)
-- **Example plan** in `_example/` showing the full lifecycle for agent reference
+- **Example plan** in `templates/.ai/plans/_example/` showing the full lifecycle
+  for agent reference
 - **`/plan-sync` skill** validates plan artifacts are current before pushing
 - **META.yaml** is structured YAML with required fields (slug, created, status)
   for future tooling (Groundskeeper, dashboards)

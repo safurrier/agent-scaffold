@@ -256,8 +256,8 @@ mise run spec-check -- --plan-dir .ai/plans/2026-04-29-134035-example
 Uses the active plan's `decision_record`:
 
 - `none` → slice-local notes only
-- `ledger` → append to `docs/explanation/decision-ledger.md`
-- `adr` → create or update an ADR under `docs/explanation/decisions/`
+- `ledger` -> append to generated path docs/explanation/decision-ledger.md
+- `adr` -> create or update a generated ADR under docs/explanation/decisions/
 
 On the scaffold repo itself, the validator also accepts the legacy ADR location
 under `docs/decisions/`.
@@ -276,7 +276,7 @@ mise run evidence-check -- --plan-dir .ai/plans/2026-04-29-134035-example
 Checks:
 
 - `VALIDATION.md` contains explicit command records, not prose reminders
-- every artifact path in `artifacts/manifest.yaml` exists
+- every artifact path in artifacts/manifest.yaml exists
 - every artifact path stays inside the active plan directory
 - every artifact path is not ignored by git and is tracked or staged
 - every `evidence_required` type in `META.yaml` is satisfied
@@ -327,12 +327,42 @@ changed `.ai/plans/<timestamp>-<slug>/` directories in the supplied git diff,
 requires each changed plan to be `status: complete`, and validates each one. If
 meaningful branch changes exist without a changed plan, the PR-mode check fails.
 
+### Implementation Boundary
+
+The task wrappers stay in `.mise/tasks/` because those files are the stable
+agent-facing interface. The implementation for planning, prompt rendering,
+status, and deterministic slice checks lives inside the `slice-workflow` skill:
+
+- scaffold source: `templates/.agent/skills/slice-workflow/cli`
+- generated repos: `.agent/skills/slice-workflow/cli`
+
+The skill-local CLI is a small uv project with a `slice-workflow` console
+command. Its package is `slice_workflow_cli`:
+
+- `plan.py` — plan directory creation from repo templates
+- `workflow.py` — prompt rendering and slice status output
+- `checks.py` — `plan-check`, `spec-check`, `evidence-check`, `review-check`,
+  and `sync-check` orchestration
+- `templates/.agent/skills/slice-workflow/cli/src/slice_workflow_cli/contract/plans.py` — plan discovery, metadata validation, changed-plan
+  selection
+- `templates/.agent/skills/slice-workflow/cli/src/slice_workflow_cli/contract/git.py` — changed paths, branch names, ignored-path and tracked-path
+  checks
+- `templates/.agent/skills/slice-workflow/cli/src/slice_workflow_cli/contract/markdown.py` — frontmatter stripping, section parsing, placeholder
+  checks
+- `templates/.agent/skills/slice-workflow/cli/src/slice_workflow_cli/contract/artifacts.py` — manifest parsing and validation evidence detection
+- `templates/.agent/skills/slice-workflow/cli/src/slice_workflow_cli/contract/docs.py` — repo path safety and decision-record lookup
+
+The wrappers delegate to that CLI instead of importing repo-local helper
+scripts. This keeps the workflow capability with the skill while preserving the
+stable `mise run ...` interface.
+
 ---
 
 ## slice-plan
 
 Renders the planner prompt for the active slice. The task snapshots the incoming
-task into `TASK.md` and writes the rendered prompt to `prompts/planner.md`.
+task into `TASK.md` and writes the rendered prompt to prompts/planner.md in the
+active plan.
 
 ```bash
 mise run slice-plan -- --task path/to/task.md
@@ -352,7 +382,7 @@ Renders the implementer prompt for the active slice.
 mise run slice-implement
 ```
 
-Writes `prompts/implementer.md` using the current plan files as context.
+Writes prompts/implementer.md using the current plan files as context.
 
 ---
 
@@ -364,7 +394,7 @@ Renders the reviewer prompt for the active slice.
 mise run slice-review
 ```
 
-Writes `prompts/reviewer.md` and points the reviewer at the plan, validation
+Writes prompts/reviewer.md and points the reviewer at the plan, validation
 log, durable decision notes, and configured rubrics.
 
 ---
@@ -434,7 +464,7 @@ mise run docs    # serves at http://127.0.0.1:8000
 
 Creates a plan directory for a new unit of work. Scaffolds META.yaml, TODO.md,
 LEARNING_LOG.md, VALIDATION.md, REVIEW.md, DECISIONS.md,
-`artifacts/manifest.yaml`, and optional SPEC.md / IMPLEMENTATION.md.
+artifacts/manifest.yaml, and optional SPEC.md / IMPLEMENTATION.md.
 
 ```bash
 git checkout -b feat/<slug>
@@ -445,7 +475,9 @@ Creates `.ai/plans/YYYY-MM-DD-HHmmSS-<slug>/` with templates auto-filled (date,
 branch). Refuses to run on the default branch. Slugs must be lowercase kebab-case
 and unique within `.ai/plans/`.
 
-See `.ai/plans/AGENTS.md` for the plan lifecycle and `_example/` for a reference.
+In generated repos, see .ai/plans/AGENTS.md for the plan lifecycle. In this
+scaffold repo, see `templates/.ai/plans/AGENTS.md` and
+`templates/.ai/plans/_example/`.
 
 ---
 
@@ -456,8 +488,11 @@ Heavy validation that is **too slow for `check`**. Run before releases or on ded
 Phases:
 
 1. **check** — runs the full quality gate first
-2. **Integration tests** — if `tests/integration/` exists
+2. **Integration tests** — if the generated project has integration tests
 3. **Docker build** — if `Dockerfile` exists
+
+Rust generated projects rerun `cargo test --all-features` during `verify`, then
+run the Docker build when a Dockerfile is present.
 
 ```bash
 mise run verify

@@ -51,12 +51,13 @@ tests/
 │   ├── test_task_contract.py    # @contract — task file structural checks
 │   └── test_docs_contract.py   # @contract — SPEC.md, architecture, ADR template validation
 ├── unit/
-│   ├── test_golden_output.py    # @unit — deterministic rendering across all 4 shapes
+│   ├── test_golden_output.py    # @unit — deterministic rendering across supported shapes
 │   └── stacks/                  # per-stack unit tests
 └── e2e/
     ├── conftest.py              # module-scoped fixtures: py_single_ready, etc.
     ├── test_python.py           # @e2e — Python happy path + gate tests
-    └── test_go.py               # @e2e @slow @go — Go tests (needs Go toolchain)
+    ├── test_go.py               # @e2e @slow @go — Go tests (needs Go toolchain)
+    └── test_rust.py             # @e2e @slow @rust — Rust happy path + gate tests
 ```
 
 ### Running subsets
@@ -79,7 +80,7 @@ Two contract test files verify the scaffold itself before any init:
 
 **`test_task_contract.py`** — task file structure:
 
-- All 22 task files exist in `.mise/tasks/`
+- Every expected task file exists in `.mise/tasks/`
 - Every task file is executable
 - Every task file has a `# MISE description=` header
 - Every task file uses `#!/usr/bin/env -S uv run python` shebang
@@ -91,8 +92,8 @@ Two contract test files verify the scaffold itself before any init:
 
 - All `docs/*.md` files have valid YAML frontmatter (id, title, description, index)
 - Frontmatter ids are unique across all docs
-- SPEC.md template has all 6 required sections (Summary, Goals, Requirements, Interfaces, Invariants, Acceptance)
-- Architecture.md template has all 8 required sections
+- SPEC.md template has the required sections (Summary, Goals, Requirements, Interfaces, Invariants, Acceptance)
+- Architecture.md template has the required sections
 - ADR template has Status field, required sections (Context, Decision, Consequences), and generated-from field
 - mkdocs.yml nav entries point to existing files
 
@@ -100,7 +101,9 @@ Doc validation helpers live in `tests/_docs_helpers.py` (stdlib-only, no pyyaml)
 
 ### E2E test fixtures
 
-The expensive module-scoped fixtures (`py_single_ready`, `go_single_ready`) run a full `init + setup` cycle once per test module:
+The expensive module-scoped fixtures, such as `py_single_ready`,
+`go_single_ready`, and Rust-ready fixtures, run a full `init + setup` cycle once
+per test module:
 
 ```python
 @pytest.fixture(scope="module")
@@ -127,9 +130,15 @@ mise run docs    # start local MkDocs dev server at http://127.0.0.1:8000
 
 1. **Templates**: Create `stacks/<name>/` with source files and `.tmpl` variants
 2. **Task scripts**: Add `<task>_<name>(cwd)` functions to each `.mise/tasks/<task>` script and register them in the `dispatch_stack` / `dispatch_module` calls
-3. **Init script**: Add the stack to `SUPPORTED_STACKS` in `scripts/init_project.py`, add prompts/handling in `gather_interactive()`, add template copying in `init_single()` / `init_apps()`
+3. **Init package**: Add the stack to `SUPPORTED_STACKS` in `src/agent_scaffold/config.py`, add prompts/handling in `src/agent_scaffold/prompts.py`, and add template copying in `src/agent_scaffold/stacks/`
 4. **Docs**: Add `docs/stacks/<name>.md` and link it from `docs/stacks/index.md`
-5. **Tests**: Add `tests/e2e/test_<name>.py` with happy path and gate tests
+5. **Tests**: Add `tests/e2e/test_<name>.py` with single/apps happy paths, setup-then-sync-check coverage, and gate tests for formatter, linter, typecheck or compile check, and test runner
+6. **CI**: Add the stack to the generated-project smoke matrix once it is a supported `init --stack` value
+
+Use [the stack acceptance rubric](stacks/acceptance-rubric.md) as the reviewer
+checklist before merging a new supported stack. Planned or experimental stacks
+may omit pieces only when the stack docs say what is missing and the stack is not
+advertised as supported.
 
 ## Updating tool versions
 
@@ -138,6 +147,6 @@ Tool versions are declared in two places:
 | Location | Purpose |
 |----------|---------|
 | `.mise.toml` | Scaffold's own tools (Python, uv) |
-| `scripts/init_project.py` `rewrite_mise_toml()` | Tools written into generated projects |
+| `src/agent_scaffold/common.py` `rewrite_mise_toml()` | Tools written into generated projects |
 
 The Python stack template (`stacks/python/pyproject.toml.tmpl`) also pins tool versions for generated projects.

@@ -42,11 +42,11 @@ Extend the scaffold with a deterministic slice contract:
 
 - add `mise run plan-check`, `spec-check`, `evidence-check`, `review-check`, and
   `sync-check`
-- extend plan templates with `REVIEW.md`, `DECISIONS.md`, and
-  `artifacts/manifest.yaml`
+- extend plan templates with `REVIEW.md`, `DECISIONS.md`, and an artifact
+  manifest
 - replace blanket ADR expectations with `decision_record: none | ledger | adr`
-- generate an append-only repo decision ledger plus review rubrics under
-  `docs/reference/review-rubrics/`
+- generate an append-only repo decision ledger plus review rubrics from
+  `templates/docs/reference/review-rubrics/`
 - vendor workflow skills (`slice-planner`, `slice-implementer`, `slice-reviewer`,
   context helpers) into generated repos, while keeping the hard contract in
   `mise` rather than in prompts alone
