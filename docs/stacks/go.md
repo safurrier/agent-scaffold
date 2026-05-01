@@ -24,7 +24,7 @@ index:
 | Purpose | Tool | Config |
 |---------|------|--------|
 | Formatter | [gofumpt](https://github.com/mvdan/gofumpt) | (no config file, stricter than gofmt) |
-| Linter | [golangci-lint](https://golangci-lint.run/) | `.golangci.yml` |
+| Linter | [golangci-lint](https://golangci-lint.run/) | `stacks/go/.golangci.yml` template |
 | Type checker | go vet | (built into toolchain) |
 | Test runner | go test | (built into toolchain) |
 | Build | go build | (built into toolchain) |
@@ -69,7 +69,8 @@ golangci-lint is configured to enforce gofumpt-compatible formatting via the `go
 
 ## Linter — golangci-lint
 
-Runs 17+ linters in a single pass. Configuration in `.golangci.yml` (v2 format).
+Runs the configured golangci-lint suite in a single pass. Configuration comes
+from the `stacks/go/.golangci.yml` template.
 
 ```bash
 mise run lint

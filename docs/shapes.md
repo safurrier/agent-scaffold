@@ -82,7 +82,7 @@ role = "app"
 | Field | Required | Values | Description |
 |-------|----------|--------|-------------|
 | `path` | No | string | Path relative to repo root (default: `apps/<name>`) |
-| `kind` | No | `python`, `go` | Stack for this module |
+| `kind` | No | `python`, `go`, `rust` | Stack for this module |
 | `role` | No | `app`, `package` | Module role |
 
 ### Task behaviour in apps shape
@@ -103,7 +103,7 @@ Failures are collected across all modules — all modules run even if one fails 
 | | Single | Apps |
 |--|--------|------|
 | Languages | One | Multiple (mixed) |
-| Shared packages | No | Yes (`packages/`) |
+| Shared packages | No | Yes, under packages/ |
 | `workspace.toml` | Not used | Required |
 | Task scope | Repo root | Per-module |
 | When to use | Most projects | Monorepos, platforms |

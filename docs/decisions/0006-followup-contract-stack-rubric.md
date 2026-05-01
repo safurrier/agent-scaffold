@@ -47,7 +47,7 @@ The CLI uses a tiny uv project and the `slice_workflow_cli` package:
 - `plan.py` creates plan directories from templates.
 - `workflow.py` renders planner, implementer, and reviewer prompts.
 - `checks.py` runs the plan/spec/evidence/review/sync contract checks.
-- `contract/` contains plan, git, markdown, artifact, and docs helpers.
+- The contract package contains plan, git, markdown, artifact, and docs helpers.
 
 The project now also has `docs/stacks/acceptance-rubric.md`, which defines the
 required future-stack bar and reviewer checklist.

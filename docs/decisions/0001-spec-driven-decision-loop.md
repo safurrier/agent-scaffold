@@ -22,7 +22,12 @@ index:
 
 ## Context
 
-agent-scaffold generated repos with `AGENTS.md` (steering) and `docs/architecture.md` (system truth) but had no document defining the **correctness envelope** — what must always be true about any valid implementation. Architecture.md mixed normative invariants with descriptive system state. There was also no mechanism for implementation decisions to flow back into documentation.
+agent-scaffold generated repos with `AGENTS.md` for steering and an
+architecture document for system truth, but had no document defining the
+**correctness envelope** — what must always be true about any valid
+implementation. The architecture document mixed normative invariants with
+descriptive system state. There was also no mechanism for implementation
+decisions to flow back into documentation.
 
 Drew Breunig's "Spec-Driven Development Triangle" (2026-03-04) identified the core failure mode: specs drift because they're not synchronized with code and tests. The StrongDM Attractor NLSpec format (12 sections) provided a reference for structured specs, but was too heavy for a repo-level template.
 
@@ -34,7 +39,7 @@ Drew Breunig's "Spec-Driven Development Triangle" (2026-03-04) identified the co
 |---|---|---|
 | `SPEC.md` | Correctness envelope — requirements, contracts, invariants | Intent changes or new invariants discovered |
 | `AGENTS.md` | How to work here — commands, repo map, workflow | Workflow or tooling changes |
-| `docs/architecture.md` | System description — principles, decisions, module map | Continuously, as decisions accumulate |
+| Architecture doc | System description — principles, decisions, module map | Continuously, as decisions accumulate |
 
 ### SPEC.md: 6-section structure
 

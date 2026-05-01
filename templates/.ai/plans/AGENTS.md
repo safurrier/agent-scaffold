@@ -89,3 +89,5 @@ Every manifest entry must point at a real file under that plan directory.
 
 See `_example/` for a complete reference plan showing the progression from
 planned through completion with realistic entries.
+
+<!-- generated-by: context-engineering@2.2.0 | last-updated: 2026-04-30 -->

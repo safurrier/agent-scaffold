@@ -68,4 +68,5 @@ my-project/
 
 ## Test results
 
-Test output is captured to `test-results/cargo-test.txt` for CI artifact upload, mirroring the Go stack's pattern.
+Generated CI captures cargo test output to a test-results file for artifact
+upload, mirroring the Go stack's pattern.

@@ -32,7 +32,7 @@ documented in the stack page and accepted in review.
 | Formatter | `mise run fmt -- --check` or equivalent check mode fails on unformatted code. |
 | Linter | `mise run lint` catches at least one real language/tooling mistake. |
 | Typecheck | `mise run typecheck` runs the stack's closest static type or compile check. |
-| Tests | `mise run test` runs generated tests and writes a CI artifact under `test-results/`. |
+| Tests | `mise run test` runs generated tests and writes a CI artifact under the generated test-results directory. |
 | Build | `mise run build` performs the stack's release/build path, even if that is a lightweight package build for interpreted stacks. |
 | Handoff | A fresh generated repo passes `mise run sync-check` with no active slice after setup. |
 

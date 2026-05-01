@@ -1,0 +1,8 @@
+artifacts:
+  # Paths are relative to this plan directory.
+  - type: report
+    path: artifacts/validation-summary.md
+    note: Context-engineering and repo quality-gate summary.
+  - type: report
+    path: artifacts/review-summary.md
+    note: Handoff review findings and disposition.

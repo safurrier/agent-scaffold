@@ -1,0 +1,17 @@
+slug: context-improve-refresh
+branch: feat/followup-contract-stack-rubric
+created: 2026-04-30
+pr:
+status: complete
+source: context-improve
+contract_change: docs_only
+decision_record: none
+review_mode: external_required
+review_backend: codex-handoff-review
+review_rubrics:
+  - core-quality
+evidence_required:
+  - commands
+  - report
+continues_from:
+supersedes:

@@ -27,8 +27,17 @@ Agent routing index for MkDocs-managed documentation. Structure is owned by `mkd
 
 | Doc | Description |
 |-----|-------------|
-| `task-contract.md` | All 22 mise tasks: purpose, per-stack commands, speed tier |
-| `decisions/` | Architectural decision records (ADRs) |
+| `task-contract.md` | Stable mise task contract, per-stack commands, speed tier |
 | `stacks/index.md` | Stack comparison table, selection at init time |
+| `stacks/acceptance-rubric.md` | Future stack acceptance bar and reviewer checklist |
 | `stacks/python.md` | Python tooling: uv, ruff, ty, pytest configuration |
 | `stacks/go.md` | Go tooling: gofumpt, golangci-lint, go test, Dockerfile |
+| `stacks/rust.md` | Rust tooling: cargo fmt, clippy, check, test, Dockerfile |
+| `decisions/0001-spec-driven-decision-loop.md` | SPEC.md, docs, and ADR loop |
+| `decisions/0002-plan-workflow.md` | Plan directory workflow |
+| `decisions/0003-deterministic-slice-contract.md` | Plan/spec/evidence/review contract |
+| `decisions/0004-skill-first-slice-workflow.md` | Skill-first slice workflow |
+| `decisions/0005-harden-sync-contract-ci.md` | Changed-plan sync-check CI mode |
+| `decisions/0006-followup-contract-stack-rubric.md` | Slice workflow CLI and stack rubric |
+
+<!-- generated-by: context-engineering@2.2.0 | last-updated: 2026-04-30 -->

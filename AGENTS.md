@@ -1,104 +1,79 @@
 # agent-scaffold
 
-Opinionated starter repository for agent-driven engineering. Provides a **stable task contract** via mise so AI-native codebases are deterministic, reproducible, and easy to validate. Clone it, run `mise run init`, and it transforms itself into your project.
+**When a user corrects you or gives repo-specific tribal knowledge, document it
+in the closest `AGENTS.md` before continuing.**
 
-## Repository Map
-
-```
-agent-scaffold/
-├── .mise.toml                  # Tool versions + env vars (stack, shape, name)
-├── .mise/tasks/                # 22 file-based task scripts (the contract)
-├── .agent/skills/              # Agent skills (spec-sync, plan-sync, etc.)
-├── .ai/plans/                  # Plan directories for units of work
-├── scripts/
-│   └── lib.py                  # Shared helpers (stack dispatch, module iteration)
-├── stacks/                     # Per-stack template files (removed after init)
-│   ├── python/                 # Python stack templates (.tmpl + source)
-│   ├── go/                     # Go stack templates
-│   ├── rust/                   # Rust stack templates
-│   └── web/                    # Web/TS stack templates
-├── templates/                  # Shared templates: README, CLAUDE.md, .gitignore
-│   ├── .agent/skills/          # Skills shipped to generated repos, including slice-workflow/cli
-│   └── .ai/plans/              # Plan templates + example for generated repos
-├── src/agent_scaffold/         # CLI package (click-based)
-├── tests/                      # Scaffold self-tests
-│   ├── contract/               # Structural checks (fast, no subprocess)
-│   ├── unit/                   # Pure function tests (fast)
-│   └── e2e/                    # Full init+setup+check workflows (slow)
-├── docs/                       # MkDocs documentation source
-├── SPEC.md                     # Correctness envelope (requirements, contracts, invariants)
-└── pyproject.toml              # Package config + ruff/pytest/ty settings
-```
-
-### Key steering files
-
-- `AGENTS.md` -- this file
-- `SPEC.md` -- correctness envelope (requirements, contracts, invariants)
-- `.mise.toml` -- tool versions, project env vars (`SCAFFOLD_PROJECT_*`)
-- `mkdocs.yml` -- docs site navigation and theme
+agent-scaffold is a Python/Click starter repo for agent-driven engineering. It
+generates projects with a stable mise task contract, plan/evidence/review
+handoff checks, provider-neutral slice workflow prompts, and stack templates for
+Python, Go, and Rust. The slice workflow implementation is portable: generated
+repos receive a skill-local uv CLI, while `mise run slice-*` remains the stable
+operator interface.
 
 ## How to Work Here
 
-1. **Explore**: `mise tasks` lists all available commands
-2. **Validate**: `mise run check` runs fmt-check + lint + typecheck + test
-3. **Handoff**: `mise run sync-check` validates plan/spec/evidence/review completeness
-4. **Test fast**: `uv run pytest -m "not slow"` skips Go E2E tests
-5. **Docs**: `mise run docs` starts the MkDocs dev server
+Use `mise run plan -- <slug>` for meaningful work, keep the active plan current,
+and close the slice with evidence and review before handoff. Treat `SPEC.md` as
+the correctness envelope and `docs/task-contract.md` as the task-surface
+reference.
 
-## Common Commands
+## Commands
 
-```bash
-mise install                    # install tool versions from .mise.toml ✅
-mise run setup                  # uv sync --all-extras ✅
-mise run check                  # fast quality gate (fmt-check + lint + typecheck + test) ✅
-mise run slice-plan -- --task task.md  # render planner prompt for current harness ✅
-mise run sync-check             # plan/spec/evidence/review handoff gate ✅
-mise run fmt                    # auto-format ✅
-mise run lint                   # ruff check ✅
-mise run typecheck              # ty check ⏸️ (may produce warnings on active codebase)
-mise run test                   # pytest (parallel via xdist) ⏸️ (E2E tests need temp dirs)
-mise run docs                   # MkDocs dev server at localhost:8000 ⏸️ (long-running)
-mise run plan -- <slug>         # create a plan directory on a feature branch ✅
-mise run init                   # transform scaffold into a project (one-time) ⏸️ (destructive)
-mise run verify                 # heavy validation (integration, docker) ⏸️ (slow, may need Docker)
-```
+**Setup**: `mise run setup`.
 
-## System Invariants
+**Fast gate**: `mise run check`.
 
-- **Stable 22-task contract**: Every `.mise/tasks/` script must exist, be executable, have a `# MISE description=` header, and use `#!/usr/bin/env -S uv run python` shebang. Violation causes: contract test failures, agents cannot rely on the command surface.
-- **CI parity**: `mise run check` locally must match what CI runs (`mise run ci` delegates to `check`). Pre-commit hooks call the same tasks. Violation causes: green local / red CI divergence.
-- **Golden path guarantee**: A freshly initialized project (`mise run init`) must pass `mise run check` out of the box. Violation causes: broken first-run experience for users and agents.
-- **Deterministic slice contract**: meaningful work is not done until `mise run sync-check` passes. Violation causes: half-finished slices with missing evidence or review.
-- **Stack dispatch via env**: Tasks read `SCAFFOLD_PROJECT_STACK` from `.mise.toml` to dispatch to the correct toolchain. Violation causes: tasks run wrong language tools.
+**Handoff gate**: `mise run sync-check`.
+
+**Focused tests**: `uv run pytest -m "not slow"`.
+
+**Slice prompt rendering**: `mise run slice-plan -- --task <task.md>`, then
+`mise run slice-implement` and `mise run slice-review` when useful.
+
+**Docs preview**: `mise run docs`.
+
+**One-time scaffold transform**: `mise run init`. This is destructive by design;
+use it only in a copied scaffold or throwaway init target.
 
 ## Gotchas
 
-- **DO** run `uv run pytest -m "not slow"` for fast feedback. **NOT** `uv run pytest` (includes Go E2E). **BECAUSE** Go E2E tests require the Go toolchain and take significantly longer.
-- **DO** run `mise run check` before committing. **NOT** individual tasks separately. **BECAUSE** `check` runs fmt-check + lint + typecheck + test in the correct order with fail-fast.
-- **DO** edit `.mise/tasks/<task>` to change task behavior. **NOT** `.mise.toml` task definitions. **BECAUSE** tasks are file-based scripts in `.mise/tasks/`, not inline TOML definitions.
-- **DO** add new stacks in `stacks/<name>/` with corresponding task dispatch functions. **NOT** by editing task scripts inline. **BECAUSE** stack dispatch uses `dispatch_stack()` / `dispatch_module()` in `scripts/lib.py`; each stack registers handler functions.
+- **DO** run `uv run pytest -m "not slow"` for fast feedback. **NOT** plain
+  `uv run pytest` by default. **BECAUSE** the full suite can include slow stack
+  E2E paths that need extra toolchains.
 
-## Task-Specific Docs
+- **DO** run `mise run check` before committing. **NOT** individual quality
+  tasks only. **BECAUSE** `check` preserves the intended fmt, lint, typecheck,
+  and test order.
 
-### Cross-cutting docs in `docs/` (MkDocs-managed)
+- **DO** edit `.mise/tasks/<task>` to change task behavior. **NOT** `.mise.toml`
+  task definitions. **BECAUSE** the command contract is file-based task scripts.
 
-| Doc | Topic |
-|-----|-------|
-| `docs/index.md` | Project overview and quick start |
-| `docs/getting-started.md` | Full install and init walkthrough |
-| `docs/task-contract.md` | All 22 tasks: purpose, per-stack commands |
-| `docs/shapes.md` | Single vs apps workspace shapes |
-| `docs/init-system.md` | How init transforms the scaffold |
-| `docs/ci.md` | GitHub Actions workflow and pre-commit hooks |
-| `docs/development.md` | Contributing: test layers, fixtures, adding stacks |
-| `docs/stacks/index.md` | Stack comparison and selection |
-| `docs/stacks/python.md` | Python stack: ruff, ty, pytest, uv |
-| `docs/stacks/go.md` | Go stack: gofumpt, golangci-lint, go test |
+- **DO** keep `templates/.agent/skills/slice-workflow/cli` and the slice-related
+  `.mise/tasks/*` wrappers aligned. **NOT** duplicate the slice contract in
+  repo-local Python scripts. **BECAUSE** the skill-local CLI is the portable
+  implementation and mise is the compatibility surface.
 
-## Key References
+- **DO** update the stack registry package, stack templates, and affected mise
+  task dispatch handlers together when adding stack behavior. **NOT** by editing
+  only one layer. **BECAUSE** init owns generated files while the task contract
+  owns how generated projects run stack tools.
 
-- **Task contract**: `docs/task-contract.md`
-- **mise config**: `.mise.toml`
-- **CI workflow**: `.github/workflows/ci.yml`
-- **Init logic**: `src/agent_scaffold/` (CLI + init modules)
-- **Design spec**: `SPEC.md`
+- **DO** keep small durable plan evidence committed when it helps review. **NOT**
+  commit raw scratch transcripts or ignored artifact subtrees. **BECAUSE**
+  `sync-check` treats manifest entries as promises that evidence exists and is
+  reviewable.
+
+## Related Context
+
+| Path | What's there |
+|---|---|
+| `SPEC.md` | Requirements, interfaces, invariants, acceptance |
+| `docs/task-contract.md` | Stable mise task contract and slice workflow tasks |
+| `docs/development.md` | Test layers, fixtures, and stack development |
+| `docs/init-system.md` | How `mise run init` transforms the scaffold |
+| `docs/AGENTS.md` | Docs routing index, including stack and ADR docs |
+| `docs/decisions/` | ADRs for scaffold workflow and contract choices |
+| `templates/.agent/skills/slice-workflow/` | Skill shipped to generated repos |
+| `templates/.ai/plans/AGENTS.md` | Plan artifact contract shipped to generated repos |
+
+<!-- generated-by: context-engineering@2.2.0 | last-updated: 2026-04-30 -->
