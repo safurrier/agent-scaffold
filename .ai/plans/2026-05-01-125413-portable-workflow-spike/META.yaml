@@ -2,7 +2,7 @@ slug: portable-workflow-spike
 branch: spike/portable-workflow
 created: 2026-05-01
 pr:
-status: in-progress
+status: complete
 source: research-spike
 contract_change: contract_changed
 decision_record: none
