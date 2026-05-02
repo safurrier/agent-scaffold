@@ -61,5 +61,9 @@ description: >
   - Result: passed after addressing Codex review findings; 345 tests.
 - `uv run ruff check src/harness_toolkit/kit/workflow.py tests/unit/test_portable_workflow.py && uv run ty check src/harness_toolkit/kit/workflow.py tests/unit/test_portable_workflow.py && uv run pytest tests/unit/test_portable_workflow.py::test_workflow_status_reports_missing_target_without_traceback tests/unit/test_portable_workflow.py::test_workflow_status_reports_file_target_without_traceback -q`
   - Result: passed after extending target validation to reject file paths before invoking git subprocesses.
+- `uv run ruff check tests/e2e/test_harness_kit_rollout.py && uv run ty check tests/e2e/test_harness_kit_rollout.py && uv run pytest tests/e2e/test_harness_kit_rollout.py -q`
+  - Result: passed after adding synthetic external/overlay rollout parity e2e coverage; 2 tests.
+- `mise run check`
+  - Result: passed after adding rollout parity e2e coverage; 720 tests.
 - `mise run sync-check -- --plan-dir .ai/plans/2026-05-02-083917-harness-kit-naming && mise run sync-check`
   - Result: both passed after context-improve doc fixes.

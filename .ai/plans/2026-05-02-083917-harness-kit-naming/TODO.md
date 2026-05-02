@@ -29,6 +29,7 @@ description: >
 - [x] Add canonical command-name constants so snippets/templates do not hand-write `hk` and `harness-scaffold` everywhere.
 - [x] Deepen profile handling behind a `ProfileCatalog` interface.
 - [x] Add inline architecture comments for future `kit_cli` and `workflow` seams.
+- [x] Add synthetic rollout/parity e2e coverage for external and overlay Harness Kit modes.
 
 ## Handoff
 
