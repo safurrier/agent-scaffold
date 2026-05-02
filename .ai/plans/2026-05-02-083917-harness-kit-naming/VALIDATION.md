@@ -59,5 +59,7 @@ description: >
   - Result: passed after package subtree split and `ProfileCatalog` refactor; 326 tests.
 - `uv run ruff check src/harness_toolkit tests/unit/test_init_project.py tests/unit/test_golden_output.py tests/unit/test_portable_workflow.py && uv run ty check src/harness_toolkit tests/unit/test_portable_workflow.py tests/unit/test_cli.py && uv run pytest tests/unit/test_init_project.py tests/unit/test_golden_output.py tests/unit/test_portable_workflow.py tests/unit/test_cli.py tests/contract/test_task_contract.py -q`
   - Result: passed after addressing Codex review findings; 345 tests.
+- `uv run ruff check src/harness_toolkit/kit/workflow.py tests/unit/test_portable_workflow.py && uv run ty check src/harness_toolkit/kit/workflow.py tests/unit/test_portable_workflow.py && uv run pytest tests/unit/test_portable_workflow.py::test_workflow_status_reports_missing_target_without_traceback tests/unit/test_portable_workflow.py::test_workflow_status_reports_file_target_without_traceback -q`
+  - Result: passed after extending target validation to reject file paths before invoking git subprocesses.
 - `mise run sync-check -- --plan-dir .ai/plans/2026-05-02-083917-harness-kit-naming && mise run sync-check`
   - Result: both passed after context-improve doc fixes.

@@ -113,6 +113,8 @@ class SyncResult:
 def git_root(path: Path) -> Path:
     if not path.exists():
         raise WorkflowError(f"target does not exist: {path}")
+    if not path.is_dir():
+        raise WorkflowError(f"target is not a directory: {path}")
     result = subprocess.run(
         ["git", "rev-parse", "--show-toplevel"],
         cwd=path,

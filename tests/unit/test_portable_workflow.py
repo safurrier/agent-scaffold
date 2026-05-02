@@ -601,6 +601,17 @@ def test_workflow_status_reports_missing_target_without_traceback(
     assert "Traceback" not in result.stderr
 
 
+def test_workflow_status_reports_file_target_without_traceback(tmp_path: Path) -> None:
+    target = tmp_path / "not-a-directory"
+    target.write_text("not a checkout")
+
+    result = _run_workflow("status", "--target", str(target))
+
+    assert result.returncode == 1
+    assert "target is not a directory" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
 def test_workflow_sync_check_rejects_required_review_placeholder(
     tmp_path: Path,
 ) -> None:
