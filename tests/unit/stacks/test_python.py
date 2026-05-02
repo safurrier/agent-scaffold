@@ -8,7 +8,7 @@ pytestmark = pytest.mark.unit
 
 
 def test_tools_toml_has_python_and_uv() -> None:
-    from agent_scaffold.stacks.python import PythonStack
+    from harness_toolkit.scaffold.stacks.python import PythonStack
 
     tools = PythonStack().tools_toml()
     assert 'python = "3.12"' in tools
@@ -16,7 +16,7 @@ def test_tools_toml_has_python_and_uv() -> None:
 
 
 def test_adr_notes_mentions_key_tools() -> None:
-    from agent_scaffold.stacks.python import PythonStack
+    from harness_toolkit.scaffold.stacks.python import PythonStack
 
     notes = PythonStack().adr_notes()
     assert "uv" in notes
@@ -26,7 +26,7 @@ def test_adr_notes_mentions_key_tools() -> None:
 
 
 def test_stack_notes_mentions_key_tools() -> None:
-    from agent_scaffold.stacks.python import PythonStack
+    from harness_toolkit.scaffold.stacks.python import PythonStack
 
     notes = PythonStack().stack_notes()
     assert "ruff" in notes

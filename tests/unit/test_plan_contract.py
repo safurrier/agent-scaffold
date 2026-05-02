@@ -240,7 +240,7 @@ def test_changed_plan_dir_names_finds_timestamped_plan_dirs() -> None:
         ".ai/plans/2026-04-29-134035-harden-sync-contract-ci/META.yaml",
         ".ai/plans/2026-04-29-134035-harden-sync-contract-ci/VALIDATION.md",
         ".ai/plans/_templates/META.yaml",
-        "src/agent_scaffold/cli.py",
+        "src/harness_toolkit/scaffold/cli.py",
     ]
 
     assert changed_plan_dir_names(paths) == [

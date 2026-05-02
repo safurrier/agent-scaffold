@@ -1,4 +1,4 @@
-"""Shared test helpers for agent-scaffold tests.
+"""Shared test helpers for harness-scaffold tests.
 
 Non-fixture helpers live here (instead of conftest.py) so they're importable
 by ty and other type checkers without relying on conftest.py resolution.

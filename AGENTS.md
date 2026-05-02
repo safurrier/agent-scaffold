@@ -1,14 +1,15 @@
-# agent-scaffold
+# harness-toolkit
 
 **When a user corrects you or gives repo-specific tribal knowledge, document it
 in the closest `AGENTS.md` before continuing.**
 
-agent-scaffold is a Python/Click starter repo for agent-driven engineering. It
-generates projects with a stable mise task contract, plan/evidence/review
-handoff checks, provider-neutral slice workflow prompts, and stack templates for
-Python, Go, and Rust. The slice workflow implementation is portable: generated
-repos receive a skill-local uv CLI, while `mise run slice-*` remains the stable
-operator interface.
+harness-toolkit contains two related CLIs. `harness-scaffold` is the
+starter-template CLI: it generates projects with a stable mise task contract,
+plan/evidence/review handoff checks, provider-neutral slice workflow prompts, and
+stack templates for Python, Go, and Rust. `hk` / `harness-kit` is the portable CLI
+for applying the workflow to existing repos without committing scaffold files.
+Generated repos receive a skill-local uv CLI, while `mise run slice-*` remains
+the stable operator interface.
 
 ## How to Work Here
 
@@ -63,12 +64,19 @@ use it only in a copied scaffold or throwaway init target.
   `sync-check` treats manifest entries as promises that evidence exists and is
   reviewable.
 
+- **DO** use Cyclopts for portable/agent-facing CLIs like `hk` and
+  `harness-scaffold`. **NOT** add new Click surfaces there. **BECAUSE** typed
+  signatures, Literal choices, and generated help make the CLI safer for agents
+  to call.
+
 ## Related Context
 
 | Path | What's there |
 |---|---|
 | `SPEC.md` | Requirements, interfaces, invariants, acceptance |
 | `docs/task-contract.md` | Stable mise task contract and slice workflow tasks |
+| `src/harness_toolkit/scaffold/` | Starter-template implementation for `harness-scaffold init` |
+| `src/harness_toolkit/kit/` | Portable workflow implementation for `hk` / `harness-kit` |
 | `docs/development.md` | Test layers, fixtures, and stack development |
 | `docs/init-system.md` | How `mise run init` transforms the scaffold |
 | `docs/AGENTS.md` | Docs routing index, including stack and ADR docs |

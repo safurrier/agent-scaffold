@@ -1,8 +1,14 @@
-# agent-scaffold
+# harness-toolkit
 
-Opinionated starter repository for agent-driven engineering. Provides a stable task
-contract via [mise](https://mise.jdx.dev/) so AI-native codebases are deterministic,
-reproducible, and easy to validate.
+**Harness Engineering Toolkit** for agent-ready repositories.
+
+This package contains two related CLIs:
+
+- **`hk` / `harness-kit`** — portable planning, validation, and handoff workflow
+  for existing repositories without committing scaffold files.
+- **`harness-scaffold`** — starter-template CLI for creating new agent-ready
+  repositories with a stable task contract, docs structure, CI wiring, and slice
+  workflow defaults.
 
 ## Prerequisites
 
@@ -26,7 +32,7 @@ Once mise is installed, `mise install` will pull down everything declared in `.m
 
 ```bash
 # 1. Clone
-git clone https://github.com/safurrier/agent-scaffold.git my-project
+git clone https://github.com/safurrier/harness-toolkit.git my-project
 cd my-project
 
 # 2. Install tools (Python + uv via mise)
@@ -41,7 +47,7 @@ mise run init -- --non-interactive --name my-project --shape single --stack pyth
 
 ## Task Contract
 
-Every agent-scaffold project exposes these commands:
+Every project initialized from harness-scaffold exposes these commands:
 
 | Command | Purpose |
 |---------|---------|

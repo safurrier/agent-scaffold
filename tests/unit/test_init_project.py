@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from agent_scaffold.config import to_module_name, validate_name
+from harness_toolkit.scaffold.config import to_module_name, validate_name
 
 pytestmark = pytest.mark.unit
 

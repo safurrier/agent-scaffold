@@ -1,4 +1,4 @@
-"""Shared helpers for agent-scaffold mise task scripts.
+"""Shared helpers for harness-toolkit mise task scripts.
 
 Import in any task script with:
 
@@ -58,7 +58,7 @@ def get_shape() -> str:
 
 
 def get_project_name() -> str:
-    return os.environ.get("SCAFFOLD_PROJECT_NAME", "agent-scaffold")
+    return os.environ.get("SCAFFOLD_PROJECT_NAME", "harness-toolkit")
 
 
 # ── Subprocess helper ─────────────────────────────────────────────────────────

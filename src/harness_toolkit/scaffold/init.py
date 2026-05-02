@@ -8,11 +8,9 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-import click
-
-from agent_scaffold.config import SCAFFOLD_ROOT, Config
-from agent_scaffold.stacks import STACKS
-from agent_scaffold.templates import copy_tree, render_template
+from harness_toolkit.scaffold.config import SCAFFOLD_ROOT, Config
+from harness_toolkit.scaffold.stacks import STACKS
+from harness_toolkit.scaffold.templates import copy_tree, render_template
 
 
 def build_context(
@@ -143,7 +141,7 @@ def cleanup_scaffold(root: Path, config: Config) -> None:
     to_remove = [
         root / "stacks",
         root / "templates",
-        root / "src" / "agent_scaffold",  # scaffold CLI package (not whole src/)
+        root / "src" / "harness_toolkit",  # scaffold CLI package (not whole src/)
         root / "mkdocs.yml",  # scaffold's MkDocs config
         root / "scripts" / "init_project.py",  # legacy, may not exist
     ]
@@ -176,10 +174,10 @@ def git_init(root: Path, config: Config) -> None:
 
     env = {
         **os.environ,
-        "GIT_AUTHOR_NAME": config.author_name or "agent-scaffold",
-        "GIT_AUTHOR_EMAIL": config.author_email or "init@agent-scaffold",
-        "GIT_COMMITTER_NAME": config.author_name or "agent-scaffold",
-        "GIT_COMMITTER_EMAIL": config.author_email or "init@agent-scaffold",
+        "GIT_AUTHOR_NAME": config.author_name or "harness-scaffold",
+        "GIT_AUTHOR_EMAIL": config.author_email or "init@harness-scaffold",
+        "GIT_COMMITTER_NAME": config.author_name or "harness-scaffold",
+        "GIT_COMMITTER_EMAIL": config.author_email or "init@harness-scaffold",
     }
 
     subprocess.run(["git", "init"], cwd=root, check=True, capture_output=True)
@@ -239,17 +237,14 @@ def _make_symlink(
 
 def run_init(root: Path, config: Config) -> None:
     """Execute the full scaffold-to-project transformation."""
-    from agent_scaffold.stacks import STACKS
+    from harness_toolkit.scaffold.stacks import STACKS
 
     stack = STACKS[config.stack]
 
-    click.secho(
-        f"\n── Initializing {config.name} ({config.shape}/{config.stack}) ──\n",
-        bold=True,
-    )
+    print(f"\n── Initializing {config.name} ({config.shape}/{config.stack}) ──\n")
 
     # 1. Stack-specific file layout
-    click.secho("==> Applying stack templates", fg="blue", bold=True)
+    print("==> Applying stack templates")
     if config.shape == "single":
         extra = stack.init_single(root, config)
     else:
@@ -257,7 +252,7 @@ def run_init(root: Path, config: Config) -> None:
 
     # 2. Build context and generate docs/CI/skills
     context = build_context(config, extra)
-    click.secho("==> Generating docs, CI, skills", fg="blue", bold=True)
+    print("==> Generating docs, CI, skills")
     generate_docs(root, context)
 
     # 3. Rewrite .mise.toml
@@ -269,7 +264,7 @@ def run_init(root: Path, config: Config) -> None:
 
     # 5. Remove examples if requested
     if not config.keep_examples:
-        click.secho("==> Removing example code", fg="blue", bold=True)
+        print("==> Removing example code")
         if config.shape == "single":
             stack.remove_examples(root, config)
         else:
@@ -277,24 +272,24 @@ def run_init(root: Path, config: Config) -> None:
                 stack.remove_module_examples(root / "apps" / mod_name)
 
     # 6. Clean up scaffold artifacts
-    click.secho("==> Cleaning up scaffold artifacts", fg="blue", bold=True)
+    print("==> Cleaning up scaffold artifacts")
     cleanup_scaffold(root, config)
 
     # 7. Git init
     git_init(root, config)
-    click.secho("  ✓ Git repository initialized", fg="green")
+    print("  ✓ Git repository initialized")
 
     # 8. Pre-commit hooks
     if config.install_hooks:
         install_pre_commit(root)
-        click.secho("  ✓ Pre-commit hooks installed", fg="green")
+        print("  ✓ Pre-commit hooks installed")
 
-    click.secho(f"\n── {config.name} is ready! ──", bold=True)
-    click.echo("\n  Next steps:")
-    click.echo("    mise run setup    # install dependencies")
-    click.echo("    mise run check    # verify everything works")
-    click.echo("    mise run dev      # start developing")
-    click.echo()
+    print(f"\n── {config.name} is ready! ──")
+    print("\n  Next steps:")
+    print("    mise run setup    # install dependencies")
+    print("    mise run check    # verify everything works")
+    print("    mise run dev      # start developing")
+    print()
 
 
 def _init_apps(root: Path, config: Config, stack: Any) -> dict[str, str]:

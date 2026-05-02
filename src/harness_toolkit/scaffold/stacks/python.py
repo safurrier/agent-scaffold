@@ -5,8 +5,8 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
-from agent_scaffold.config import SCAFFOLD_ROOT, Config, to_module_name
-from agent_scaffold.templates import copy_tree
+from harness_toolkit.scaffold.config import SCAFFOLD_ROOT, Config, to_module_name
+from harness_toolkit.scaffold.templates import copy_tree
 
 
 class PythonStack:
@@ -104,7 +104,7 @@ def _build_context(config: Config, module_name: str) -> dict[str, str]:
 
 def _write(src: Path, dst: Path, context: dict[str, str]) -> None:
     """Render *src* template to *dst*."""
-    from agent_scaffold.templates import render_template
+    from harness_toolkit.scaffold.templates import render_template
 
     dst.parent.mkdir(parents=True, exist_ok=True)
     dst.write_text(render_template(src, context))

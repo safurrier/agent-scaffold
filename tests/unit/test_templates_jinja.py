@@ -14,15 +14,15 @@ pytestmark = pytest.mark.unit
 
 @pytest.fixture(autouse=True)
 def _import_engine():
-    """Ensure agent_scaffold.templates is importable before each test."""
-    from agent_scaffold import templates  # noqa: F401
+    """Ensure harness_toolkit.scaffold.templates is importable before each test."""
+    from harness_toolkit.scaffold import templates  # noqa: F401
 
 
 # ── render_template ───────────────────────────────────────────────────────────
 
 
 def test_render_simple_variable(tmp_path: Path) -> None:
-    from agent_scaffold.templates import render_template
+    from harness_toolkit.scaffold.templates import render_template
 
     tmpl = tmp_path / "test.md.tmpl"
     tmpl.write_text("Hello {{ project_name }}!")
@@ -30,7 +30,7 @@ def test_render_simple_variable(tmp_path: Path) -> None:
 
 
 def test_render_conditional_true_branch(tmp_path: Path) -> None:
-    from agent_scaffold.templates import render_template
+    from harness_toolkit.scaffold.templates import render_template
 
     tmpl = tmp_path / "test.tmpl"
     tmpl.write_text("{% if stack == 'go' %}go{% else %}other{% endif %}")
@@ -38,7 +38,7 @@ def test_render_conditional_true_branch(tmp_path: Path) -> None:
 
 
 def test_render_conditional_false_branch(tmp_path: Path) -> None:
-    from agent_scaffold.templates import render_template
+    from harness_toolkit.scaffold.templates import render_template
 
     tmpl = tmp_path / "test.tmpl"
     tmpl.write_text("{% if stack == 'go' %}go{% else %}other{% endif %}")
@@ -46,7 +46,7 @@ def test_render_conditional_false_branch(tmp_path: Path) -> None:
 
 
 def test_render_loop(tmp_path: Path) -> None:
-    from agent_scaffold.templates import render_template
+    from harness_toolkit.scaffold.templates import render_template
 
     tmpl = tmp_path / "ws.tmpl"
     tmpl.write_text("{% for m in modules %}[{{ m }}]\n{% endfor %}")
@@ -58,7 +58,7 @@ def test_render_loop(tmp_path: Path) -> None:
 def test_render_undefined_variable_raises(tmp_path: Path) -> None:
     from jinja2 import UndefinedError
 
-    from agent_scaffold.templates import render_template
+    from harness_toolkit.scaffold.templates import render_template
 
     tmpl = tmp_path / "test.tmpl"
     tmpl.write_text("Hello {{ missing_var }}!")
@@ -67,7 +67,7 @@ def test_render_undefined_variable_raises(tmp_path: Path) -> None:
 
 
 def test_render_preserves_trailing_newline(tmp_path: Path) -> None:
-    from agent_scaffold.templates import render_template
+    from harness_toolkit.scaffold.templates import render_template
 
     tmpl = tmp_path / "test.tmpl"
     tmpl.write_text("line\n")
@@ -78,7 +78,7 @@ def test_render_preserves_trailing_newline(tmp_path: Path) -> None:
 
 
 def test_copy_tree_processes_tmpl_files(tmp_path: Path) -> None:
-    from agent_scaffold.templates import copy_tree
+    from harness_toolkit.scaffold.templates import copy_tree
 
     src = tmp_path / "src"
     src.mkdir()
@@ -89,7 +89,7 @@ def test_copy_tree_processes_tmpl_files(tmp_path: Path) -> None:
 
 
 def test_copy_tree_strips_tmpl_extension(tmp_path: Path) -> None:
-    from agent_scaffold.templates import copy_tree
+    from harness_toolkit.scaffold.templates import copy_tree
 
     src = tmp_path / "src"
     src.mkdir()
@@ -101,7 +101,7 @@ def test_copy_tree_strips_tmpl_extension(tmp_path: Path) -> None:
 
 
 def test_copy_tree_copies_plain_files_verbatim(tmp_path: Path) -> None:
-    from agent_scaffold.templates import copy_tree
+    from harness_toolkit.scaffold.templates import copy_tree
 
     src = tmp_path / "src"
     src.mkdir()
@@ -112,7 +112,7 @@ def test_copy_tree_copies_plain_files_verbatim(tmp_path: Path) -> None:
 
 
 def test_copy_tree_handles_nested_directories(tmp_path: Path) -> None:
-    from agent_scaffold.templates import copy_tree
+    from harness_toolkit.scaffold.templates import copy_tree
 
     src = tmp_path / "src"
     (src / "sub").mkdir(parents=True)
@@ -124,7 +124,7 @@ def test_copy_tree_handles_nested_directories(tmp_path: Path) -> None:
 
 def test_copy_tree_handles_binary_files(tmp_path: Path) -> None:
     """Binary files should be copied without UnicodeDecodeError."""
-    from agent_scaffold.templates import copy_tree
+    from harness_toolkit.scaffold.templates import copy_tree
 
     src = tmp_path / "src"
     src.mkdir()

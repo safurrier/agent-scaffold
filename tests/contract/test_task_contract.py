@@ -82,14 +82,17 @@ def test_scripts_lib_py_exists() -> None:
 
 
 def test_cli_package_exists() -> None:
-    assert (SCAFFOLD_ROOT / "src" / "agent_scaffold" / "__init__.py").exists()
+    assert (SCAFFOLD_ROOT / "src" / "harness_toolkit" / "__init__.py").exists()
 
 
-def test_cli_entry_point_registered() -> None:
-    """agent-scaffold entry point must be declared in pyproject.toml."""
+def test_cli_entry_points_registered() -> None:
+    """Harness Toolkit entry points must be declared without legacy aliases."""
     content = (SCAFFOLD_ROOT / "pyproject.toml").read_text()
-    assert "agent-scaffold" in content
-    assert "agent_scaffold.cli:cli" in content
+    assert 'harness-scaffold = "harness_toolkit.scaffold.cli:main"' in content
+    assert 'harness-kit = "harness_toolkit.kit.cli:main"' in content
+    assert 'hk = "harness_toolkit.kit.cli:main"' in content
+    assert "agent-scaffold" not in content
+    assert "agent-workflow" not in content
 
 
 def test_stacks_python_exists() -> None:

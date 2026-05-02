@@ -22,6 +22,7 @@ Agent routing index for MkDocs-managed documentation. Structure is owned by `mkd
 | `shapes.md` | Single-project vs apps workspace: layouts, workspace.toml, task behavior |
 | `init-system.md` | How init transforms the scaffold: sequence, templates, cleanup |
 | `ci.md` | CI workflow design: mise entrypoints, sync contract, pre-commit parity |
+| `portable-workflow.md` | Attaching the planning workflow to existing repos without committed scaffold files |
 
 ## Reference
 
@@ -39,5 +40,7 @@ Agent routing index for MkDocs-managed documentation. Structure is owned by `mkd
 | `decisions/0004-skill-first-slice-workflow.md` | Skill-first slice workflow |
 | `decisions/0005-harden-sync-contract-ci.md` | Changed-plan sync-check CI mode |
 | `decisions/0006-followup-contract-stack-rubric.md` | Slice workflow CLI and stack rubric |
+| `decisions/0007-harness-toolkit-naming.md` | Harness Engineering Toolkit naming and CLI boundary |
+| `decisions/0007-harness-toolkit-naming.md` | Harness Engineering Toolkit naming split: `hk`, `harness-kit`, `harness-scaffold` |
 
 <!-- generated-by: context-engineering@2.2.0 | last-updated: 2026-04-30 -->

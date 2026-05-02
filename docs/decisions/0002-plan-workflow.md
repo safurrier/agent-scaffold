@@ -28,11 +28,11 @@ a task would jump straight to coding without scoping, and there was no structure
 place to capture problems, adaptations, or validation evidence during development.
 
 The user's personal AGENTS.md had a plan convention (`.ai/plans/` with SPEC, TODO,
-IMPLEMENTATION, LEARNING_LOG) but it wasn't part of agent-scaffold's generated repos.
+IMPLEMENTATION, LEARNING_LOG) but it wasn't part of harness-scaffold's generated repos.
 
 ## Decision
 
-Add a plan-based workflow to agent-scaffold:
+Add a plan-based workflow to harness-scaffold:
 
 - **`mise run plan -- <slug>`** creates `.ai/plans/YYYY-MM-DD-HHmm-<slug>/` with templates
 - **4 required files**: META.yaml (machine-readable metadata), TODO.md (task list),

@@ -93,7 +93,7 @@ python-version = "3.12"
 ```
 
 !!! note
-    ty is under active development. agent-scaffold pins `>=0.0.19`. Check [releases](https://github.com/astral-sh/ty/releases) for updates.
+    ty is under active development. harness-scaffold pins `>=0.0.19`. Check [releases](https://github.com/astral-sh/ty/releases) for updates.
 
 ## Test runner — pytest
 

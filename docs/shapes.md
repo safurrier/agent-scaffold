@@ -15,7 +15,7 @@ index:
 
 # Repo Shapes
 
-agent-scaffold supports two repo shapes selected at `init` time.
+harness-scaffold supports two repo shapes selected at `init` time.
 
 ## Single-project
 

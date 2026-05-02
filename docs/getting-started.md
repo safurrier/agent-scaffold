@@ -2,7 +2,7 @@
 id: getting-started
 title: Getting Started
 description: >
-  Step-by-step guide to installing mise, cloning agent-scaffold, and running
+  Step-by-step guide to installing mise, cloning harness-toolkit, and running
   mise run init to initialize a new project interactively or non-interactively.
 index:
   - id: prerequisites
@@ -41,7 +41,7 @@ Once mise is installed, `mise install` pulls down all tools declared in `.mise.t
 ### Interactive
 
 ```bash
-git clone https://github.com/safurrier/agent-scaffold.git my-project
+git clone https://github.com/safurrier/harness-toolkit.git my-project
 cd my-project
 mise install
 mise run init

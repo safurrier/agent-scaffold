@@ -2,7 +2,7 @@
 id: development
 title: Development Guide
 description: >
-  Guide to developing agent-scaffold itself: test layer architecture, fixture patterns,
+  Guide to developing harness-toolkit itself: test layer architecture, fixture patterns,
   adding new stacks, updating tool versions, and running the docs server.
 index:
   - id: test-suite
@@ -20,8 +20,8 @@ Contributing to the scaffold itself.
 ## Setup
 
 ```bash
-git clone https://github.com/safurrier/agent-scaffold.git
-cd agent-scaffold
+git clone https://github.com/safurrier/harness-toolkit.git
+cd harness-toolkit
 mise install          # installs python + uv
 mise run setup        # uv sync --all-extras
 ```
@@ -130,7 +130,7 @@ mise run docs    # start local MkDocs dev server at http://127.0.0.1:8000
 
 1. **Templates**: Create `stacks/<name>/` with source files and `.tmpl` variants
 2. **Task scripts**: Add `<task>_<name>(cwd)` functions to each `.mise/tasks/<task>` script and register them in the `dispatch_stack` / `dispatch_module` calls
-3. **Init package**: Add the stack to `SUPPORTED_STACKS` in `src/agent_scaffold/config.py`, add prompts/handling in `src/agent_scaffold/prompts.py`, and add template copying in `src/agent_scaffold/stacks/`
+3. **Init package**: Add the stack to `SUPPORTED_STACKS` in `src/harness_toolkit/scaffold/config.py`, add prompts/handling in `src/harness_toolkit/scaffold/prompts.py`, and add template copying in `src/harness_toolkit/scaffold/stacks/`
 4. **Docs**: Add `docs/stacks/<name>.md` and link it from `docs/stacks/index.md`
 5. **Tests**: Add `tests/e2e/test_<name>.py` with single/apps happy paths, setup-then-sync-check coverage, and gate tests for formatter, linter, typecheck or compile check, and test runner
 6. **CI**: Add the stack to the generated-project smoke matrix once it is a supported `init --stack` value
@@ -147,6 +147,6 @@ Tool versions are declared in two places:
 | Location | Purpose |
 |----------|---------|
 | `.mise.toml` | Scaffold's own tools (Python, uv) |
-| `src/agent_scaffold/common.py` `rewrite_mise_toml()` | Tools written into generated projects |
+| `src/harness_toolkit/scaffold/init.py` `rewrite_mise_toml()` | Tools written into generated projects |
 
 The Python stack template (`stacks/python/pyproject.toml.tmpl`) also pins tool versions for generated projects.

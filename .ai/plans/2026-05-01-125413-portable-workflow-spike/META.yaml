@@ -1,0 +1,16 @@
+slug: portable-workflow-spike
+branch: spike/portable-workflow
+created: 2026-05-01
+pr:
+status: in-progress
+source: research-spike
+contract_change: contract_changed
+decision_record: none
+review_mode: external_required
+review_backend: subagent:pi-interactive-shell
+review_rubrics:
+  - core-quality
+evidence_required:
+  - commands
+continues_from:
+supersedes:

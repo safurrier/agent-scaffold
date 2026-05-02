@@ -6,8 +6,8 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-# Canonical scaffold root — src/agent_scaffold/ is two levels below the repo root.
-SCAFFOLD_ROOT = Path(__file__).resolve().parent.parent.parent
+# Canonical scaffold root — src/harness_toolkit/scaffold/ is three levels below the repo root.
+SCAFFOLD_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
 
 def validate_name(name: str) -> str:

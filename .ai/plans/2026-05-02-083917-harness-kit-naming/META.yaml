@@ -1,0 +1,16 @@
+slug: harness-kit-naming
+branch: spike/portable-workflow
+created: 2026-05-02
+pr:
+status: complete
+source: user brainstorm on naming, product boundaries, and Harness Engineering Toolkit framing
+contract_change: contract_changed
+decision_record: adr
+review_mode: external_required
+review_backend: local-self-review
+review_rubrics:
+  - core-quality
+evidence_required:
+  - commands
+continues_from: .ai/plans/2026-05-01-125413-portable-workflow-spike
+supersedes:

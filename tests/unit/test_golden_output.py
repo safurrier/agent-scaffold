@@ -14,8 +14,8 @@ from pathlib import Path
 
 import pytest
 
-from agent_scaffold.common import run_init
-from agent_scaffold.config import Config
+from harness_toolkit.scaffold.config import Config
+from harness_toolkit.scaffold.init import run_init
 from tests._docs_helpers import (
     ARCHITECTURE_REQUIRED_SECTIONS,
     GENERATED_ADR,
