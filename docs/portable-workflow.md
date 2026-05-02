@@ -27,6 +27,33 @@ The CLI uses Cyclopts so command signatures carry Python type information (for
 example `Literal["external", "overlay"]` for mode choices) while still producing
 focused help for agents.
 
+## Install
+
+Install `hk` from GitHub as a uv tool:
+
+```bash
+uv tool install git+https://github.com/safurrier/harness-toolkit.git
+```
+
+For a pinned release:
+
+```bash
+uv tool install git+https://github.com/safurrier/harness-toolkit.git@v0.1.0
+```
+
+For local development from a checkout:
+
+```bash
+uv tool install --editable ~/git_repositories/harness-toolkit
+```
+
+Verify:
+
+```bash
+hk --version
+harness-kit --version
+```
+
 ## Overview
 
 Harness Kit keeps workflow state separate from target repository ownership:

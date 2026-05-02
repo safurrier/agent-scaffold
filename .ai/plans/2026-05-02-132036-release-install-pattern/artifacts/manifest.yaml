@@ -1,0 +1,4 @@
+artifacts:
+  - type: report
+    path: artifacts/release-install-summary.md
+    note: Summary of the install and GitHub tag release pattern

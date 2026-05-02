@@ -34,6 +34,7 @@ nav:
   - Task Contract: task-contract.md
   - Repo Shapes: shapes.md
   - Portable Workflow: portable-workflow.md
+  - Release and Installation: release.md
   - Stacks:
       - Overview: stacks/index.md
       - Acceptance Rubric: stacks/acceptance-rubric.md

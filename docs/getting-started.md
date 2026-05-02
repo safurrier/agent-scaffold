@@ -36,6 +36,38 @@ Only **mise** needs to be on your `PATH`. It manages everything else.
 
 Once mise is installed, `mise install` pulls down all tools declared in `.mise.toml` — currently Python and uv for the scaffold itself, then stack-specific tooling after `init`.
 
+## Install the CLIs for existing repos
+
+If you want to use `hk` / `harness-kit` from any repository, install Harness
+Toolkit as a uv tool:
+
+```bash
+uv tool install git+https://github.com/safurrier/harness-toolkit.git
+```
+
+For a pinned release tag:
+
+```bash
+uv tool install git+https://github.com/safurrier/harness-toolkit.git@v0.1.0
+```
+
+For local development from a checkout:
+
+```bash
+uv tool install --editable ~/git_repositories/harness-toolkit
+```
+
+Verify:
+
+```bash
+hk --version
+harness-kit --version
+harness-scaffold --version
+```
+
+Use `hk` for portable planning in existing repos. Use `harness-scaffold` when
+initializing a new repo from the template.
+
 ## Initialize a project
 
 ### Interactive

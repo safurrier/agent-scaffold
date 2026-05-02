@@ -50,6 +50,15 @@ mise run verify     # heavy validation (integration, docker, etc.)
 
 ## Quick start
 
+Install the CLIs for portable use in existing repos:
+
+```bash
+uv tool install git+https://github.com/safurrier/harness-toolkit.git
+hk --version
+```
+
+Initialize a new repo from the scaffold:
+
 ```bash
 # 1. Install mise (only prerequisite)
 curl https://mise.run | sh
@@ -65,7 +74,8 @@ mise install
 mise run init
 ```
 
-See [Getting Started](getting-started.md) for the full walkthrough.
+See [Getting Started](getting-started.md) for the full walkthrough and
+[Release and Installation](release.md) for uv tool installs and tag releases.
 
 ## Supported stacks
 
