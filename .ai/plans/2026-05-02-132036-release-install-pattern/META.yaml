@@ -1,0 +1,17 @@
+slug: release-install-pattern
+branch: docs/release-install-pattern
+created: 2026-05-02
+pr:
+status: complete
+source: hk external dogfood plan promoted for PR sync-check
+contract_change: implementation_only
+decision_record: none
+review_mode: external_required
+review_backend: local-self-review
+review_rubrics:
+  - core-quality
+evidence_required:
+  - commands
+  - report
+continues_from:
+supersedes:
