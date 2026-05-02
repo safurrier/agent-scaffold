@@ -2,6 +2,8 @@
 name = "harness-toolkit"
 version = "0.1.0"
 description = "Harness Engineering Toolkit for agent-ready repositories"
+readme = "README.md"
+authors = [{ name = "Alex Furrier" }]
 requires-python = ">=3.12"
 dependencies = [
     "cyclopts>=3.0",
@@ -12,6 +14,12 @@ dependencies = [
 harness-scaffold = "harness_toolkit.scaffold.cli:main"
 harness-kit = "harness_toolkit.kit.cli:main"
 hk = "harness_toolkit.kit.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/safurrier/harness-toolkit"
+Documentation = "https://safurrier.github.io/harness-toolkit"
+Repository = "https://github.com/safurrier/harness-toolkit"
+Issues = "https://github.com/safurrier/harness-toolkit/issues"
 
 [project.optional-dependencies]
 dev = [

@@ -29,6 +29,7 @@ Agent routing index for MkDocs-managed documentation. Structure is owned by `mkd
 | Doc | Description |
 |-----|-------------|
 | `task-contract.md` | Stable mise task contract, per-stack commands, speed tier |
+| `release.md` | uv tool installation, GitHub tag release checklist, PyPI deferral |
 | `stacks/index.md` | Stack comparison table, selection at init time |
 | `stacks/acceptance-rubric.md` | Future stack acceptance bar and reviewer checklist |
 | `stacks/python.md` | Python tooling: uv, ruff, ty, pytest configuration |

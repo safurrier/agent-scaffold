@@ -28,6 +28,37 @@ winget install jdx.mise
 Once mise is installed, `mise install` will pull down everything declared in `.mise.toml`
 (currently Python and uv for the scaffold itself; stack-specific tooling after `init`).
 
+## Install the CLIs
+
+To use `hk` / `harness-kit` from any repository, install Harness Toolkit as a uv tool:
+
+```bash
+uv tool install git+https://github.com/safurrier/harness-toolkit.git
+```
+
+For a pinned GitHub release:
+
+```bash
+uv tool install git+https://github.com/safurrier/harness-toolkit.git@v0.1.0
+```
+
+For local development from a checkout:
+
+```bash
+uv tool install --editable ~/git_repositories/harness-toolkit
+```
+
+Verify:
+
+```bash
+hk --version
+harness-kit --version
+harness-scaffold --version
+```
+
+See [Release and Installation](docs/release.md) for release tags, upgrade commands,
+and the current no-PyPI-yet policy.
+
 ## Getting Started
 
 ```bash
