@@ -71,7 +71,47 @@ hk instructions
 hk instructions --json
 ```
 
-Minimal snippet:
+### User-level AGENTS.md bootstrap
+
+If you want agents to default to Harness Kit across arbitrary repos, append a
+compact instruction block to your user-level `AGENTS.md`. Keep it short and point
+to a fuller reference or skill so every session does not load the entire workflow
+manual.
+
+Example:
+
+````markdown
+## Harness Kit Workflow
+
+For meaningful code changes, use Harness Kit (`hk`) as the default planning and
+handoff loop unless stronger repo-specific instructions supersede it.
+
+If the current session is not already familiar with the `hk` workflow, it MUST:
+
+1. Print the current instructions:
+   ```bash
+   hk instructions --profile generic --json
+   ```
+2. Read the local Harness Kit workflow reference if one is available.
+
+If already familiar with the workflow, do not reload the full reference just for
+ceremony. Still use the managed profile catalog when selecting profiles:
+
+```bash
+hk profile list --target <repo-or-module> --profiles-dir ~/.config/harness-toolkit/profiles --json
+```
+
+Rules to remember:
+
+- `hk` manages planning/handoff state; it does not run validation commands.
+- Run validation directly and record exact command/result evidence in `VALIDATION.md`.
+- Keep `--target`, `--profile`, and `--profiles-dir` consistent across `hk` commands.
+- If no good profile exists, use the profile-authoring workflow to propose one;
+  do not create profiles silently.
+````
+
+For repo-local adoption, `hk instructions` prints a smaller target-specific
+snippet:
 
 ````markdown
 ## Portable agent workflow
@@ -207,6 +247,11 @@ hk checks \
 `profile create` creates an editable template only. It does not modify the target
 repo, does not infer commands as facts, and refuses to overwrite an existing file
 unless `--force` is passed.
+
+Generated harness-scaffold repos include a `harness-kit-profile-authoring` skill
+that agents can load when no exact profile exists. It guides agents to mine CI,
+hooks, task runners, and repo docs, then propose TOML for user approval before
+writing a custom profile.
 
 All stateful commands accept:
 
