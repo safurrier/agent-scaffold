@@ -44,6 +44,10 @@ PLACEHOLDER_VALUES = {
     "pending review.",
     "replace this placeholder with the actual slice tasks",
     "add artifact paths to `artifacts/manifest.yaml` as they are produced",
+    "backend: pending",
+    "core-quality",
+    "mode: external",
+    "reviewer: pending",
 }
 COMMAND_PATTERN = re.compile(
     r"\bmise\s+(?:-[\w-]+\s+)*run\b|\buv run\b|\bpytest\b|\bgo test\b|"
@@ -107,6 +111,8 @@ class SyncResult:
 
 
 def git_root(path: Path) -> Path:
+    if not path.exists():
+        raise WorkflowError(f"target does not exist: {path}")
     result = subprocess.run(
         ["git", "rev-parse", "--show-toplevel"],
         cwd=path,
@@ -142,7 +148,9 @@ def git_remote(path: Path) -> str:
 
 
 def default_workflow_home() -> Path:
-    configured = os.environ.get("AGENT_SCAFFOLD_WORKFLOW_HOME")
+    configured = os.environ.get("HARNESS_KIT_WORKFLOW_HOME") or os.environ.get(
+        "AGENT_SCAFFOLD_WORKFLOW_HOME"
+    )
     if configured:
         return Path(configured).expanduser().resolve()
     data_home = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share"))
@@ -339,11 +347,10 @@ def existing_plan(state: WorkflowState, slug: str) -> Path | None:
     if not plans_root.is_dir():
         return None
     for path in sorted(plans_root.iterdir()):
-        if (
-            path.is_dir()
-            and PLAN_DIR_RE.match(path.name)
-            and path.name.endswith(f"-{slug}")
-        ):
+        if not path.is_dir() or not PLAN_DIR_RE.match(path.name):
+            continue
+        plan_slug = PLAN_DIR_RE.sub("", path.name, count=1)
+        if plan_slug == slug:
             return path
     return None
 
@@ -449,7 +456,17 @@ def is_meaningful_text(path: Path) -> bool:
 def validation_has_commands(path: Path) -> bool:
     if not path.exists():
         return False
-    return bool(COMMAND_PATTERN.search(path.read_text()))
+    in_fence = False
+    for raw_line in lines_without_frontmatter(path.read_text()):
+        line = raw_line.strip()
+        if line.startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence and COMMAND_PATTERN.search(line):
+            return True
+        if line.startswith(("- `", "* `")) and COMMAND_PATTERN.search(line):
+            return True
+    return False
 
 
 def workflow_status(
@@ -517,8 +534,12 @@ def sync_check(
         raise WorkflowError("DECISIONS.md must contain a meaningful change summary")
     if not validation_has_commands(plan / "VALIDATION.md"):
         raise WorkflowError("VALIDATION.md must contain real validation commands")
+    review_required = meta.get("review_mode") == "external_required"
+    review_ready = is_meaningful_text(plan / "REVIEW.md")
+    if review_required and not review_ready:
+        raise WorkflowError("REVIEW.md must contain external review notes")
     checks = ["plan", "decisions", "validation"]
-    if is_meaningful_text(plan / "REVIEW.md"):
+    if review_ready:
         checks.append("review")
     return SyncResult(plan_dir=str(plan), checks=checks)
 

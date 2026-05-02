@@ -84,7 +84,8 @@ hk sync-check --target /path/to/repo --json
 ```
 
 The target repository stays clean because plans, templates, and workflow metadata
-live under the external state root.
+live under the external state root. Set `HARNESS_KIT_WORKFLOW_HOME` to change the
+default external root; `--state-root` remains the explicit per-command override.
 
 ### Overlay state
 
@@ -187,8 +188,8 @@ All stateful commands accept:
 - `--state-root PATH` — external state root override
 - `--json` — machine-readable output
 
-Discovery commands that take `--target` (`profile list`, `profiles`, and
-`checks`) also accept `--mode` and `--state-root` for command-shape consistency,
+Discovery commands that take `--target` (`profile list` and `checks`) also
+accept `--mode` and `--state-root` for command-shape consistency,
 but they do not read or write workflow state. Commands that need custom profiles
 accept `--profiles-dir`; this keeps profile catalogs explicit and avoids hidden
 repo-local adoption.

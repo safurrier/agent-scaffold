@@ -237,7 +237,7 @@ BUILTIN_PROFILES: dict[ProfileName, WorkflowProfile] = {
             CheckDefinition(
                 name="format-check",
                 purpose="Check Go formatting using the repo's formatter.",
-                command_template="gofmt -w <changed_files>",
+                command_template='test -z "$(gofmt -l <changed_files>)"',
                 run_from="target",
                 required_inputs=("changed_files",),
                 notes=("Use gofumpt or repo-specific formatter when documented.",),
@@ -420,6 +420,7 @@ def parse_profile_data(data: object, *, source: str) -> WorkflowProfile:
             raise ProfileError(
                 f"profile {source} check #{index} has invalid run_from '{run_from}'. Valid: {valid}"
             )
+        typed_run_from = cast(RunFrom, run_from)
         agent_should_run_directly = raw_check.get("agent_should_run_directly", True)
         if not isinstance(agent_should_run_directly, bool):
             raise ProfileError(
@@ -432,7 +433,7 @@ def parse_profile_data(data: object, *, source: str) -> WorkflowProfile:
                 command_template=_required_str(
                     raw_check, "command_template", source=source
                 ),
-                run_from=run_from,  # type: ignore[arg-type]
+                run_from=typed_run_from,
                 required_inputs=_optional_str_tuple(
                     raw_check, "required_inputs", source=source
                 ),

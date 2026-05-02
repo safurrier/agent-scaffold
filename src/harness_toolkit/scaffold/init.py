@@ -8,7 +8,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from harness_toolkit.scaffold.config import SCAFFOLD_ROOT, Config
+from harness_toolkit.scaffold.config import SCAFFOLD_ROOT, Config, validate_module_name
 from harness_toolkit.scaffold.stacks import STACKS
 from harness_toolkit.scaffold.templates import copy_tree, render_template
 
@@ -297,8 +297,12 @@ def _init_apps(root: Path, config: Config, stack: Any) -> dict[str, str]:
     modules = config.modules or ["app"]
     extra: dict[str, str] = {}
 
-    for mod_name in modules:
+    apps_root = (root / "apps").resolve()
+    for raw_mod_name in modules:
+        mod_name = validate_module_name(raw_mod_name)
         mod_dir = root / "apps" / mod_name
+        if not mod_dir.resolve().is_relative_to(apps_root):
+            raise ValueError(f"Invalid module path escapes apps directory: {mod_name}")
         mod_dir.mkdir(parents=True, exist_ok=True)
         mod_extra = stack.init_module(mod_dir, config, mod_name)
         extra.update(mod_extra)

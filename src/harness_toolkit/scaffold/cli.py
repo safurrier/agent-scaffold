@@ -11,7 +11,7 @@ from typing import Literal
 from cyclopts import App
 
 from harness_toolkit.names import DISTRIBUTION_NAME, SCAFFOLD_COMMAND
-from harness_toolkit.scaffold.config import Config, validate_name
+from harness_toolkit.scaffold.config import Config, validate_module_name, validate_name
 
 Shape = Literal["single", "apps"]
 Stack = Literal["python", "go", "rust"]
@@ -141,7 +141,9 @@ def _build_non_interactive_config(
 
     module_list: list[str] = []
     if modules:
-        module_list = [m.strip() for m in modules.split(",") if m.strip()]
+        module_list = [
+            validate_module_name(m.strip()) for m in modules.split(",") if m.strip()
+        ]
 
     resolved_go_module = go_module or ""
     if stack == "go" and not resolved_go_module:

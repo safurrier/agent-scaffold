@@ -7,6 +7,7 @@ from harness_toolkit.scaffold.config import (
     SUPPORTED_SHAPES,
     SUPPORTED_STACKS,
     Config,
+    validate_module_name,
     validate_name,
 )
 
@@ -33,8 +34,17 @@ def gather_interactive() -> Config:
     modules: list[str] = []
     if shape == "apps":
         print("\n  Enter module names (comma-separated), e.g.: api,worker")
-        raw_modules = _prompt("  Modules", default="app")
-        modules = [m.strip() for m in raw_modules.split(",") if m.strip()]
+        while True:
+            raw_modules = _prompt("  Modules", default="app")
+            try:
+                modules = [
+                    validate_module_name(m.strip())
+                    for m in raw_modules.split(",")
+                    if m.strip()
+                ]
+                break
+            except ValueError as e:
+                print(f"  Error: {e}")
 
     author_name = _prompt("  Author name", default="")
     author_email = _prompt("  Author email", default="")

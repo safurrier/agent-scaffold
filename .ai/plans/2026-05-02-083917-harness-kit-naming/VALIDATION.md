@@ -38,6 +38,8 @@ description: >
   - Result: passed after final formatting; 703 tests.
 - `mise run check`
   - Result: passed after package subtree split and `ProfileCatalog` refactor; 703 tests.
+- `mise run check`
+  - Result: passed after addressing Codex review findings and formatting; 717 tests.
 - `uv run pytest tests/unit/test_portable_workflow.py::test_workflow_overlay_attach_works_with_linked_worktree -q`
   - Result: passed after sanitizing nested git subprocess environment for pre-commit hook compatibility.
 
@@ -55,5 +57,7 @@ description: >
   - Result: passed after package subtree split and `ProfileCatalog` refactor.
 - `uv run pytest tests/unit/test_cli.py tests/unit/test_portable_workflow.py tests/unit/test_templates_jinja.py tests/unit/test_golden_output.py tests/contract/test_task_contract.py -q`
   - Result: passed after package subtree split and `ProfileCatalog` refactor; 326 tests.
+- `uv run ruff check src/harness_toolkit tests/unit/test_init_project.py tests/unit/test_golden_output.py tests/unit/test_portable_workflow.py && uv run ty check src/harness_toolkit tests/unit/test_portable_workflow.py tests/unit/test_cli.py && uv run pytest tests/unit/test_init_project.py tests/unit/test_golden_output.py tests/unit/test_portable_workflow.py tests/unit/test_cli.py tests/contract/test_task_contract.py -q`
+  - Result: passed after addressing Codex review findings; 345 tests.
 - `mise run sync-check -- --plan-dir .ai/plans/2026-05-02-083917-harness-kit-naming && mise run sync-check`
   - Result: both passed after context-improve doc fixes.

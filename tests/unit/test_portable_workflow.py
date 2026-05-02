@@ -523,6 +523,118 @@ def test_workflow_sync_check_validates_local_plan_without_tracked_artifacts(
     assert payload["checks"] == ["plan", "decisions", "validation", "review"]
 
 
+def test_workflow_plan_allows_slug_suffixes_without_false_duplicates(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "target"
+    target.mkdir()
+    _git_init(target)
+    state_root = tmp_path / "state"
+
+    first = _run_workflow(
+        "plan",
+        "foo-bar",
+        "--target",
+        str(target),
+        "--state-root",
+        str(state_root),
+        "--json",
+    )
+    second = _run_workflow(
+        "plan",
+        "bar",
+        "--target",
+        str(target),
+        "--state-root",
+        str(state_root),
+        "--json",
+    )
+
+    assert first.returncode == 0, first.stderr
+    assert second.returncode == 0, second.stderr
+
+
+def test_workflow_sync_check_rejects_prose_only_validation_command(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "target"
+    target.mkdir()
+    _git_init(target)
+    state_root = tmp_path / "state"
+    create = _run_workflow(
+        "plan",
+        "prose-validation",
+        "--target",
+        str(target),
+        "--state-root",
+        str(state_root),
+        "--json",
+    )
+    assert create.returncode == 0, create.stderr
+    plan = _active_plan(Path(json.loads(create.stdout)["state_dir"]))
+    (plan / "TODO.md").write_text("# TODO\n\n- [x] Prove portable workflow\n")
+    (plan / "DECISIONS.md").write_text("# Decisions\n\n- Added portable workflow.\n")
+    (plan / "VALIDATION.md").write_text(
+        "# Validation\n\nRemember to run mise run check before handoff.\n"
+    )
+    (plan / "REVIEW.md").write_text("# Review\n\n- External review complete.\n")
+
+    result = _run_workflow(
+        "sync-check",
+        "--target",
+        str(target),
+        "--state-root",
+        str(state_root),
+    )
+
+    assert result.returncode == 1
+    assert "VALIDATION.md must contain real validation commands" in result.stderr
+
+
+def test_workflow_status_reports_missing_target_without_traceback(
+    tmp_path: Path,
+) -> None:
+    result = _run_workflow("status", "--target", str(tmp_path / "missing"))
+
+    assert result.returncode == 1
+    assert "target does not exist" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
+def test_workflow_sync_check_rejects_required_review_placeholder(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "target"
+    target.mkdir()
+    _git_init(target)
+    state_root = tmp_path / "state"
+    create = _run_workflow(
+        "plan",
+        "missing-review",
+        "--target",
+        str(target),
+        "--state-root",
+        str(state_root),
+        "--json",
+    )
+    assert create.returncode == 0, create.stderr
+    plan = _active_plan(Path(json.loads(create.stdout)["state_dir"]))
+    (plan / "TODO.md").write_text("# TODO\n\n- [x] Prove portable workflow\n")
+    (plan / "DECISIONS.md").write_text("# Decisions\n\n- Added portable workflow.\n")
+    (plan / "VALIDATION.md").write_text("# Validation\n\n- `mise run check`\n")
+
+    result = _run_workflow(
+        "sync-check",
+        "--target",
+        str(target),
+        "--state-root",
+        str(state_root),
+    )
+
+    assert result.returncode == 1
+    assert "REVIEW.md must contain external review notes" in result.stderr
+
+
 def test_workflow_sync_check_rejects_placeholder_plan_even_with_validation_command(
     tmp_path: Path,
 ) -> None:

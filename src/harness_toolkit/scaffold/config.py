@@ -20,6 +20,17 @@ def validate_name(name: str) -> str:
     return name
 
 
+def validate_module_name(name: str) -> str:
+    """Validate apps module name as a safe single path component."""
+    try:
+        return validate_name(name)
+    except ValueError as e:
+        raise ValueError(
+            f"Invalid module name '{name}': must be lowercase letters, digits, "
+            "and hyphens, starting with a letter."
+        ) from e
+
+
 def to_module_name(name: str) -> str:
     """Convert project name to Python module name (hyphens → underscores)."""
     return name.replace("-", "_")
