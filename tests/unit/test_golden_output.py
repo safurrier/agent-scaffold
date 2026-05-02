@@ -14,8 +14,8 @@ from pathlib import Path
 
 import pytest
 
-from agent_scaffold.common import run_init
-from agent_scaffold.config import Config
+from harness_toolkit.scaffold.config import Config
+from harness_toolkit.scaffold.init import run_init
 from tests._docs_helpers import (
     ARCHITECTURE_REQUIRED_SECTIONS,
     GENERATED_ADR,
@@ -70,6 +70,26 @@ def _init(
     )
     run_init(root, config)
     return root
+
+
+def test_apps_modules_cannot_escape_project_root(tmp_path: Path) -> None:
+    root = _scaffold_copy(tmp_path)
+    config = Config(
+        name=_NAME,
+        description="A golden test project",
+        shape="apps",
+        stack="python",
+        modules=["../../outside"],
+        author_name="Test Author",
+        author_email="test@example.com",
+        install_hooks=False,
+        keep_examples=True,
+    )
+
+    with pytest.raises(ValueError):
+        run_init(root, config)
+
+    assert not (tmp_path / "outside").exists()
 
 
 # ── Python Single ────────────────────────────────────────────────────────

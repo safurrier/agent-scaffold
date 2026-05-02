@@ -1,8 +1,8 @@
 ---
-id: agent-scaffold-spec
-title: agent-scaffold Specification
+id: harness-toolkit-spec
+title: harness-toolkit Specification
 description: >
-  Correctness envelope for agent-scaffold — the requirements, contracts,
+  Correctness envelope for harness-toolkit — the requirements, contracts,
   and invariants that any valid implementation must satisfy.
 index:
   - id: requirements
@@ -13,14 +13,15 @@ index:
     keywords: [ci-parity, golden-path, worktree, deterministic, stack-dispatch]
 ---
 
-# agent-scaffold — Specification
+# harness-toolkit — Specification
 
-> Correctness envelope for agent-scaffold. For how the system works now,
-> see `docs/` (MkDocs site). For how to work in this repo, see `AGENTS.md`.
+> Correctness envelope for the Harness Engineering Toolkit. For how the system
+> works now, see `docs/` (MkDocs site). For how to work in this repo, see
+> `AGENTS.md`.
 
 ## Summary
 
-agent-scaffold is an opinionated starter repository for agent-driven engineering. Clone it, run `mise run init`, and it transforms itself into a fully configured project with a stable 22-task command surface. Both humans and AI agents benefit from a language-agnostic, CI-parity contract where `mise run check` always works regardless of stack and `mise run slice-*` renders provider-neutral slice workflow prompts.
+harness-toolkit contains two related CLIs: `harness-scaffold`, the starter-template CLI for new agent-ready repositories, and `hk` / `harness-kit`, the portable workflow CLI for existing repositories. `harness-scaffold` transforms a cloned template into a fully configured project with a stable 22-task command surface. `hk` applies planning, validation, and handoff workflow state without committing scaffold files. Both humans and AI agents benefit from language-agnostic, CI-parity contracts where `mise run check` is the fast local gate and handoff evidence stays inspectable.
 
 ## Goals / Non-Goals
 
@@ -75,10 +76,10 @@ agent-scaffold is an opinionated starter repository for agent-driven engineering
 
 ## Interfaces & Contracts
 
-**CLI:**
+**Scaffold CLI:**
 
 ```
-agent-scaffold init [OPTIONS]
+harness-scaffold init [OPTIONS]
   --non-interactive     Skip prompts, require all flags
   --name TEXT           Project name (required)
   --shape [single|apps] Repo shape (required)
@@ -88,6 +89,18 @@ agent-scaffold init [OPTIONS]
   --no-hooks            Skip pre-commit hook installation
   --no-examples         Remove example code after init
 ```
+
+**Portable workflow CLI:**
+
+```
+hk profile list --target <repo-or-module> --json
+hk plan <slug> --target <repo-or-module> --profile <profile> --json
+hk checks --target <repo-or-module> --profile <profile> --json
+hk sync-check --target <repo-or-module> --profile <profile> --json
+```
+
+`harness-kit` is the readable long command for the same portable CLI. `hk` is the
+short daily command.
 
 **22-task contract:**
 

@@ -9,7 +9,7 @@ index:
     keywords: [python, go, rust, web, fmt, lint, typecheck, test, comparison]
   - id: stack-selection
     keywords: [select, init, scaffold-project-stack, env-var]
-  - id: acceptance-rubric
+  - id: detailed-docs
     keywords: [acceptance, rubric, future-stack, checklist]
 ---
 

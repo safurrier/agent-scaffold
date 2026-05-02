@@ -37,7 +37,7 @@ class TestRustSingleHappyPath:
     def test_scaffold_artifacts_removed(self, rust_single_ready: Path) -> None:
         assert not (rust_single_ready / "stacks").exists()
         assert not (rust_single_ready / "templates").exists()
-        assert not (rust_single_ready / "src" / "agent_scaffold").exists()
+        assert not (rust_single_ready / "src" / "harness_toolkit").exists()
 
     def test_spec_md_generated(self, rust_single_ready: Path) -> None:
         """SPEC.md must be generated from template."""

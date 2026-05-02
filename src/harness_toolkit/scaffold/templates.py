@@ -1,4 +1,4 @@
-"""Jinja2-backed template engine for agent-scaffold.
+"""Jinja2-backed template engine for harness-scaffold.
 
 Two public functions:
 - render_template(src, context) → rendered string

@@ -8,7 +8,7 @@ pytestmark = pytest.mark.unit
 
 
 def test_tools_toml_has_rust() -> None:
-    from agent_scaffold.stacks.rust import RustStack
+    from harness_toolkit.scaffold.stacks.rust import RustStack
 
     tools = RustStack().tools_toml()
     assert 'python = "3.12"' in tools
@@ -17,7 +17,7 @@ def test_tools_toml_has_rust() -> None:
 
 
 def test_adr_notes_mentions_key_tools() -> None:
-    from agent_scaffold.stacks.rust import RustStack
+    from harness_toolkit.scaffold.stacks.rust import RustStack
 
     notes = RustStack().adr_notes()
     assert "cargo fmt" in notes
@@ -27,7 +27,7 @@ def test_adr_notes_mentions_key_tools() -> None:
 
 
 def test_stack_notes_mentions_key_tools() -> None:
-    from agent_scaffold.stacks.rust import RustStack
+    from harness_toolkit.scaffold.stacks.rust import RustStack
 
     notes = RustStack().stack_notes()
     assert "cargo fmt" in notes

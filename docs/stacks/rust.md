@@ -8,14 +8,14 @@ description: >
 index:
   - id: tools
     keywords: [cargo, rustfmt, clippy, cargo-check, cargo-test, tools]
-  - id: formatter-cargo-fmt
+  - id: mise-tools
     keywords: [cargo-fmt, rustfmt, format]
-  - id: linter-clippy
-    keywords: [clippy, lint, warnings, deny]
-  - id: test-runner-cargo-test
-    keywords: [cargo-test, test, all-features]
-  - id: docker
+  - id: task-commands
+    keywords: [clippy, lint, warnings, deny, cargo-test]
+  - id: project-structure-single
     keywords: [dockerfile, multi-stage, builder, runtime, bookworm]
+  - id: test-results
+    keywords: [cargo-test, test, all-features]
 ---
 
 # Rust Stack

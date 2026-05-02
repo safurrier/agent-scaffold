@@ -8,7 +8,11 @@ from __future__ import annotations
 
 import pytest
 
-from agent_scaffold.config import to_module_name, validate_name
+from harness_toolkit.scaffold.config import (
+    to_module_name,
+    validate_module_name,
+    validate_name,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -39,6 +43,23 @@ def test_validate_name_valid(name: str) -> None:
 def test_validate_name_invalid(name: str) -> None:
     with pytest.raises(ValueError):
         validate_name(name)
+
+
+# ── validate_module_name ─────────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize("name", ["api", "worker-1", "app"])
+def test_validate_module_name_valid(name: str) -> None:
+    assert validate_module_name(name) == name
+
+
+@pytest.mark.parametrize(
+    "name",
+    ["../outside", "api/worker", "/tmp/app", "api_worker", "", "1api"],
+)
+def test_validate_module_name_invalid(name: str) -> None:
+    with pytest.raises(ValueError):
+        validate_module_name(name)
 
 
 # ── to_module_name ────────────────────────────────────────────────────────────

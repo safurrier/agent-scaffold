@@ -1,4 +1,4 @@
-"""Shared fixtures for agent-scaffold tests."""
+"""Shared fixtures for harness-scaffold tests."""
 
 from __future__ import annotations
 

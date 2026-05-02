@@ -1,8 +1,8 @@
-site_name: agent-scaffold
-site_description: Opinionated starter repository for agent-driven engineering
-site_url: https://safurrier.github.io/agent-scaffold
-repo_url: https://github.com/safurrier/agent-scaffold
-repo_name: safurrier/agent-scaffold
+site_name: harness-toolkit
+site_description: Harness Engineering Toolkit for agent-ready repositories
+site_url: https://safurrier.github.io/harness-toolkit
+repo_url: https://github.com/safurrier/harness-toolkit
+repo_name: safurrier/harness-toolkit
 
 theme:
   name: material
@@ -33,6 +33,7 @@ nav:
   - Getting Started: getting-started.md
   - Task Contract: task-contract.md
   - Repo Shapes: shapes.md
+  - Portable Workflow: portable-workflow.md
   - Stacks:
       - Overview: stacks/index.md
       - Acceptance Rubric: stacks/acceptance-rubric.md
@@ -49,6 +50,7 @@ nav:
       - ADR 0004 — Skill-First Slice Workflow: decisions/0004-skill-first-slice-workflow.md
       - ADR 0005 — Harden Sync Contract CI: decisions/0005-harden-sync-contract-ci.md
       - ADR 0006 — Plan Contract Modules and Stack Rubric: decisions/0006-followup-contract-stack-rubric.md
+      - ADR 0007 — Harness Engineering Toolkit Naming: decisions/0007-harness-toolkit-naming.md
 
 markdown_extensions:
   - admonition

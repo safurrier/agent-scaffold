@@ -1,9 +1,9 @@
 ---
-id: agent-scaffold-overview
-title: agent-scaffold
+id: harness-toolkit-overview
+title: harness-toolkit
 description: >
-  Overview of agent-scaffold — an opinionated starter repo for agent-driven engineering
-  that provides a stable mise task contract across Python, Go, and Rust stacks.
+  Overview of the Harness Engineering Toolkit: Harness Kit for existing repos
+  and harness-scaffold for new repos.
 index:
   - id: what-it-is
     keywords: [scaffold, clone-and-init, task-contract, agent-native]
@@ -15,13 +15,15 @@ index:
     keywords: [python, go, rust, web, stacks, status]
 ---
 
-# agent-scaffold
+# harness-toolkit
 
-Opinionated starter repository for agent-driven engineering. Provides a **stable task contract** via [mise](https://mise.jdx.dev/) so AI-native codebases are deterministic, reproducible, and easy to validate.
+**Harness Engineering Toolkit** for agent-ready repositories.
+
+Use **`hk` / `harness-kit`** for portable planning, validation, and handoff workflow in existing repos. Use **`harness-scaffold`** to start a new repo with the workflow, docs, CI, and stack defaults already wired in.
 
 ## What it is
 
-agent-scaffold is a **clone-and-init** template. You clone it, run `mise run init`, and it transforms itself into your project — removing scaffold scaffolding, applying your project name, and verifying the golden path passes before handing control over.
+harness-scaffold is a **clone-and-init** template. You clone it, run `mise run init`, and it transforms itself into your project — removing scaffold scaffolding, applying your project name, and verifying the golden path passes before handing control over.
 
 Every generated project ships with a **three-surface split**:
 
@@ -53,7 +55,7 @@ mise run verify     # heavy validation (integration, docker, etc.)
 curl https://mise.run | sh
 
 # 2. Clone
-git clone https://github.com/safurrier/agent-scaffold.git my-project
+git clone https://github.com/safurrier/harness-toolkit.git my-project
 cd my-project
 
 # 3. Install tools

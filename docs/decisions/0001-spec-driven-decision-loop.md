@@ -22,7 +22,7 @@ index:
 
 ## Context
 
-agent-scaffold generated repos with `AGENTS.md` for steering and an
+harness-scaffold generated repos with `AGENTS.md` for steering and an
 architecture document for system truth, but had no document defining the
 **correctness envelope** — what must always be true about any valid
 implementation. The architecture document mixed normative invariants with

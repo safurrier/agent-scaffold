@@ -6,8 +6,8 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-# Canonical scaffold root — src/agent_scaffold/ is two levels below the repo root.
-SCAFFOLD_ROOT = Path(__file__).resolve().parent.parent.parent
+# Canonical scaffold root — src/harness_toolkit/scaffold/ is three levels below the repo root.
+SCAFFOLD_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
 
 def validate_name(name: str) -> str:
@@ -18,6 +18,17 @@ def validate_name(name: str) -> str:
             "and hyphens, starting with a letter."
         )
     return name
+
+
+def validate_module_name(name: str) -> str:
+    """Validate apps module name as a safe single path component."""
+    try:
+        return validate_name(name)
+    except ValueError as e:
+        raise ValueError(
+            f"Invalid module name '{name}': must be lowercase letters, digits, "
+            "and hyphens, starting with a letter."
+        ) from e
 
 
 def to_module_name(name: str) -> str:

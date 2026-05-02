@@ -2,7 +2,7 @@
 id: task-contract
 title: Task Contract
 description: >
-  Reference for the stable mise run task contract exposed by agent-scaffold
+  Reference for the stable mise run task contract exposed by harness-scaffold
   projects, including both the fast engineering loop and the deterministic
   slice-handoff checks.
 index:
@@ -14,13 +14,13 @@ index:
     keywords: [verify, heavy, integration, docker, slow]
   - id: ci
     keywords: [ci, entrypoint, github-actions]
-  - id: slice-workflow
+  - id: slice-plan
     keywords: [slice-plan, slice-implement, slice-review, slice-status, prompts]
 ---
 
 # Task Contract
 
-Every project initialized from agent-scaffold exposes these tasks. The contract is **stable** — same command names regardless of stack or shape.
+Every project initialized from harness-scaffold exposes these tasks. The contract is **stable** — same command names regardless of stack or shape.
 
 ```bash
 mise run <task>

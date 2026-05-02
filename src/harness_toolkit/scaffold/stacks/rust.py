@@ -5,8 +5,8 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
-from agent_scaffold.config import SCAFFOLD_ROOT, Config
-from agent_scaffold.templates import copy_tree, render_template
+from harness_toolkit.scaffold.config import SCAFFOLD_ROOT, Config
+from harness_toolkit.scaffold.templates import copy_tree, render_template
 
 
 class RustStack:

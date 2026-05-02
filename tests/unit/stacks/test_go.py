@@ -8,7 +8,7 @@ pytestmark = pytest.mark.unit
 
 
 def test_tools_toml_has_go_gofumpt_golangci() -> None:
-    from agent_scaffold.stacks.go import GoStack
+    from harness_toolkit.scaffold.stacks.go import GoStack
 
     tools = GoStack().tools_toml()
     assert 'python = "3.12"' in tools
@@ -19,7 +19,7 @@ def test_tools_toml_has_go_gofumpt_golangci() -> None:
 
 
 def test_adr_notes_mentions_key_tools() -> None:
-    from agent_scaffold.stacks.go import GoStack
+    from harness_toolkit.scaffold.stacks.go import GoStack
 
     notes = GoStack().adr_notes()
     assert "go" in notes
@@ -28,7 +28,7 @@ def test_adr_notes_mentions_key_tools() -> None:
 
 
 def test_stack_notes_mentions_key_tools() -> None:
-    from agent_scaffold.stacks.go import GoStack
+    from harness_toolkit.scaffold.stacks.go import GoStack
 
     notes = GoStack().stack_notes()
     assert "gofumpt" in notes
