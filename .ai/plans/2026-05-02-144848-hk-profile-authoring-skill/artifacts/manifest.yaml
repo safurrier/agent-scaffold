@@ -1,0 +1,4 @@
+artifacts:
+  - type: report
+    path: artifacts/profile-authoring-skill-summary.md
+    note: Summary of the generated profile-authoring skill

@@ -59,6 +59,11 @@ harness-scaffold --version
 See [Release and Installation](docs/release.md) for release tags, upgrade commands,
 and the current no-PyPI-yet policy.
 
+To make Harness Kit the default workflow for your AI tools, add a compact
+instruction block to your user-level `AGENTS.md` and point agents at a fuller
+reference only when they are unfamiliar with the workflow. See
+[Portable Workflow](docs/portable-workflow.md#user-level-agentsmd-bootstrap).
+
 ## Getting Started
 
 ```bash

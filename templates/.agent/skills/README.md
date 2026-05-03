@@ -68,3 +68,4 @@ the deterministic interface.
 - `plan-sync` - helper for getting the active plan ready for `sync-check`
 - `spec-sync` - helper for promoting decisions into the ledger or ADRs
 - `context-engineering` - helper for keeping docs routing and repo context current
+- `harness-kit-profile-authoring` - helper for mining validation contracts and proposing custom `hk` profiles

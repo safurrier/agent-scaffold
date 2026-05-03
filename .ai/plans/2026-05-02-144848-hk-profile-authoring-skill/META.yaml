@@ -1,0 +1,17 @@
+slug: hk-profile-authoring-skill
+branch: docs/hk-profile-authoring-skill
+created: 2026-05-02
+pr:
+status: complete
+source: user requested reusable Harness Kit profile-authoring skill
+contract_change: implementation_only
+decision_record: none
+review_mode: external_required
+review_backend: pi-subagent-reviewer
+review_rubrics:
+  - core-quality
+evidence_required:
+  - commands
+  - report
+continues_from:
+supersedes:
