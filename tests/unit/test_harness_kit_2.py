@@ -12,6 +12,7 @@ from harness_toolkit.kit.local import (
     brief,
     capture_command,
     create_work,
+    git_diff_hash,
     handoff,
     init_spec,
     init_state,
@@ -194,6 +195,27 @@ def test_sync_checkpoint_tracks_untracked_content_changes(tmp_path: Path) -> Non
     assert stale.synced is False
 
 
+def test_git_diff_hash_streams_untracked_file_content(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    untracked = target / "large-untracked.bin"
+    untracked.write_bytes((b"0123456789abcdef" * 1024) + b"v1")
+    first = git_diff_hash(target)
+
+    def fail_read_bytes(self: Path) -> bytes:
+        raise AssertionError(f"read_bytes should not be used for {self}")
+
+    monkeypatch.setattr(Path, "read_bytes", fail_read_bytes)
+    untracked.write_bytes((b"0123456789abcdef" * 1024) + b"v2")
+    second = git_diff_hash(target)
+
+    assert first.startswith("sha256:")
+    assert second.startswith("sha256:")
+    assert second != first
+
+
 def test_capture_records_redacted_success_and_failed_command(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -265,6 +287,41 @@ def test_local_spec_can_be_created_and_promoted_as_dry_run(tmp_path: Path) -> No
     assert "# Local Project Specification" in outline.headings
     assert "Would write local spec" in promote
     assert not (target / "SPEC.md").exists()
+
+
+def test_spec_init_uses_committed_spec_without_creating_unreachable_local_draft(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    (target / "SPEC.md").write_text("# Committed Spec\n")
+    subprocess.run(["git", "add", "SPEC.md"], cwd=target, check=True, env=_git_env())
+    subprocess.run(
+        ["git", "commit", "--no-verify", "-m", "docs: add spec"],
+        cwd=target,
+        check=True,
+        capture_output=True,
+        env=_git_env()
+        | {
+            "GIT_AUTHOR_NAME": "Test",
+            "GIT_AUTHOR_EMAIL": "test@example.com",
+            "GIT_COMMITTER_NAME": "Test",
+            "GIT_COMMITTER_EMAIL": "test@example.com",
+        },
+    )
+
+    created = init_spec(target)
+    status = spec_status(target)
+    outline = spec_outline(target)
+
+    assert created.created is False
+    assert created.source == "committed"
+    assert Path(created.spec_path) == target / "SPEC.md"
+    assert status.spec_path == created.spec_path
+    assert outline.headings == ["# Committed Spec"]
+    assert not (
+        target / ".harness-local" / "harness-kit" / "root" / "spec" / "SPEC.md"
+    ).exists()
 
 
 def test_cli_spec_outline_json_is_parseable(tmp_path: Path) -> None:

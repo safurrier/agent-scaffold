@@ -307,7 +307,12 @@ def git_diff_hash(path: Path) -> str:
         hasher.update(raw_name)
         hasher.update(b"\0")
         if full_path.is_file():
-            hasher.update(full_path.read_bytes())
+            try:
+                with full_path.open("rb") as file_obj:
+                    for chunk in iter(lambda: file_obj.read(1024 * 1024), b""):
+                        hasher.update(chunk)
+            except OSError:
+                hasher.update(b"<unreadable>")
         hasher.update(b"\0")
     return "sha256:" + hasher.hexdigest()
 
@@ -1001,6 +1006,16 @@ def handoff(
 
 
 def init_spec(target: Path, *, no_local_files: bool = False) -> SpecResult:
+    state = resolve_local_state(target, no_local_files=no_local_files)
+    committed = state.target_scope / "SPEC.md"
+    root_committed = state.target_root / "SPEC.md"
+    if committed.exists():
+        return SpecResult(spec_path=str(committed), source="committed", created=False)
+    if root_committed.exists():
+        return SpecResult(
+            spec_path=str(root_committed), source="committed", created=False
+        )
+
     state = ensure_state(target, no_local_files=no_local_files)
     spec_path = state.state_dir / "spec" / "SPEC.md"
     created = not spec_path.exists()
