@@ -446,9 +446,11 @@ def brief(
     *,
     target: Path = Path("."),
     json: bool = False,
+    markdown: bool = False,
     no_local_files: bool = False,
 ) -> None:
     """Print a read-only repo brief without selecting validation commands."""
+    _ = markdown
     try:
         result = local_brief(target, no_local_files=no_local_files)
     except (WorkflowError, LocalWorkflowError) as e:
@@ -634,6 +636,7 @@ def capture(
             no_log=no_log,
             raw_log=raw_log,
             no_local_files=no_local_files,
+            stream_to_stderr=json,
         )
     except (WorkflowError, LocalWorkflowError) as e:
         print_error(str(e))
@@ -681,7 +684,7 @@ def evidence_list(
 def handoff(
     *,
     target: Path = Path("."),
-    format: str = "markdown",
+    format: Literal["markdown", "pr", "json"] = "markdown",
     write: Path | None = None,
     no_local_files: bool = False,
     json: bool = False,
@@ -753,7 +756,7 @@ def spec_outline(
         print_error(str(e))
         raise SystemExit(1) from e
     if json:
-        print(json_dump_object(result))
+        print(json_dump_dataclass(result))
         return
     for heading in result.headings:
         print(heading)

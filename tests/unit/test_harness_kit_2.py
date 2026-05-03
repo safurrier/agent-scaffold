@@ -125,14 +125,18 @@ def test_init_work_note_materialize_keep_local_state_ignored(tmp_path: Path) -> 
     assert _git_status(target) == ""
 
 
-def test_external_state_creates_no_checkout_files(tmp_path: Path) -> None:
+def test_external_state_creates_no_checkout_files(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     target = tmp_path / "repo"
     _git_init(target)
+    state_home = tmp_path / "state-home"
+    monkeypatch.setenv("XDG_STATE_HOME", str(state_home))
 
     init = init_state(target, no_local_files=True)
     work = create_work(target, "external-work", no_local_files=True)
 
-    assert Path(init.state_dir).is_relative_to(Path.home() / ".local" / "state")
+    assert Path(init.state_dir).is_relative_to(state_home)
     assert not (target / ".harness-local").exists()
     assert Path(work.work_dir).exists()
     assert _git_status(target) == ""
@@ -157,6 +161,24 @@ def test_sync_checkpoint_is_binary_freshness_check(tmp_path: Path) -> None:
     assert "score" not in json.dumps(stale.__dict__).lower()
 
 
+def test_sync_checkpoint_tracks_untracked_and_staged_changes(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "sync-work")
+    sync_checkpoint(target)
+
+    (target / "untracked.txt").write_text("new\n")
+    untracked = sync_checkpoint(target, check=True)
+    subprocess.run(
+        ["git", "add", "untracked.txt"], cwd=target, check=True, env=_git_env()
+    )
+    staged = sync_checkpoint(target, check=True)
+
+    assert untracked.synced is False
+    assert staged.synced is False
+
+
 def test_capture_records_redacted_success_and_failed_command(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -171,9 +193,12 @@ def test_capture_records_redacted_success_and_failed_command(tmp_path: Path) -> 
     failure = capture_command(target, ("python3", "-c", "raise SystemExit(7)"))
 
     transcript = Path(success.transcript_path).read_text()
+    evidence = Path(success.transcript_path).parents[1] / "evidence.jsonl"
+    evidence_text = evidence.read_text()
     assert success.exit_code == 0
     assert "token=[REDACTED]" in transcript
     assert "abc123456789012345" not in transcript
+    assert "abc123456789012345" not in evidence_text
     assert failure.exit_code == 7
 
 
@@ -205,6 +230,63 @@ def test_local_spec_can_be_created_and_promoted_as_dry_run(tmp_path: Path) -> No
     assert "# Local Project Specification" in outline.headings
     assert "Would write local spec" in promote
     assert not (target / "SPEC.md").exists()
+
+
+def test_cli_spec_outline_json_is_parseable(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    assert _run_hk("init", "--target", str(target), "--json").returncode == 0
+    assert (
+        _run_hk("spec", "init", "--local", "--target", str(target), "--json").returncode
+        == 0
+    )
+
+    result = _run_hk("spec", "outline", "--target", str(target), "--json")
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert "# Local Project Specification" in payload["headings"]
+
+
+def test_cli_handoff_rejects_invalid_format(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    assert _run_hk("init", "--target", str(target), "--json").returncode == 0
+    assert (
+        _run_hk("work", "start", "handoff-format", "--target", str(target)).returncode
+        == 0
+    )
+
+    result = _run_hk("handoff", "--target", str(target), "--format", "xml")
+
+    assert result.returncode != 0
+
+
+def test_cli_capture_json_stdout_is_parseable(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    assert _run_hk("init", "--target", str(target), "--json").returncode == 0
+    assert (
+        _run_hk("work", "start", "capture-json", "--target", str(target)).returncode
+        == 0
+    )
+
+    result = _run_hk(
+        "capture",
+        "--target",
+        str(target),
+        "--kind",
+        "test",
+        "--json",
+        "--",
+        "python3",
+        "-c",
+        "print('hello from command')",
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)["status"] == "pass"
+    assert "hello from command" in result.stderr
 
 
 def test_cli_capture_preserves_wrapped_exit_code(tmp_path: Path) -> None:

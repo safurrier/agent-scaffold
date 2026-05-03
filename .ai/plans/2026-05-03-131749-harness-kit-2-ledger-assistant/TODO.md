@@ -13,6 +13,6 @@
 - [x] Implement optional local `hk spec` draft/status/outline/promote dry-run.
 - [x] Add script contract prototype docs and validation tests.
 - [x] Update README, SPEC, portable workflow docs, docs nav, and docs routing index.
-- [ ] Run external 4-pass review and address findings.
+- [x] Run external 4-pass review and address findings.
 - [ ] Run `mise run sync-check` after finalizing plan/review evidence.
 - [ ] Open PR and poll CI.

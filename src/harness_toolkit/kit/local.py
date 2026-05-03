@@ -13,6 +13,7 @@ import os
 import re
 import shlex
 import subprocess
+import sys
 import time
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
@@ -252,15 +253,27 @@ def git_dirty(path: Path) -> bool:
 
 
 def git_diff_hash(path: Path) -> str:
-    result = subprocess.run(
+    """Hash unstaged, staged, and status state for sync freshness."""
+    hasher = hashlib.sha256()
+    commands = (
         ["git", "diff", "--no-ext-diff", "--binary"],
-        cwd=path,
-        capture_output=True,
-        check=False,
+        ["git", "diff", "--cached", "--no-ext-diff", "--binary"],
+        ["git", "status", "--porcelain"],
     )
-    if result.returncode != 0:
-        return ""
-    return "sha256:" + hashlib.sha256(result.stdout).hexdigest()
+    for command in commands:
+        result = subprocess.run(
+            command,
+            cwd=path,
+            capture_output=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            return ""
+        hasher.update("\0".join(command).encode("utf-8"))
+        hasher.update(b"\0")
+        hasher.update(result.stdout)
+        hasher.update(b"\0")
+    return "sha256:" + hasher.hexdigest()
 
 
 def local_exclude_file(path: Path) -> Path | None:
@@ -592,6 +605,7 @@ def capture_command(
     no_log: bool = False,
     raw_log: bool = False,
     no_local_files: bool = False,
+    stream_to_stderr: bool = False,
 ) -> CaptureResult:
     if not command and not shell_command:
         raise LocalWorkflowError("capture requires a command after -- or --shell TEXT")
@@ -624,18 +638,20 @@ def capture_command(
         shell=use_shell,
         bufsize=1,
     )
-    transcript_text = ""
     assert process.stdout is not None
-    for chunk in process.stdout:
-        print(chunk, end="")
-        if not no_log:
-            transcript_text += redact_text(chunk, raw_log=raw_log)
+    transcript_file = None if no_log else transcript.open("w")
+    try:
+        for chunk in process.stdout:
+            print(chunk, end="", file=sys.stderr if stream_to_stderr else sys.stdout)
+            if transcript_file is not None:
+                transcript_file.write(redact_text(chunk, raw_log=raw_log))
+    finally:
+        if transcript_file is not None:
+            transcript_file.close()
     exit_code = process.wait()
     ended = utc_now()
     duration_ms = int((time.monotonic() - start_time) * 1000)
     dirty_after = git_dirty(state.target_root)
-    if not no_log:
-        transcript.write_text(transcript_text)
     status = "pass" if exit_code == 0 else "fail"
     record = EvidenceRecord(
         schema_version=STATE_SCHEMA_VERSION,
@@ -643,9 +659,9 @@ def capture_command(
         type="command",
         capture_mode="captured",
         kind=kind,
-        command_display=display,
-        argv=argv,
-        shell_command=shell_command,
+        command_display=redact_text(display, raw_log=raw_log),
+        argv=[redact_text(item, raw_log=raw_log) for item in argv],
+        shell_command=redact_text(shell_command, raw_log=raw_log),
         cwd=str(state.target_scope),
         target=str(state.target_scope),
         branch=git_branch(state.target_root),

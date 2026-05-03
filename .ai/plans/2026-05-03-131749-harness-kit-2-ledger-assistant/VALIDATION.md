@@ -30,10 +30,20 @@ Result: passed — 599 tests before script-prototype tests were added.
 mise run check
 ```
 
-Result: passed — format, lint, typecheck, and full non-slow test gate. Final captured evidence recorded in local Harness Kit 2 ledger:
+Result: passed — format, lint, typecheck, and full non-slow test gate. Initial captured evidence recorded in local Harness Kit 2 ledger:
 
 ```text
 .harness-local/harness-kit/root/work/2026-05-03-132345-harness-kit-2-implementation/artifacts/ev_20260503_133400_787449.transcript.log
+```
+
+```bash
+mise run check
+```
+
+Result: passed after addressing Codex review findings. Final captured evidence recorded in local Harness Kit 2 ledger:
+
+```text
+.harness-local/harness-kit/root/work/2026-05-03-132345-harness-kit-2-implementation/artifacts/ev_20260503_135034_228031.transcript.log
 ```
 
 ## Fixture/TDD Coverage Added
@@ -54,4 +64,5 @@ Result: passed — format, lint, typecheck, and full non-slow test gate. Final c
 ## Notes
 
 - `mise run check` initially failed on formatting and then type issues; both were fixed before final passing validation.
-- External 4-pass review and final `mise run sync-check` are pending.
+- External 4-pass review completed and findings were addressed.
+- Final `mise run sync-check` is pending.

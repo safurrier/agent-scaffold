@@ -266,16 +266,22 @@ that agents can load when no exact profile exists. It guides agents to mine CI,
 hooks, task runners, and repo docs, then propose TOML for user approval before
 writing a custom profile.
 
-All stateful commands accept:
+Legacy portable workflow stateful commands (`attach`, `plan`, `status`, and
+`sync-check`) accept:
 
 - `--target PATH` — target repo or scoped path, defaulting to the current directory
 - `--mode external|overlay` — state placement strategy
 - `--state-root PATH` — external state root override
 - `--json` — machine-readable output
 
+2.0 local-assistant commands (`init`, `work`, `note`, `sync`, `capture`,
+`handoff`, and `spec`) use local overlay state by default and accept
+`--no-local-files` when the user wants external state instead of checkout-local
+ignored files.
+
 Discovery commands that take `--target` (`profile list` and `checks`) also
-accept `--mode` and `--state-root` for command-shape consistency,
-but they do not read or write workflow state. Commands that need custom profiles
+accept `--mode` and `--state-root` for legacy command-shape consistency, but
+they do not read or write workflow state. Commands that need custom profiles
 accept `--profiles-dir`; this keeps profile catalogs explicit and avoids hidden
 repo-local adoption.
 
