@@ -40,10 +40,20 @@ Result: passed — format, lint, typecheck, and full non-slow test gate. Initial
 mise run check
 ```
 
-Result: passed after addressing Codex review findings. Final captured evidence recorded in local Harness Kit 2 ledger:
+Result: passed after addressing first Codex review findings. Captured evidence recorded in local Harness Kit 2 ledger:
 
 ```text
 .harness-local/harness-kit/root/work/2026-05-03-132345-harness-kit-2-implementation/artifacts/ev_20260503_135034_228031.transcript.log
+```
+
+```bash
+mise run check
+```
+
+Result: passed after addressing follow-up Codex review findings. Final captured evidence recorded in local Harness Kit 2 ledger:
+
+```text
+.harness-local/harness-kit/root/work/2026-05-03-132345-harness-kit-2-implementation/artifacts/ev_20260503_140555_376622.transcript.log
 ```
 
 ## Fixture/TDD Coverage Added

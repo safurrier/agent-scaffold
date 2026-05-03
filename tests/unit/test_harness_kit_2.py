@@ -179,6 +179,21 @@ def test_sync_checkpoint_tracks_untracked_and_staged_changes(tmp_path: Path) -> 
     assert staged.synced is False
 
 
+def test_sync_checkpoint_tracks_untracked_content_changes(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "sync-work")
+    untracked = target / "untracked.txt"
+    untracked.write_text("v1\n")
+    sync_checkpoint(target)
+
+    untracked.write_text("v2\n")
+    stale = sync_checkpoint(target, check=True)
+
+    assert stale.synced is False
+
+
 def test_capture_records_redacted_success_and_failed_command(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -190,16 +205,35 @@ def test_capture_records_redacted_success_and_failed_command(tmp_path: Path) -> 
         ("python3", "-c", "print('token=abc123456789012345')"),
         kind="test",
     )
+    split_secret = capture_command(
+        target,
+        ("python3", "-c", "print('ok')", "--token", "abc123456789012345"),
+    )
     failure = capture_command(target, ("python3", "-c", "raise SystemExit(7)"))
 
     transcript = Path(success.transcript_path).read_text()
     evidence = Path(success.transcript_path).parents[1] / "evidence.jsonl"
     evidence_text = evidence.read_text()
     assert success.exit_code == 0
+    assert split_secret.exit_code == 0
     assert "token=[REDACTED]" in transcript
     assert "abc123456789012345" not in transcript
     assert "abc123456789012345" not in evidence_text
     assert failure.exit_code == 7
+
+
+def test_capture_missing_command_records_failed_evidence(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "missing-command")
+
+    result = capture_command(target, ("definitely-not-a-real-command-hk",))
+
+    transcript = Path(result.transcript_path).read_text()
+    assert result.exit_code == 127
+    assert result.status == "fail"
+    assert "failed to start command" in transcript
 
 
 def test_handoff_does_not_overclaim_without_evidence(tmp_path: Path) -> None:

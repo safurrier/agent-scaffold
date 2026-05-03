@@ -86,10 +86,67 @@ Changes:
 
 - External state test now sets `XDG_STATE_HOME` to a temp path.
 
+## Follow-up Review
+
+- Backend: Codex CLI 4-pass follow-up review
+- Review path: `/var/folders/kf/js4h91w14pl7zwfgnvj896b00000gq/T/tmp.wxzF5SgGDk/review.md`
+
+### High: split-argument secrets in captured metadata
+
+Disposition: fixed.
+
+Changes:
+
+- Added argv-aware redaction for sensitive option names such as `--token`, `--password`, and `--api-key`.
+- Extended display/shell redaction to cover whitespace-separated sensitive arguments.
+- Added regression coverage that checks `evidence.jsonl` does not contain the seeded split-argument token.
+
+### High: untracked file content freshness
+
+Disposition: fixed.
+
+Changes:
+
+- `git_diff_hash()` now hashes untracked file contents from `git ls-files --others --exclude-standard -z` in addition to unstaged diff, staged diff, and status output.
+- Added regression coverage for editing an already-untracked file after a checkpoint.
+
+### Medium: missing executable capture evidence
+
+Disposition: fixed.
+
+Changes:
+
+- `hk capture` now catches `OSError` from process startup, writes failed evidence and transcript, and returns exit code 127.
+
+### Medium: evidence kind validation
+
+Disposition: fixed.
+
+Changes:
+
+- `capture_command()` validates evidence kinds.
+- CLI `--kind` is typed as a literal choice.
+
+### Medium: design docs overstate initial brief/handoff behavior
+
+Disposition: fixed.
+
+Changes:
+
+- Design docs now mark evidence summaries, changed-file summaries, manual evidence labels, review focus, and continuation notes as follow-ups rather than claiming current implementation.
+
+### Low: stale plan metadata
+
+Disposition: fixed.
+
+Changes:
+
+- Updated `META.yaml` with source, decision record, review backend, and current in-progress status.
+
 ## Final Review Status
 
-All actionable Codex review findings from the first review pass have been addressed. A follow-up validation run passed via `mise run check` captured in local Harness Kit evidence:
+All actionable findings from the first and follow-up Codex review passes have been addressed. Follow-up validation passed via `mise run check` captured in local Harness Kit evidence:
 
 ```text
-.harness-local/harness-kit/root/work/2026-05-03-132345-harness-kit-2-implementation/artifacts/ev_20260503_135034_228031.transcript.log
+.harness-local/harness-kit/root/work/2026-05-03-132345-harness-kit-2-implementation/artifacts/ev_20260503_140555_376622.transcript.log
 ```

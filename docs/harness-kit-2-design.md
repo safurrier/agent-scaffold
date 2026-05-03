@@ -229,18 +229,23 @@ Future committed/adopted config uses:
 
 `hk brief` is read-only and must leave the worktree clean. It reports target
 root/scope, branch/SHA/dirty state, visible harness state, AGENTS/SPEC presence,
-profile catalog summary, common repo surfaces, active work status, sync status,
-and evidence summary.
+profile catalog summary, common repo surfaces, active work status, and sync
+status.
+
+Evidence summaries are a planned follow-up once the evidence model stabilizes.
 
 It must not choose validation commands, auto-select profiles, emit confidence
 scores, or mutate state.
 
 ## Handoff model
 
-`hk handoff` renders a conservative summary from ledgers and git facts. It
-includes changed files, typed decisions, learning entries, gaps, captured
-evidence, failed commands, manual evidence labels, sync status, review focus,
-and continuation notes. If no validation evidence exists, it says so.
+`hk handoff` renders a conservative summary from ledgers and git facts. The
+initial implementation includes target/branch state, typed decisions, learning
+entries, gaps, captured evidence, failed commands, sync status, and spec-impact
+notes. If no validation evidence exists, it says so.
+
+Changed-file summaries, manual evidence labels, review focus, and continuation
+notes are planned follow-ups.
 
 ## Migration strategy
 

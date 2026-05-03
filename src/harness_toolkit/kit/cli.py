@@ -619,7 +619,9 @@ def capture(
     command: tuple[str, ...] = (),
     *,
     target: Path = Path("."),
-    kind: str = "other",
+    kind: Literal[
+        "test", "lint", "typecheck", "build", "check", "e2e", "other"
+    ] = "other",
     shell: str = "",
     no_log: bool = False,
     raw_log: bool = False,

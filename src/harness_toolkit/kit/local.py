@@ -27,6 +27,17 @@ KIT_STATE_DIR = "harness-kit"
 STATE_SCHEMA_VERSION = 1
 WORK_DIR_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-\d{6}-")
 VALID_NOTE_KINDS = ("learning", "decision", "gap", "context", "spec-impact")
+VALID_EVIDENCE_KINDS = ("test", "lint", "typecheck", "build", "check", "e2e", "other")
+SENSITIVE_OPTION_NAMES = {
+    "--password",
+    "--passwd",
+    "--pwd",
+    "--secret",
+    "--token",
+    "--api-key",
+    "--apikey",
+    "--access-token",
+}
 SECRET_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (
         re.compile(
@@ -37,6 +48,12 @@ SECRET_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"(?i)(bearer\s+)[A-Za-z0-9._~+/=-]{12,}"), r"\1[REDACTED]"),
     (re.compile(r"(?i)(sk-[A-Za-z0-9]{12,})"), "[REDACTED]"),
     (re.compile(r"gh[pousr]_[A-Za-z0-9_]{12,}"), "[REDACTED]"),
+    (
+        re.compile(
+            r"(?i)(--(?:password|passwd|pwd|secret|token|api-key|apikey|access-token)(?:=|\s+))\S+"
+        ),
+        r"\1[REDACTED]",
+    ),
 )
 
 StateMode = Literal["local", "external"]
@@ -272,6 +289,25 @@ def git_diff_hash(path: Path) -> str:
         hasher.update("\0".join(command).encode("utf-8"))
         hasher.update(b"\0")
         hasher.update(result.stdout)
+        hasher.update(b"\0")
+    untracked = subprocess.run(
+        ["git", "ls-files", "--others", "--exclude-standard", "-z"],
+        cwd=path,
+        capture_output=True,
+        check=False,
+    )
+    if untracked.returncode != 0:
+        return ""
+    for raw_name in untracked.stdout.split(b"\0"):
+        if not raw_name:
+            continue
+        relative = Path(raw_name.decode("utf-8", errors="surrogateescape"))
+        full_path = path / relative
+        hasher.update(b"untracked\0")
+        hasher.update(raw_name)
+        hasher.update(b"\0")
+        if full_path.is_file():
+            hasher.update(full_path.read_bytes())
         hasher.update(b"\0")
     return "sha256:" + hasher.hexdigest()
 
@@ -590,6 +626,32 @@ def redact_text(text: str, *, raw_log: bool) -> str:
     return redacted
 
 
+def option_name(argument: str) -> str:
+    return argument.split("=", 1)[0].lower()
+
+
+def redact_argv(argv: list[str], *, raw_log: bool) -> list[str]:
+    if raw_log:
+        return argv
+    redacted: list[str] = []
+    redact_next = False
+    for argument in argv:
+        if redact_next:
+            redacted.append("[REDACTED]")
+            redact_next = False
+            continue
+        name = option_name(argument)
+        if name in SENSITIVE_OPTION_NAMES:
+            if "=" in argument:
+                redacted.append(f"{argument.split('=', 1)[0]}=[REDACTED]")
+            else:
+                redacted.append(argument)
+                redact_next = True
+            continue
+        redacted.append(redact_text(argument, raw_log=raw_log))
+    return redacted
+
+
 def command_display(command: tuple[str, ...], shell_command: str) -> str:
     if shell_command:
         return shell_command
@@ -609,6 +671,9 @@ def capture_command(
 ) -> CaptureResult:
     if not command and not shell_command:
         raise LocalWorkflowError("capture requires a command after -- or --shell TEXT")
+    if kind not in VALID_EVIDENCE_KINDS:
+        valid = ", ".join(VALID_EVIDENCE_KINDS)
+        raise LocalWorkflowError(f"invalid evidence kind '{kind}'. Valid: {valid}")
     state = ensure_state(target, no_local_files=no_local_files)
     work_dir = active_work_dir(state)
     if work_dir is None:
@@ -629,26 +694,36 @@ def capture_command(
         use_shell = False
         argv = list(command)
 
-    process = subprocess.Popen(
-        popen_args,
-        cwd=state.target_scope,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        shell=use_shell,
-        bufsize=1,
-    )
-    assert process.stdout is not None
-    transcript_file = None if no_log else transcript.open("w")
     try:
-        for chunk in process.stdout:
-            print(chunk, end="", file=sys.stderr if stream_to_stderr else sys.stdout)
+        process = subprocess.Popen(
+            popen_args,
+            cwd=state.target_scope,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            shell=use_shell,
+            bufsize=1,
+        )
+    except OSError as e:
+        message = f"failed to start command: {e}\n"
+        print(message, end="", file=sys.stderr if stream_to_stderr else sys.stdout)
+        if not no_log:
+            transcript.write_text(redact_text(message, raw_log=raw_log))
+        exit_code = 127
+    else:
+        assert process.stdout is not None
+        transcript_file = None if no_log else transcript.open("w")
+        try:
+            for chunk in process.stdout:
+                print(
+                    chunk, end="", file=sys.stderr if stream_to_stderr else sys.stdout
+                )
+                if transcript_file is not None:
+                    transcript_file.write(redact_text(chunk, raw_log=raw_log))
+        finally:
             if transcript_file is not None:
-                transcript_file.write(redact_text(chunk, raw_log=raw_log))
-    finally:
-        if transcript_file is not None:
-            transcript_file.close()
-    exit_code = process.wait()
+                transcript_file.close()
+        exit_code = process.wait()
     ended = utc_now()
     duration_ms = int((time.monotonic() - start_time) * 1000)
     dirty_after = git_dirty(state.target_root)
@@ -660,7 +735,7 @@ def capture_command(
         capture_mode="captured",
         kind=kind,
         command_display=redact_text(display, raw_log=raw_log),
-        argv=[redact_text(item, raw_log=raw_log) for item in argv],
+        argv=redact_argv(argv, raw_log=raw_log),
         shell_command=redact_text(shell_command, raw_log=raw_log),
         cwd=str(state.target_scope),
         target=str(state.target_scope),

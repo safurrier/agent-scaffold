@@ -2,14 +2,17 @@ slug: harness-kit-2-ledger-assistant
 branch: feat/harness-kit-2-ledger-assistant
 created: 2026-05-03
 pr:
-status: planned
-source:
-contract_change: implementation_only
-decision_record: none
+status: in-progress
+source: Harness Kit 2.0 product/design alignment
+contract_change: behavior_and_docs
+decision_record: docs/decisions/0008-harness-kit-2-ledger-first-local-assistant.md
 review_mode: external_required
-review_backend:
+review_backend: codex-4-pass
 review_rubrics:
   - core-quality
+  - bug-hunter
+  - convention-adherence
+  - completeness
 evidence_required:
   - commands
   - report
