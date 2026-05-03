@@ -14,5 +14,5 @@
 - [x] Add script contract prototype docs and validation tests.
 - [x] Update README, SPEC, portable workflow docs, docs nav, and docs routing index.
 - [x] Run external 4-pass review and address findings.
-- [ ] Run `mise run sync-check` after finalizing plan/review evidence.
+- [x] Run `mise run sync-check` after finalizing plan/review evidence.
 - [ ] Open PR and poll CI.

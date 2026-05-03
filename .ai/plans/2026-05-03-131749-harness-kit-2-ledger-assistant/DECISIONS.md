@@ -1,17 +1,40 @@
 # Decisions
 
+## What Changed
+
+- Added a ledger-first Harness Kit 2 local assistant command set alongside the current portable workflow commands.
+- Added read-only repo briefs, local/external state, work ledgers, typed notes, sync checkpoints, command capture, evidence listing, generated handoffs, and optional local specs.
+- Added design docs, ADR, and script-contract prototype documentation for the 2.0 direction.
+- Added fixture-heavy unit tests for the new local assistant behavior and script-contract prototype.
+
+## Why
+
+- Local ledgers preserve learning, decisions, gaps, and evidence without recreating committed multi-file plan ceremony.
+- Exact command capture gives handoffs trustworthy validation evidence while keeping native shell commands primary.
+- Sync checkpoints make agents pause and reconcile work without pretending to score quality.
+- Optional local specs let arbitrary repos gain spec-shaped context without forcing committed `SPEC.md` adoption.
+- Keeping profiles as guidance avoids heuristic command recommendation behavior.
+
+## Where Reflected
+
+- `src/harness_toolkit/kit/local.py`
+- `src/harness_toolkit/kit/cli.py`
+- `tests/unit/test_harness_kit_2.py`
+- `tests/unit/test_script_contract_prototype.py`
+- `docs/harness-kit-2-design.md`
+- `docs/decisions/0008-harness-kit-2-ledger-first-local-assistant.md`
+- `docs/script-contract-prototype.md`
+- `docs/portable-workflow.md`
+- `SPEC.md`
+- `README.md`
+
 ## Accepted
 
-- Harness Kit 2.0 is implemented as additive 2.0 commands first, not by immediately deleting current `hk plan/status/checks/sync-check` commands.
-- Local standardization is allowed. The dangerous boundary is accidental committed repo ceremony, so 2.0 local state writes under ignored `.harness-local/harness-kit/` or external state.
-- Work units use append-only `events.jsonl` and `evidence.jsonl` as canonical state. Markdown learning/decision/gap/handoff views are generated/materialized.
-- Learning, decisions, gaps, context, and spec impact are captured as typed note events.
-- `hk sync` is a checkpoint/freshness bit, not a semantic quality validator or readiness score.
-- Profiles remain guidance; `hk brief` reports facts and does not mine/recommend validation commands.
-- `hk capture` records exact native command evidence and preserves the wrapped command's exit code.
-- Capture gets a built-in redaction baseline plus raw/no-log controls; deeper scanner integration remains follow-up hardening.
-- Optional local specs can exist in harness state and be promoted by dry-run before any committed write.
-- Canonical scripts are captured as a prototype direction, not a full scaffold migration in this slice.
+- Harness Kit 2.0 is additive in this slice; current `hk plan/status/checks/sync-check` commands remain available during migration.
+- Local standardization is allowed; committed harness artifacts require explicit adoption or promotion.
+- Work units use `events.jsonl` and `evidence.jsonl` as canonical state. Markdown views are generated/materialized.
+- Capture redaction has a built-in baseline now and a pluggable scanner follow-up later.
+- Canonical scripts are documented as a prototype direction, not shipped as a scaffold replacement yet.
 
 ## Rejected
 

@@ -207,7 +207,7 @@ def test_capture_records_redacted_success_and_failed_command(tmp_path: Path) -> 
     )
     split_secret = capture_command(
         target,
-        ("python3", "-c", "print('ok')", "--token", "abc123456789012345"),
+        ("python3", "-c", "print('ok')", "--token", "abc123456789012345 withspace"),
     )
     failure = capture_command(target, ("python3", "-c", "raise SystemExit(7)"))
 
@@ -219,6 +219,7 @@ def test_capture_records_redacted_success_and_failed_command(tmp_path: Path) -> 
     assert "token=[REDACTED]" in transcript
     assert "abc123456789012345" not in transcript
     assert "abc123456789012345" not in evidence_text
+    assert "withspace" not in evidence_text
     assert failure.exit_code == 7
 
 

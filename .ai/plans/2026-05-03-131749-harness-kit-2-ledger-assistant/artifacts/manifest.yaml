@@ -1,7 +1,7 @@
 artifacts:
   - path: VALIDATION.md
-    kind: validation-summary
+    type: commands
     description: Commands run and fixture coverage for Harness Kit 2.0 migration slice.
-  - path: DECISIONS.md
-    kind: decision-summary
-    description: Product and implementation decisions made during the slice.
+  - path: artifacts/codex-review-summary.md
+    type: report
+    description: Summary of Codex 4-pass review findings and dispositions.

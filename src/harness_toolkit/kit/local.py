@@ -50,7 +50,7 @@ SECRET_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"gh[pousr]_[A-Za-z0-9_]{12,}"), "[REDACTED]"),
     (
         re.compile(
-            r"(?i)(--(?:password|passwd|pwd|secret|token|api-key|apikey|access-token)(?:=|\s+))\S+"
+            r"(?i)(--(?:password|passwd|pwd|secret|token|api-key|apikey|access-token)(?:=|\s+))(?:'[^']*'|\"[^\"]*\"|\S+)"
         ),
         r"\1[REDACTED]",
     ),
@@ -684,7 +684,6 @@ def capture_command(
     started = utc_now()
     start_time = time.monotonic()
     dirty_before = git_dirty(state.target_root)
-    display = command_display(command, shell_command)
     if shell_command:
         popen_args: str | list[str] = shell_command
         use_shell = True
@@ -728,15 +727,22 @@ def capture_command(
     duration_ms = int((time.monotonic() - start_time) * 1000)
     dirty_after = git_dirty(state.target_root)
     status = "pass" if exit_code == 0 else "fail"
+    redacted_argv = redact_argv(argv, raw_log=raw_log)
+    redacted_shell_command = redact_text(shell_command, raw_log=raw_log)
+    redacted_display = (
+        redacted_shell_command
+        if shell_command
+        else command_display(tuple(redacted_argv), "")
+    )
     record = EvidenceRecord(
         schema_version=STATE_SCHEMA_VERSION,
         id=evidence_id,
         type="command",
         capture_mode="captured",
         kind=kind,
-        command_display=redact_text(display, raw_log=raw_log),
-        argv=redact_argv(argv, raw_log=raw_log),
-        shell_command=redact_text(shell_command, raw_log=raw_log),
+        command_display=redacted_display,
+        argv=redacted_argv,
+        shell_command=redacted_shell_command,
         cwd=str(state.target_scope),
         target=str(state.target_scope),
         branch=git_branch(state.target_root),
