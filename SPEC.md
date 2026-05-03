@@ -21,7 +21,7 @@ index:
 
 ## Summary
 
-harness-toolkit contains two related CLIs: `harness-scaffold`, the starter-template CLI for new agent-ready repositories, and `hk` / `harness-kit`, the portable workflow CLI for existing repositories. `harness-scaffold` transforms a cloned template into a fully configured project with a stable 22-task command surface. `hk` applies planning, validation, and handoff workflow state without committing scaffold files. Both humans and AI agents benefit from language-agnostic, CI-parity contracts where `mise run check` is the fast local gate and handoff evidence stays inspectable.
+harness-toolkit contains two related CLIs: `harness-scaffold`, the starter-template CLI for new agent-ready repositories, and `hk` / `harness-kit`, the portable workflow CLI for existing repositories. `harness-scaffold` transforms a cloned template into a fully configured project with a stable 22-task command surface. `hk` applies planning, validation, and handoff workflow state without committing scaffold files, and is evolving toward a ledger-first local assistant with read-only briefs, local work ledgers, sync checkpoints, captured command evidence, generated handoffs, and optional local specs. Both humans and AI agents benefit from language-agnostic, CI-parity contracts where `mise run check` is the fast local gate and handoff evidence stays inspectable.
 
 ## Goals / Non-Goals
 
@@ -92,11 +92,31 @@ harness-scaffold init [OPTIONS]
 
 **Portable workflow CLI:**
 
+Current portable workflow commands:
+
 ```
 hk profile list --target <repo-or-module> --json
 hk plan <slug> --target <repo-or-module> --profile <profile> --json
 hk checks --target <repo-or-module> --profile <profile> --json
 hk sync-check --target <repo-or-module> --profile <profile> --json
+```
+
+Ledger-first 2.0 local assistant commands may coexist during migration:
+
+```
+hk brief --target <repo-or-module> --json
+hk init --target <repo-or-module> --json
+hk work start <slug> --target <repo-or-module> --json
+hk note --kind learning|decision|gap|context|spec-impact "TEXT" --target <repo-or-module> --json
+hk sync --target <repo-or-module> --json
+hk sync --check --target <repo-or-module> --json
+hk capture --kind test --target <repo-or-module> -- <command...>
+hk evidence list --target <repo-or-module> --json
+hk handoff --target <repo-or-module> --format markdown|pr|json
+hk spec init --local --target <repo-or-module> --json
+hk spec status --target <repo-or-module> --json
+hk spec outline --target <repo-or-module> --json
+hk spec promote --dry-run --target <repo-or-module>
 ```
 
 `harness-kit` is the readable long command for the same portable CLI. `hk` is the
@@ -150,6 +170,9 @@ class Stack(Protocol):
 - **Stack dispatch via env**: Tasks read `SCAFFOLD_PROJECT_STACK` from `.mise.toml` to dispatch to the correct toolchain. Wrong dispatch = wrong tools run.
 - **Deterministic output**: Non-interactive init with identical inputs produces identical output. Template rendering is deterministic.
 - **stdlib-only test helpers**: `_docs_helpers.py` uses only stdlib (no pyyaml) so it's portable into generated repos without adding dependencies.
+- **Shell-first local assistant**: `hk` MAY capture exact native commands and local work state, but MUST NOT hide validation behind `hk run`-style task-runner commands. Captured evidence preserves command identity, exit code, and transcript metadata.
+- **No heuristic readiness/profile scoring**: `hk brief` and profile commands report facts and guidance, not readiness grades, confidence scores, or silent validation command selection.
+- **Local-first adoption boundary**: default `hk` local assistant state stays ignored or external. Committed `.harness/`, `SPEC.md`, or task-contract artifacts require explicit adoption/promotion.
 
 ## Acceptance
 

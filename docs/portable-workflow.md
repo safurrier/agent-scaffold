@@ -17,11 +17,16 @@ index:
 
 # Portable Workflow
 
-`hk` is the Harness Kit CLI for using the slice planning workflow in a repository
-that was not initialized from harness-scaffold. It is meant for shared codebases
-where committing `.ai/`, `.agent/`, `.mise/`, or `.gitignore` changes is not
-appropriate. The readable command is `harness-kit`; the daily short command is
-`hk`.
+`hk` is the Harness Kit CLI for using portable planning and local-assistant
+workflow state in a repository that was not initialized from harness-scaffold. It
+is meant for shared codebases where committing `.ai/`, `.agent/`, `.mise/`,
+`.harness/`, or `.gitignore` changes is not appropriate. The readable command is
+`harness-kit`; the daily short command is `hk`.
+
+Harness Kit 2.0 is migrating `hk` toward a ledger-first local assistant: read-only
+repo briefs, ignored/external work ledgers, typed learning/decision/gap notes,
+sync checkpoints, captured command evidence, generated handoffs, and optional
+local specs. See [Harness Kit 2.0 Design](harness-kit-2-design.md).
 
 The CLI uses Cyclopts so command signatures carry Python type information (for
 example `Literal["external", "overlay"]` for mode choices) while still producing
@@ -173,6 +178,14 @@ info/exclude`, so linked worktrees and `.git` file checkouts are handled.
 
 | Command | Purpose |
 |---|---|
+| `hk brief` | Print a read-only repo brief without choosing validation commands |
+| `hk init` | Initialize ignored local or external Harness Kit 2 state |
+| `hk work start` | Start a ledger-backed local work unit |
+| `hk note` | Append typed learning, decision, gap, context, or spec-impact notes |
+| `hk sync` | Record or check a sync checkpoint for the active work snapshot |
+| `hk capture` | Run a native command and record exact evidence |
+| `hk handoff` | Render a conservative handoff from the work ledger |
+| `hk spec` | Manage optional local/external spec drafts |
 | `hk instructions` | Print the minimal `AGENTS.md` snippet, optionally profile-specific |
 | `hk profile list` | List built-in/custom profile contracts and model-directed selection guidance |
 | `hk profile show <name>` | Show one profile's instructions and checks |

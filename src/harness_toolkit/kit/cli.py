@@ -10,6 +10,36 @@ from typing import Literal
 
 from cyclopts import App
 
+from harness_toolkit.kit.local import (
+    LocalWorkflowError,
+    active_work_dir,
+    add_note,
+    brief_markdown,
+    capture_command,
+    create_work,
+    init_spec,
+    init_state,
+    json_dump_dataclass,
+    json_dump_object,
+    materialize_work,
+    print_capture_and_exit,
+    read_evidence,
+    resolve_local_state,
+    spec_promote_dry_run,
+    sync_checkpoint,
+)
+from harness_toolkit.kit.local import (
+    brief as local_brief,
+)
+from harness_toolkit.kit.local import (
+    handoff as local_handoff,
+)
+from harness_toolkit.kit.local import (
+    spec_outline as local_spec_outline,
+)
+from harness_toolkit.kit.local import (
+    spec_status as local_spec_status,
+)
 from harness_toolkit.kit.profiles import (
     PROFILE_SELECTION_GUIDANCE,
     ProfileCatalog,
@@ -43,7 +73,13 @@ app = App(
     help="Use Harness Kit planning in any repo without committing scaffold files.",
 )
 profile_app = App(name="profile", help="List, show, and create workflow profiles.")
+work_app = App(name="work", help="Manage ledger-backed local work units.")
+evidence_app = App(name="evidence", help="List captured evidence.")
+spec_app = App(name="spec", help="Manage optional local/external specs.")
 app.command(profile_app, name="profile")
+app.command(work_app, name="work")
+app.command(evidence_app, name="evidence")
+app.command(spec_app, name="spec")
 
 
 def resolve_catalog(profiles_dir: Path | None) -> ProfileCatalog:
@@ -401,6 +437,344 @@ def checks(
         print(f"  run from: {check.run_from}")
         if check.required_inputs:
             print(f"  inputs: {', '.join(check.required_inputs)}")
+
+
+@app.command(
+    help_epilogue=("Examples:\n  hk brief --target .\n  hk brief --target . --json\n")
+)
+def brief(
+    *,
+    target: Path = Path("."),
+    json: bool = False,
+    no_local_files: bool = False,
+) -> None:
+    """Print a read-only repo brief without selecting validation commands."""
+    try:
+        result = local_brief(target, no_local_files=no_local_files)
+    except (WorkflowError, LocalWorkflowError) as e:
+        print_error(str(e))
+        raise SystemExit(1) from e
+    if json:
+        print(json_dump_dataclass(result))
+        return
+    print(brief_markdown(result), end="")
+
+
+@app.command(
+    name="init",
+    help_epilogue=(
+        "Examples:\n"
+        "  hk init --target . --json\n"
+        "  hk init --target . --no-local-files --json\n"
+    ),
+)
+def init_command(
+    *,
+    target: Path = Path("."),
+    no_local_files: bool = False,
+    json: bool = False,
+) -> None:
+    """Initialize local or external Harness Kit 2 state for a target."""
+    try:
+        result = init_state(target, no_local_files=no_local_files)
+    except (WorkflowError, LocalWorkflowError) as e:
+        print_error(str(e))
+        raise SystemExit(1) from e
+    if json:
+        print(json_dump_dataclass(result))
+        return
+    print(f"state_dir={result.state_dir}")
+    print(f"mode={result.mode}")
+
+
+@work_app.command(name="start")
+def work_start(
+    slug: str,
+    *,
+    target: Path = Path("."),
+    no_local_files: bool = False,
+    json: bool = False,
+) -> None:
+    """Start a ledger-backed local work unit."""
+    try:
+        result = create_work(target, slug, no_local_files=no_local_files)
+    except (WorkflowError, LocalWorkflowError) as e:
+        print_error(str(e))
+        raise SystemExit(1) from e
+    if json:
+        print(json_dump_dataclass(result))
+        return
+    print(f"work_id={result.work_id}")
+    print(f"work_dir={result.work_dir}")
+
+
+@work_app.command(name="status")
+def work_status(
+    *,
+    target: Path = Path("."),
+    no_local_files: bool = False,
+    json: bool = False,
+) -> None:
+    """Show active local work status."""
+    try:
+        state = resolve_local_state(target, no_local_files=no_local_files)
+        result = local_brief(target, no_local_files=no_local_files)
+    except (WorkflowError, LocalWorkflowError) as e:
+        print_error(str(e))
+        raise SystemExit(1) from e
+    _ = state
+    if json:
+        print(json_dump_dataclass(result))
+        return
+    print(f"active_work={result.active_work or 'none'}")
+    print(f"sync_status={result.sync_status}")
+
+
+@work_app.command(name="materialize")
+def work_materialize(
+    *,
+    target: Path = Path("."),
+    no_local_files: bool = False,
+    json: bool = False,
+) -> None:
+    """Materialize generated Markdown views for the active work ledger."""
+    try:
+        result = materialize_work(target, no_local_files=no_local_files)
+    except (WorkflowError, LocalWorkflowError) as e:
+        print_error(str(e))
+        raise SystemExit(1) from e
+    if json:
+        print(json_dump_dataclass(result))
+        return
+    print(result.path)
+
+
+@app.command(
+    help_epilogue=(
+        "Examples:\n"
+        "  hk note --kind learning 'Auth timeout is owned by session refresh'\n"
+        "  hk note --kind gap 'Full suite not run' --json\n"
+    )
+)
+def note(
+    text: str,
+    *,
+    kind: str,
+    target: Path = Path("."),
+    no_local_files: bool = False,
+    json: bool = False,
+) -> None:
+    """Append a typed learning, decision, gap, context, or spec-impact note."""
+    try:
+        result = add_note(target, kind=kind, text=text, no_local_files=no_local_files)
+    except (WorkflowError, LocalWorkflowError) as e:
+        print_error(str(e))
+        raise SystemExit(1) from e
+    if json:
+        print(json_dump_dataclass(result))
+        return
+    print(f"{result.kind}: {result.text}")
+
+
+@app.command(
+    help_epilogue=(
+        "Examples:\n  hk sync --target .\n  hk sync --check --target . --json\n"
+    )
+)
+def sync(
+    *,
+    target: Path = Path("."),
+    check: bool = False,
+    no_local_files: bool = False,
+    json: bool = False,
+) -> None:
+    """Record or check a sync checkpoint for the active work snapshot."""
+    try:
+        result = sync_checkpoint(target, check=check, no_local_files=no_local_files)
+    except (WorkflowError, LocalWorkflowError) as e:
+        print_error(str(e))
+        raise SystemExit(1) from e
+    if json:
+        print(json_dump_dataclass(result))
+    else:
+        print(result.message)
+        if not result.synced:
+            print("Guidance:")
+            for item in result.guidance:
+                print(f"- {item}")
+    if check and not result.synced:
+        raise SystemExit(1)
+
+
+@app.command(
+    help_epilogue=(
+        "Examples:\n"
+        "  hk capture --kind test -- uv run pytest tests/test_example.py -q\n"
+        "  hk capture --shell 'pnpm run lint && pnpm run typecheck'\n"
+    )
+)
+def capture(
+    command: tuple[str, ...] = (),
+    *,
+    target: Path = Path("."),
+    kind: str = "other",
+    shell: str = "",
+    no_log: bool = False,
+    raw_log: bool = False,
+    no_local_files: bool = False,
+    json: bool = False,
+) -> None:
+    """Run a native command and record exact evidence."""
+    try:
+        result = capture_command(
+            target,
+            command,
+            shell_command=shell,
+            kind=kind,
+            no_log=no_log,
+            raw_log=raw_log,
+            no_local_files=no_local_files,
+        )
+    except (WorkflowError, LocalWorkflowError) as e:
+        print_error(str(e))
+        raise SystemExit(1) from e
+    if json:
+        print_capture_and_exit(result)
+        return
+    print(f"evidence_id={result.evidence_id}")
+    print(f"status={result.status}")
+    print(f"transcript_path={result.transcript_path}")
+    if result.exit_code != 0:
+        raise SystemExit(result.exit_code)
+
+
+@evidence_app.command(name="list")
+def evidence_list(
+    *,
+    target: Path = Path("."),
+    no_local_files: bool = False,
+    json: bool = False,
+) -> None:
+    """List captured evidence for the active work unit."""
+    try:
+        state = resolve_local_state(target, no_local_files=no_local_files)
+        work_dir = active_work_dir(state)
+        records = read_evidence(work_dir) if work_dir is not None else []
+    except (WorkflowError, LocalWorkflowError) as e:
+        print_error(str(e))
+        raise SystemExit(1) from e
+    rows = [record.__dict__ for record in records]
+    if json:
+        print(json_dump_object({"evidence": rows}))
+        return
+    for record in records:
+        print(f"{record.id}: {record.status} {record.command_display}")
+
+
+@app.command(
+    help_epilogue=(
+        "Examples:\n"
+        "  hk handoff --format markdown\n"
+        "  hk handoff --format pr --write /tmp/handoff.md\n"
+    )
+)
+def handoff(
+    *,
+    target: Path = Path("."),
+    format: str = "markdown",
+    write: Path | None = None,
+    no_local_files: bool = False,
+    json: bool = False,
+) -> None:
+    """Render a conservative handoff from the active work ledger."""
+    _ = format
+    try:
+        result = local_handoff(target, output_path=write, no_local_files=no_local_files)
+    except (WorkflowError, LocalWorkflowError) as e:
+        print_error(str(e))
+        raise SystemExit(1) from e
+    if json or format == "json":
+        print(json_dump_dataclass(result))
+        return
+    print(result.content, end="")
+
+
+@spec_app.command(name="init")
+def spec_init(
+    *,
+    local: bool = False,
+    target: Path = Path("."),
+    no_local_files: bool = False,
+    json: bool = False,
+) -> None:
+    """Create a local draft SPEC without committing repo files."""
+    _ = local
+    try:
+        result = init_spec(target, no_local_files=no_local_files)
+    except (WorkflowError, LocalWorkflowError) as e:
+        print_error(str(e))
+        raise SystemExit(1) from e
+    if json:
+        print(json_dump_dataclass(result))
+        return
+    print(result.spec_path)
+
+
+@spec_app.command(name="status")
+def spec_status(
+    *,
+    target: Path = Path("."),
+    no_local_files: bool = False,
+    json: bool = False,
+) -> None:
+    """Show the active committed or local SPEC source."""
+    try:
+        result = local_spec_status(target, no_local_files=no_local_files)
+    except (WorkflowError, LocalWorkflowError) as e:
+        print_error(str(e))
+        raise SystemExit(1) from e
+    if json:
+        print(json_dump_dataclass(result))
+        return
+    print(f"{result.source}: {result.spec_path}")
+
+
+@spec_app.command(name="outline")
+def spec_outline(
+    *,
+    target: Path = Path("."),
+    no_local_files: bool = False,
+    json: bool = False,
+) -> None:
+    """Print headings from the active committed or local SPEC."""
+    try:
+        result = local_spec_outline(target, no_local_files=no_local_files)
+    except (WorkflowError, LocalWorkflowError) as e:
+        print_error(str(e))
+        raise SystemExit(1) from e
+    if json:
+        print(json_dump_object(result))
+        return
+    for heading in result.headings:
+        print(heading)
+
+
+@spec_app.command(name="promote")
+def spec_promote(
+    *,
+    dry_run: bool = False,
+    target: Path = Path("."),
+    no_local_files: bool = False,
+) -> None:
+    """Preview promoting a local draft SPEC into the target repo."""
+    if not dry_run:
+        print_error("spec promote currently requires --dry-run")
+        raise SystemExit(1)
+    try:
+        print(spec_promote_dry_run(target, no_local_files=no_local_files), end="")
+    except (WorkflowError, LocalWorkflowError) as e:
+        print_error(str(e))
+        raise SystemExit(1) from e
 
 
 @app.command(

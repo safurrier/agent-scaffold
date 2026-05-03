@@ -13,6 +13,9 @@ the stable operator interface.
 
 ## How to Work Here
 
+The local checkout path is `~/git_repositories/harness-toolkit`; older notes or
+session summaries may still refer to the pre-rename path `~/git_repositories/agent-scaffold`.
+
 Use `mise run plan -- <slug>` for meaningful work, keep the active plan current,
 and close the slice with evidence and review before handoff. Treat `SPEC.md` as
 the correctness envelope and `docs/task-contract.md` as the task-surface

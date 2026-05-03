@@ -4,8 +4,9 @@
 
 This package contains two related CLIs:
 
-- **`hk` / `harness-kit`** — portable planning, validation, and handoff workflow
-  for existing repositories without committing scaffold files.
+- **`hk` / `harness-kit`** — portable planning, validation, local work-ledger,
+  command-evidence, sync-checkpoint, and handoff workflow for existing
+  repositories without committing scaffold files.
 - **`harness-scaffold`** — starter-template CLI for creating new agent-ready
   repositories with a stable task contract, docs structure, CI wiring, and slice
   workflow defaults.
@@ -57,7 +58,8 @@ harness-scaffold --version
 ```
 
 See [Release and Installation](docs/release.md) for release tags, upgrade commands,
-and the current no-PyPI-yet policy.
+and the current no-PyPI-yet policy. See [Harness Kit 2.0 Design](docs/harness-kit-2-design.md)
+for the ledger-first local assistant migration direction.
 
 To make Harness Kit the default workflow for your AI tools, add a compact
 instruction block to your user-level `AGENTS.md` and point agents at a fuller
