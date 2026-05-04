@@ -118,7 +118,7 @@ hk sync --target <repo-or-module> --json
 hk sync --check --target <repo-or-module> --json
 hk ready --target <repo-or-module> --json
 hk handoff --target <repo-or-module> --format markdown|pr|json
-hk export --target <repo-or-module> --format handoff|plan-dir --json
+hk export --target <repo-or-module> --format handoff --json
 hk spec init|status|outline|promote --target <repo-or-module> --json
 ```
 

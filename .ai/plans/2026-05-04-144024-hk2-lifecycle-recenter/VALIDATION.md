@@ -44,7 +44,7 @@ mise run check
 Result:
 
 ```text
-760 passed in 148.29s
+760 passed in 144.84s
 All checks passed
 ```
 
@@ -69,6 +69,16 @@ Result:
 
 ```json
 {"ready": true, "status": "ready"}
+```
+
+```bash
+mise run sync-check -- --changed-plans main...HEAD
+```
+
+Result:
+
+```text
+Sync-check passed
 ```
 
 ```bash

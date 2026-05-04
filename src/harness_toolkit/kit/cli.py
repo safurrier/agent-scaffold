@@ -932,7 +932,7 @@ def ready_dangerously_skip(
 def export_command(
     *,
     target: Path = Path("."),
-    format: Literal["handoff", "plan-dir"] = "handoff",
+    format: Literal["handoff"] = "handoff",
     no_local_files: bool = False,
     json: bool = False,
 ) -> None:

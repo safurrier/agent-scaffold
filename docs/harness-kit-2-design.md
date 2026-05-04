@@ -307,7 +307,7 @@ hk work start|status|materialize        # advanced/legacy work-state surface
 hk note --kind ...                      # advanced event entry, if retained
 hk capture ... -- <command...>          # lower-level command evidence
 hk evidence list                        # inspection/debugging
-hk export --format handoff|plan-dir [--target PATH]
+hk export --format handoff [--target PATH]
 ```
 
 Deferred commands also include state cleanup, deep spec impact, profile
@@ -400,7 +400,7 @@ Each implementation phase must:
    - validation evidence rationale;
    - review events with backend/reviewer/rubrics/findings/disposition;
    - `hk ready`;
-   - plan-directory export from the ledger.
+   - plan-directory export from the ledger as a future compatibility feature.
 10. Docs/release/public cutover.
 
 ## Validation philosophy
