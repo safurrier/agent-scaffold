@@ -973,8 +973,34 @@ def notes_by_kind(events: list[EventRecord], kind: str) -> list[str]:
     return notes_by_kinds(events, (kind,))
 
 
+ACCEPTED_REVIEW_DISPOSITIONS = {
+    "accepted",
+    "approved",
+    "no-blocking-findings",
+    "no_blocking_findings",
+    "no-findings",
+    "no_findings",
+}
+
+
 def review_events(events: list[EventRecord]) -> list[dict[str, object]]:
     return [event.data for event in events if event.type == "review_added"]
+
+
+def accepted_review_events(events: list[EventRecord]) -> list[dict[str, object]]:
+    accepted: list[dict[str, object]] = []
+    for review in review_events(events):
+        backend = str(review.get("backend", "")).strip().lower()
+        reviewer = str(review.get("reviewer", "")).strip().lower()
+        disposition = str(review.get("disposition", "")).strip().lower()
+        if backend in {"", "self", "pending", "todo"}:
+            continue
+        if reviewer in {"", "self", "pending", "todo"}:
+            continue
+        if disposition not in ACCEPTED_REVIEW_DISPOSITIONS:
+            continue
+        accepted.append(review)
+    return accepted
 
 
 def dangerous_skip_events(
@@ -1169,18 +1195,25 @@ def ready(target: Path, *, no_local_files: bool = False) -> ReadyResult:
         "decision and spec reflection recorded",
     )
     validation_skipped = bool(dangerous_skip_events(events, "validation"))
-    evidence_with_why = [record for record in evidence if record.why]
+    passing_evidence_with_why = [
+        record for record in evidence if record.why and record.status == "pass"
+    ]
+    failed_evidence_with_why = [
+        record for record in evidence if record.why and record.status != "pass"
+    ]
     add_check(
         "validation",
-        bool(evidence_with_why) or validation_skipped,
+        bool(passing_evidence_with_why) or validation_skipped,
         "validation evidence with rationale recorded"
-        if evidence_with_why
+        if passing_evidence_with_why
         else "validation dangerously skipped"
         if validation_skipped
+        else "validation evidence with rationale failed"
+        if failed_evidence_with_why
         else "missing validation evidence with --why",
     )
     review_skipped = bool(dangerous_skip_events(events, "review"))
-    reviews = review_events(events)
+    reviews = accepted_review_events(events)
     add_check(
         "review",
         bool(reviews) or review_skipped,
@@ -1188,7 +1221,7 @@ def ready(target: Path, *, no_local_files: bool = False) -> ReadyResult:
         if reviews
         else "review dangerously skipped"
         if review_skipped
-        else "missing external-enough review record",
+        else "missing accepted external-enough review record",
     )
     synced = sync_status_for(state) == "synced"
     add_check(

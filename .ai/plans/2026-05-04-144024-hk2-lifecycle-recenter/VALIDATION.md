@@ -28,13 +28,13 @@ Result:
 ```
 
 ```bash
-uv run pytest tests/unit/test_harness_kit_2.py tests/e2e/test_harness_kit_rollout.py -q
+uv run pytest tests/unit/test_harness_kit_2.py tests/unit/test_portable_workflow.py tests/e2e/test_harness_kit_rollout.py -q
 ```
 
 Result:
 
 ```text
-24 passed in 34.13s
+46 passed in 38.62s
 ```
 
 ```bash
@@ -44,8 +44,31 @@ mise run check
 Result:
 
 ```text
-759 passed in 167.98s
+760 passed in 148.29s
 All checks passed
+```
+
+Dogfood validation captured through HK 2.0 itself:
+
+```bash
+uv run hk validate --target . --kind check --why "Full repo quality gate after lifecycle readiness fixes." --json -- mise run check
+```
+
+Result:
+
+```text
+760 passed in 168.10s
+All checks passed
+```
+
+```bash
+uv run hk ready --target . --json
+```
+
+Result:
+
+```json
+{"ready": true, "status": "ready"}
 ```
 
 ```bash
@@ -62,3 +85,4 @@ Sync-check passed
 
 - `artifacts/product-postmortem.md` captures the product correction and migration sketch.
 - `artifacts/lifecycle-implementation-plan.md` captures the task breakdown, validation plan, dogfood rollout, open questions, and latest decisions on export/dangerous skips/profiles.
+- HK-on-HK dogfood work is stored locally under `.harness-local/harness-kit/root/work/2026-05-04-162253-hk2-lifecycle-dogfood/` and includes `hk validate`, `hk review add`, `hk ready`, and `hk export` records.

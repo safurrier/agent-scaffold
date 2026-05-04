@@ -108,12 +108,13 @@ def test_workflow_instructions_prints_minimal_agents_snippet() -> None:
     assert result.returncode == 0, result.stderr
     payload = json.loads(result.stdout)
     assert payload["profile"] == "python"
-    assert "hk profile list --target . --json" in payload["agents_md"]
-    assert "hk status --target . --profile python --json" in payload["agents_md"]
+    assert "hk brief --target . --json" in payload["agents_md"]
+    assert "hk start <slug> --target . --json" in payload["agents_md"]
     assert "hk checks --target . --profile python --json" in payload["agents_md"]
-    assert "hk sync-check --target . --profile python --json" in payload["agents_md"]
+    assert "hk validate --why" in payload["agents_md"]
+    assert "hk ready --target . --json" in payload["agents_md"]
     assert "Do not create or commit `.ai/`" in payload["agents_md"]
-    assert "does not run validation commands" in payload["agents_md"]
+    assert "shell-first" in payload["agents_md"]
 
 
 def test_workflow_profiles_and_checks_are_discoverable_without_execution(

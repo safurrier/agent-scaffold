@@ -33,6 +33,9 @@ description: >
 - Prefer one obvious promoted path; keep compatibility only when it is clearly
   advanced, legacy, or needed until parity.
 - PR #12 should be reshaped before merge to include lifecycle commands.
+- Subagent review found readiness blockers: failed validation evidence could pass
+  readiness, rejected reviews could pass readiness, and `hk instructions` still
+  described the legacy workflow. These were fixed before handoff.
 
 ## Disposition
 

@@ -29,6 +29,7 @@ from harness_toolkit.kit.local import (
     resolve_local_state,
     spec_promote_dry_run,
     sync_checkpoint,
+    validate_slug,
 )
 from harness_toolkit.kit.local import (
     brief as local_brief,
@@ -112,16 +113,21 @@ Profile: `{profile.name}` — {profile.summary}
 Standard loop:
 
 ```bash
-{KIT_COMMAND} profile list --target .{profiles_dir_arg} --json
-# choose the closest profile yourself and tell the user once why you chose it
-{KIT_COMMAND} status --target . --profile {profile.name}{profiles_dir_arg} --json
-{KIT_COMMAND} plan <slug> --target . --profile {profile.name}{profiles_dir_arg} --json
+{KIT_COMMAND} brief --target . --json
+{KIT_COMMAND} start <slug> --target . --json
+# record context only when it prevents rediscovery
+{KIT_COMMAND} context "Relevant constraints, files, or repo facts" --target . --json
+{KIT_COMMAND} plan "Adopted implementation intent" --target . --json
+{KIT_COMMAND} decide "Decision already made by the human/agent" --no-spec-impact --target . --json
 {KIT_COMMAND} checks --target . --profile {profile.name}{profiles_dir_arg} --json
-# run the suggested validation command directly, then update VALIDATION.md
-{KIT_COMMAND} sync-check --target . --profile {profile.name}{profiles_dir_arg} --json
+{KIT_COMMAND} validate --why "What this command proves" --target . -- <native command>
+{KIT_COMMAND} review add --backend manual_external --reviewer <name> --rubric core-quality --summary "Review summary" --target . --json
+{KIT_COMMAND} sync --target . --json
+{KIT_COMMAND} ready --target . --json
+{KIT_COMMAND} handoff --target .
 ```
 
-Important: `{KIT_COMMAND}` manages planning and handoff state only. It does not run validation commands. Agents should run profile-suggested commands directly so raw output stays visible in the normal shell loop.
+Important: `{KIT_COMMAND}` is shell-first. It may capture exact native command evidence via `validate`, but it must not hide validation behind `hk run`-style task-runner commands. Use profile/check guidance to choose native commands, then capture the selected command with `validate --why`.
 
 {profile.instructions}
 """
@@ -1098,7 +1104,17 @@ def plan(
     json: bool = False,
 ) -> None:
     """Record the agreed lifecycle implementation plan."""
-    if state_root is not None or mode != "external" or profiles_dir is not None:
+    try_legacy = (
+        state_root is not None or mode != "external" or profiles_dir is not None
+    )
+    if not try_legacy and text and from_file is None:
+        try:
+            validate_slug(text)
+            state = resolve_local_state(target)
+            try_legacy = active_work_dir(state) is None
+        except (WorkflowError, LocalWorkflowError):
+            try_legacy = False
+    if try_legacy:
         try:
             catalog = resolve_catalog(profiles_dir)
             catalog.get(profile)

@@ -485,6 +485,44 @@ def test_cli_note_rejects_text_and_from_file(tmp_path: Path) -> None:
     assert "Use either note TEXT or --from-file" in result.stderr
 
 
+def test_ready_rejects_failed_validation_and_rejected_review(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "not-ready-work")
+    add_note(target, kind="plan", text="Implement the lifecycle facade.")
+    add_note(target, kind="decision", text="Use validate as the primary evidence verb.")
+    add_note(target, kind="spec-impact", text="SPEC documents lifecycle-first HK2.")
+    capture_command(
+        target,
+        ("python3", "-c", "raise SystemExit(9)"),
+        kind="test",
+        why="This intentionally fails.",
+    )
+    add_review(
+        target,
+        backend="manual_external",
+        reviewer="Alex",
+        rubrics=("core-quality",),
+        summary="Blocking findings remain.",
+        disposition="rejected",
+    )
+    sync_checkpoint(target)
+
+    result = ready(target)
+
+    assert result.ready is False
+    assert any(
+        check.id == "validation"
+        and check.status == "fail"
+        and "failed" in check.message
+        for check in result.checks
+    )
+    assert any(
+        check.id == "review" and check.status == "fail" for check in result.checks
+    )
+
+
 def test_cli_lifecycle_commands_record_handoff_and_ready(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
