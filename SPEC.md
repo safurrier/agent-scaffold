@@ -119,6 +119,18 @@ hk spec outline --target <repo-or-module> --json
 hk spec promote --dry-run --target <repo-or-module>
 ```
 
+Before the plan-artifact workflow is deprecated, HK 2.0 must close readiness
+parity gaps with ledger-backed equivalents for task planning, validation
+rationale, review records, readiness checking, and plan-directory materialization:
+
+```
+hk task add|done|defer|list ...
+hk capture --why "WHAT THIS VALIDATES" -- <command...>
+hk review add --backend <name> --reviewer <name> --rubric <name> ...
+hk ready --check --target <repo-or-module> --json
+hk work materialize --format handoff|plan-dir --target <repo-or-module>
+```
+
 `harness-kit` is the readable long command for the same portable CLI. `hk` is the
 short daily command.
 
@@ -171,7 +183,8 @@ class Stack(Protocol):
 - **Deterministic output**: Non-interactive init with identical inputs produces identical output. Template rendering is deterministic.
 - **stdlib-only test helpers**: `_docs_helpers.py` uses only stdlib (no pyyaml) so it's portable into generated repos without adding dependencies.
 - **Shell-first local assistant**: `hk` MAY capture exact native commands and local work state, but MUST NOT hide validation behind `hk run`-style task-runner commands. Captured evidence preserves command identity, exit code, and transcript metadata.
-- **No heuristic readiness/profile scoring**: `hk brief` and profile commands report facts and guidance, not readiness grades, confidence scores, or silent validation command selection.
+- **Freshness vs readiness**: `hk sync --check` answers whether ledger work changed after the last checkpoint. Handoff readiness is a separate contract currently implemented by `mise run sync-check` over plan artifacts and targeted for a ledger-backed `hk ready --check` successor.
+- **No heuristic readiness/profile scoring**: `hk brief` and profile commands report facts and guidance, not readiness grades, confidence scores, or silent validation command selection. HK readiness checks validate explicit agent/human declarations and evidence consistency; humans/reviewers judge quality.
 - **Local-first adoption boundary**: default `hk` local assistant state stays ignored or external. Committed `.harness/`, `SPEC.md`, or task-contract artifacts require explicit adoption/promotion.
 
 ## Acceptance

@@ -139,8 +139,59 @@ Default behavior:
 - make `hk sync --check` binary: synced or needs sync.
 
 Events after the last sync or a changed diff hash make the work unsynced.
+Generated views such as handoffs and materialized Markdown are sync-neutral
+because they do not change the substance of the work.
 
 Adopted/scaffolded repos may configure stricter checks later.
+
+### Readiness is separate from sync freshness
+
+The existing scaffold task contract's `mise run sync-check` is a handoff
+readiness gate, not only a freshness check. It aggregates `plan-check`,
+`spec-check`, `evidence-check`, and `review-check` over plan artifacts. HK 2.0
+should preserve those guarantees before the plan-artifact workflow is demoted or
+removed.
+
+The target 2.0 split is:
+
+- `hk sync --check`: answers "has work changed since the last checkpoint?"
+- future `hk ready --check`: answers "is this work ready to hand off?"
+
+`hk ready --check` should validate explicit ledger declarations, not infer
+semantic quality. Agents choose plans, commands, and review rubrics; HK records
+and checks that required declarations are present, internally consistent, and
+renderable.
+
+### Agent work lifecycle
+
+The intended human/agent loop is phase-oriented:
+
+1. **Research** — read repo context, inspect specs/instructions, and record
+   discoveries with learning/context notes.
+2. **Plan** — produce and update a task plan as research changes the approach.
+3. **Implement** — edit code in the normal shell/editor loop; record notable
+   decisions and spec impacts.
+4. **Validate** — run native repo commands directly and capture exact evidence
+   with a rationale for what each command proves.
+5. **Review** — record external-enough reviews with backend, reviewer, rubric,
+   findings, and disposition. Multiple rubric-specific reviews should be
+   possible over time, such as core quality, repo conventions, design, security,
+   UX, or technology-specific best practices.
+6. **Handoff** — run sync/readiness checks and render a conservative handoff.
+
+The current scaffold artifacts map to those phases as follows:
+
+| Phase | Current plan artifact | HK 2.0 target |
+|---|---|---|
+| Research | `LEARNING_LOG.md` | learning/context events |
+| Plan | `TODO.md` | task events and generated plan view |
+| Decisions/spec | `DECISIONS.md`, ADR/ledger links | decision/spec-impact events with durable reflection metadata |
+| Validation | `VALIDATION.md`, `artifacts/manifest.yaml` | captured command evidence with rationale and generated evidence views |
+| Review | `REVIEW.md` | review events with backend/reviewer/rubrics/findings/disposition |
+| Handoff gate | `mise run sync-check` | future `hk ready --check` plus `hk sync --check` |
+
+This keeps HK 2.0 shell-first while making the old plan package an optional
+materialized view of the ledger rather than the canonical source of truth.
 
 ### Profiles are guidance, not detection
 
@@ -190,8 +241,18 @@ hk spec promote --dry-run [--target PATH]
 hk profile list|show|create
 ```
 
-Deferred commands include state cleanup, deep spec impact, profile validation,
-skill validation, and compatibility link helpers.
+Planned parity commands before deprecating the plan-artifact workflow:
+
+```bash
+hk task add|done|defer|list ...
+hk capture --why "WHAT THIS VALIDATES" -- <command...>
+hk review add --backend NAME --reviewer NAME --rubric NAME --summary TEXT --disposition TEXT
+hk ready --check [--target PATH] [--json]
+hk work materialize --format handoff|plan-dir [--target PATH]
+```
+
+Deferred commands also include state cleanup, deep spec impact, profile
+validation, skill validation, and compatibility link helpers.
 
 ## State model
 
@@ -250,8 +311,12 @@ notes are planned follow-ups.
 ## Migration strategy
 
 This is a staged breaking migration. Compatibility does not need to be preserved
-as a product promise, but each phase must include behavior-focused tests and
-old/new parity or migration fixtures where conceptually relevant.
+as a product promise, but the original plan-artifact workflow should not be
+deprecated until HK 2.0 closes the readiness gaps that `mise run sync-check`
+currently covers.
+
+Each phase must include behavior-focused tests and old/new parity or migration
+fixtures where conceptually relevant.
 
 Each implementation phase must:
 
@@ -271,7 +336,13 @@ Each implementation phase must:
 6. Handoff/materialized views.
 7. Optional local/external SPEC.
 8. Scaffold task-contract prototype.
-9. Docs/release/public cutover.
+9. Readiness parity with plan artifacts:
+   - task/plan events;
+   - validation evidence rationale;
+   - review events with backend/reviewer/rubrics/findings/disposition;
+   - `hk ready --check`;
+   - plan-directory materialization from the ledger.
+10. Docs/release/public cutover.
 
 ## Validation philosophy
 

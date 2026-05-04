@@ -65,6 +65,47 @@ Harness Kit keeps workflow state separate from target repository ownership:
 `--target` identifies the repo or module that owns the work, while `--profile`
 identifies the workflow/check contract to follow.
 
+## Which workflow should I use?
+
+Harness Kit currently exposes two related workflows during the 2.0 migration.
+
+Use the HK 2.0 local assistant loop for new agent work that needs local memory,
+exact command evidence, and a generated handoff without committing ceremony:
+
+```bash
+hk brief --target . --json
+hk init --target . --json
+hk work start <slug> --target . --json
+hk note --kind learning|decision|gap|context|spec-impact "..." --target .
+hk capture --kind test --target . -- <native validation command>
+hk sync --target .
+hk handoff --target . --format markdown
+```
+
+Use the plan-artifact workflow when a repo or user needs the existing durable
+plan package and handoff-readiness contract:
+
+```bash
+hk plan <slug> --target . --profile <profile> --json
+hk checks --target . --profile <profile> --json
+hk sync-check --target . --profile <profile> --json
+```
+
+The plan-artifact workflow is not deprecated yet. It remains the compatibility
+path for deterministic readiness checks over TODO, decisions/spec impact,
+validation evidence, review records, and artifact manifests. HK 2.0 should close
+those readiness gaps before the plan-artifact workflow is demoted.
+
+Conceptually, the intended agent/human lifecycle is:
+
+```text
+research → plan → implement → validate → review → handoff
+```
+
+Today, plan artifacts represent that lifecycle as Markdown/YAML files. HK 2.0's
+target is to represent it as ledger events and generate the Markdown/YAML views
+when needed.
+
 ## Harness instruction model
 
 The intended adoption path is a tiny durable instruction in a user's global or
@@ -182,7 +223,7 @@ info/exclude`, so linked worktrees and `.git` file checkouts are handled.
 | `hk init` | Initialize ignored local or external Harness Kit 2 state |
 | `hk work start` | Start a ledger-backed local work unit |
 | `hk note` | Append typed learning, decision, gap, context, or spec-impact notes |
-| `hk sync` | Record or check a sync checkpoint for the active work snapshot |
+| `hk sync` | Record or check a freshness checkpoint for the active work snapshot |
 | `hk capture` | Run a native command and record exact evidence |
 | `hk handoff` | Render a conservative handoff from the work ledger |
 | `hk spec` | Manage optional local/external spec drafts |
@@ -200,7 +241,8 @@ Profiles are small workflow contracts for agentic engineering checks. They
 describe the checks that exist for an environment; they do **not** run those
 checks. Agents should run the suggested validation command directly so the raw
 output stays visible in the normal shell loop, then record the exact
-command/result in `VALIDATION.md`.
+command/result in `VALIDATION.md` for plan artifacts or with `hk capture` for
+ledger-backed work.
 
 Initial built-in profiles:
 

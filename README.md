@@ -83,6 +83,24 @@ mise run init
 mise run init -- --non-interactive --name my-project --shape single --stack python
 ```
 
+## Harness Kit Workflow Modes
+
+During the Harness Kit 2.0 migration, `hk` supports two related workflows:
+
+- **Ledger-first local assistant** — use `hk brief`, `hk init`, `hk work start`,
+  `hk note`, `hk capture`, `hk sync`, and `hk handoff` for local agent memory,
+  exact command evidence, sync freshness, and generated handoffs without
+  committing ceremony.
+- **Plan-artifact workflow** — use `hk plan`, `hk checks`, and `hk sync-check`
+  when you need the existing durable plan package and handoff-readiness contract
+  over TODO, decisions/spec impact, validation evidence, review records, and
+  artifact manifests.
+
+The intended lifecycle is `research → plan → implement → validate → review →
+handoff`. Today, scaffolded plan artifacts represent that lifecycle as
+Markdown/YAML files. The HK 2.0 direction is to make the ledger canonical and
+materialize those views when a durable review package is needed.
+
 ## Task Contract
 
 Every project initialized from harness-scaffold exposes these commands:
