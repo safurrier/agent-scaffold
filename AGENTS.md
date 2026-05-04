@@ -72,6 +72,46 @@ use it only in a copied scaffold or throwaway init target.
   signatures, Literal choices, and generated help make the CLI safer for agents
   to call.
 
+- **DO** treat HK 2.0 as a cleaner, simpler version of the HK 1.0
+  handoff-safety lifecycle. **NOT** as a generic local note ledger or unrelated
+  agent-memory product. **BECAUSE** the core product promise to preserve is:
+  explicit plan, spec/decision reflection, validation evidence, external-enough
+  review, readiness gate, and handoff artifact.
+
+- **DO** consider `context` a plausible HK 2.0 product verb because it connects
+  to context engineering: capturing framing, constraints, relevant files, and
+  discovered repo facts for the next human/agent. **NOT** assume `background` is
+  always the better public word just because generic LLM context is overloaded.
+  **BECAUSE** a clear `hk context ...` command may express the user-facing job
+  better than exposing lower-level note kinds.
+
+- **DO** keep HK 2.0 lifecycle commands opinionated and singular. **NOT** expose
+  multiple equally promoted ways to do the same thing. **BECAUSE** the desired
+  product is a clean agent/human handoff workflow, not a compatibility maze;
+  lower-level commands should be advanced/deprecated only when they are truly
+  needed.
+
+- **DO** make `hk context` agent-guided rather than magically detected. **NOT**
+  require HK to infer whether work has "non-obvious context." **BECAUSE** the
+  normal workflow is human/agent planning outside HK, then the agent distills
+  useful context, plan, decisions, validation, and review records into the HK
+  ledger only when they prevent rediscovery or improve handoff.
+
+- **DO** use `export` language for turning ledger state into shareable files.
+  **NOT** center `materialize` as the product verb. **BECAUSE** users understand
+  exporting a handoff package; materialization is an implementation detail.
+
+- **DO** make skipped readiness checks explicit and intentionally scary, e.g.
+  `dangerously skip review` or a similarly unmistakable command. **NOT** hide
+  skipped review/validation behind bland waiver language. **BECAUSE** skipping a
+  lifecycle guarantee should read like a conscious YOLO-style exception.
+
+- **DO** treat profiles and dumb repo scripts as validation guidance and stable
+  command surfaces that feed `hk validate -- <native command>`. **NOT** turn HK
+  into a task runner that chooses and executes checks itself. **BECAUSE** HK 2.0
+  should preserve shell-first evidence while still helping agents find the right
+  repo-owned commands.
+
 ## Related Context
 
 | Path | What's there |

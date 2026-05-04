@@ -1,0 +1,7 @@
+artifacts:
+  - path: artifacts/product-postmortem.md
+    type: report
+    description: HK 2.0 product-direction postmortem and lifecycle-first correction
+  - path: artifacts/lifecycle-implementation-plan.md
+    type: report
+    description: Task-by-task HK 2.0 lifecycle implementation plan with validation strategy

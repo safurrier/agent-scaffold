@@ -2,13 +2,13 @@
 id: harness-kit-2-design
 title: Harness Kit 2.0 Design
 description: >
-  Ledger-first local assistant design for Harness Kit 2.0, including state,
-  evidence, sync checkpoints, optional specs, profiles, and staged migration.
+  Lifecycle-first Harness Kit 2.0 design, including the ledger-backed state,
+  evidence, readiness, sync checkpoints, optional specs, profiles, and staged migration.
 index:
   - id: thesis
-    keywords: [hk, shell-first, local-assistant, ledger, evidence]
+    keywords: [hk, shell-first, lifecycle, readiness, ledger, evidence]
   - id: cli-contract
-    keywords: [brief, work, note, sync, capture, handoff, spec]
+    keywords: [start, plan, decide, validate, review, ready, handoff]
   - id: migration
     keywords: [staged, breaking, parity, fixtures, validation]
 ---
@@ -17,18 +17,32 @@ index:
 
 ## Status
 
-Draft implementation design. This is the repo-local companion to the vault note
-`Harness Kit 2.0 SPEC.md`.
+Draft implementation design, amended by
+`docs/decisions/0009-hk-2-lifecycle-first-cli.md` after product review. This is
+the repo-local companion to the vault note `Harness Kit 2.0 SPEC.md`.
+
+The current implementation is a useful ledger/capture foundation, but it should
+not be treated as the full HK 2.0 product until the lifecycle-readiness contract
+is first-class.
 
 ## Thesis
 
-Harness Kit 2.0 is a shell-first local repo assistant for agent-assisted
-engineering.
+Harness Kit 2.0 is a cleaner, simpler, more elegant version of HK 1.0's
+handoff-safety lifecycle.
 
-It should not make agents use a worse shell. It should give agents and humans:
+It should not make agents use a worse shell. It should preserve the original
+workflow spine with less ceremony:
+
+```text
+plan → spec/decision reflection → validation evidence → external-enough review → readiness gate → handoff artifact
+```
+
+The ledger is the implementation substrate, not the primary product story. HK
+2.0 should give agents and humans:
 
 - a concise repo map;
-- local structured work memory;
+- explicit lifecycle records for context, plan, decision/spec reflection,
+  validation, review, readiness, and handoff;
 - exact command evidence;
 - generated human-readable views;
 - sync checkpoints that force reconciliation;
@@ -40,10 +54,10 @@ It should not make agents use a worse shell. It should give agents and humans:
 
 ### `hk`
 
-`hk` is the local assistant for existing and scaffolded repos. It owns repo
-briefing, local/external harness state, work ledgers, typed notes, command
-evidence, sync checkpoints, handoff rendering, optional local specs, and profile
-listing/showing/creation.
+`hk` is the lifecycle assistant for existing and scaffolded repos. It owns repo
+briefing, local/external harness state, work ledgers, lifecycle records, command
+evidence, sync checkpoints, readiness checks, handoff rendering, optional local
+specs, and profile listing/showing/creation.
 
 It does not own universal task execution, validation command selection, readiness
 scoring, automatic repo adoption, or issue-tracker orchestration.
@@ -82,10 +96,11 @@ ceremony to shared repos.
 Default local state may contain ledgers, artifacts, generated Markdown views, and
 local specs. Those files remain ignored/local unless explicitly promoted.
 
-### Ledger-first work model
+### Ledger-backed work model
 
 The canonical work state is append-only JSONL, not a required bundle of Markdown
-files.
+files. The public CLI should still read as lifecycle verbs rather than a generic
+note/event ledger.
 
 ```text
 <harness-state>/work/<timestamp>-<slug>/
@@ -98,24 +113,32 @@ files.
 Generated views may include `learning-log.md`, `decisions.md`, `gaps.md`, and
 `handoff.md`, but the ledger remains the source of truth.
 
-### Typed notes capture planning and learning without ceremony
+### Typed notes are lower-level lifecycle records
 
 Planning may happen outside HK in a human/AI conversation, issue, scratch doc, or
-research pass. Agents should translate the agreed result into a compact `plan`
-note instead of asking HK to parse the conversation heuristically. The plan note
-is a durable summary of implementation intent, not a project-management system
-or a requirement to explode work into many serial task commands.
+research pass. Agents should translate the agreed result into an explicit HK
+lifecycle record instead of asking HK to parse the conversation heuristically.
+Typed notes are useful as a storage and compatibility layer, but the common user
+path should be lifecycle-oriented commands such as `hk context`, `hk plan`,
+`hk decide`, and `hk validate`.
 
-Plan, background, learning, decisions, gaps, and spec impact are typed events:
+Context, plan, learning, decisions, gaps, and spec impact are typed records.
+The public lifecycle command should be `hk context`, because HK is doing context
+engineering for the next human or agent. It should stay lightweight and
+agent-guided: the agent records context when it prevents rediscovery or clarifies
+constraints, relevant files, assumptions, or repo facts. HK should not try to
+infer when context is non-obvious, and it should not force filler records for
+obvious small changes. Lower-level note/event storage may keep `background` as an
+internal or migration alias when needed.
 
 ```bash
-hk note --kind plan "Update sync/readiness docs, validate with check/sync-check, and record external review."
-hk note --kind plan --from-file /tmp/adopted-plan.md
-hk note --kind background "Relevant files: src/auth/session.py and tests/test_session.py."
+hk context "Relevant files: src/auth/session.py and tests/test_session.py."
+hk plan "Update sync/readiness docs, validate with check/sync-check, and record external review."
+hk plan --from-file /tmp/adopted-plan.md
 hk note --kind learning "Auth timeout behavior is owned by session refresh."
-hk note --kind decision "Preserved retry count semantics."
+hk decide "Preserved retry count semantics."
 hk note --kind gap "Full suite not run."
-hk note --kind spec-impact "No product/spec change: internal refactor only."
+hk decide "Internal refactor only." --no-spec-impact
 ```
 
 ### Evidence is exact command capture
@@ -175,8 +198,9 @@ renderable.
 
 The intended human/agent loop is phase-oriented:
 
-1. **Research** — read repo background, inspect specs/instructions, and record
-   stable framing with background notes and discoveries with learning notes.
+1. **Context** — read repo background, inspect specs/instructions, and record
+   stable framing, constraints, relevant files, and discovered repo facts with
+   `hk context`.
 2. **Plan** — planning may happen in chat or external docs first; record the
    agreed implementation intent as a compact plan note, with optional tasks only
    when a checklist is useful.
@@ -194,17 +218,21 @@ The current scaffold artifacts map to those phases as follows:
 
 | Phase | Current plan artifact | HK 2.0 target |
 |---|---|---|
-| Research | `LEARNING_LOG.md` | background/learning events |
-| Plan | `TODO.md`, `IMPLEMENTATION.md` | plan notes, optional task events, and generated plan view |
-| Decisions/spec | `DECISIONS.md`, ADR/ledger links | decision/spec-impact events with durable reflection metadata |
-| Validation | `VALIDATION.md`, `artifacts/manifest.yaml` | captured command evidence with rationale and generated evidence views |
-| Review | `REVIEW.md` | review events with backend/reviewer/rubrics/findings/disposition |
-| Handoff gate | `mise run sync-check` | future `hk ready --check` plus `hk sync --check` |
+| Context/research | `LEARNING_LOG.md` | `hk context` / learning records |
+| Plan | `TODO.md`, `IMPLEMENTATION.md` | `hk plan` plus optional task/checklist records only when useful |
+| Decisions/spec | `DECISIONS.md`, ADR/ledger links | `hk decide` and spec-impact reflection records |
+| Validation | `VALIDATION.md`, `artifacts/manifest.yaml` | `hk validate --why ... -- <command>` captured evidence |
+| Review | `REVIEW.md` | `hk review add` records with backend/reviewer/rubrics/findings/disposition |
+| Handoff gate | `mise run sync-check` | `hk ready` plus `hk sync --check` |
 
 This keeps HK 2.0 shell-first while making the old plan package an optional
-materialized view of the ledger rather than the canonical source of truth.
+materialized view of the ledger rather than the canonical source of truth. If
+`hk ready` is future work, the implementation is not yet the HK 2.0 replacement;
+it is the ledger/capture foundation for it. PR #12 should therefore be reshaped
+before merge so the lifecycle commands exist in that branch, rather than landing
+the ledger-first UX as the public 2.0 shape.
 
-### Profiles are guidance, not detection
+### Profiles and dumb scripts guide validation; they do not run it
 
 Keep profile UX close to the current model:
 
@@ -217,6 +245,24 @@ hk profile create <name> ...
 Do not add heuristic command mining or auto-selected profile recommendations.
 `hk brief` may report facts such as `.mise.toml`, `scripts/check`, and CI files,
 but must not claim a recommended command or confidence score.
+
+Profiles and dumb repo scripts fit into HK 2.0 as guidance and stable native
+command surfaces for `hk validate`, not as a task-runner layer. Profiles are not
+the same thing as `.harness/harness.toml`: a profile is a named validation and
+workflow guidance object, while `.harness/harness.toml` is the optional committed
+repo config/adoption root that can select defaults, policies, and repo-specific
+profile locations. For example, `hk profile show python` or `hk checks` may point
+an agent at `mise run check`, `uv run pytest`, or `scripts/check`, but the proof
+should still be captured as:
+
+```bash
+hk validate --why "Full repo quality gate." -- mise run check
+hk validate --why "Focused regression coverage." -- uv run pytest tests/unit/test_harness_kit_2.py -q
+```
+
+A future `hk ready` may use profile guidance to explain missing evidence kinds,
+but it should check explicit captured evidence rather than silently choosing or
+running commands.
 
 ### Specs can be local/external before committed
 
@@ -231,36 +277,37 @@ remains the durable instruction map. `.agent/skills/` remains the skill root.
 
 ## CLI contract
 
-Core 2.0 commands:
+Target lifecycle-first 2.0 commands:
 
 ```bash
 hk brief [--target PATH] [--json|--markdown]
-hk init [--target PATH] [--no-local-files] [--json]
-hk work start <slug> [--target PATH] [--json]
-hk work status [--target PATH] [--json]
-hk work materialize [--target PATH] [--json]
-hk note --kind plan|background|learning|decision|gap|spec-impact "TEXT" [--target PATH] [--json]
-hk note --kind plan|background|learning|decision|gap|spec-impact --from-file PATH [--target PATH] [--json]
+hk start <slug> [--target PATH] [--json]
+hk status [--target PATH] [--json]
+hk plan "TEXT" [--target PATH] [--json]
+hk plan --from-file PATH [--target PATH] [--json]
+hk context "TEXT" [--target PATH] [--json]
+hk decide "TEXT" [--spec-impact TEXT] [--target PATH] [--json]
+hk validate --why "WHAT THIS VALIDATES" [--kind KIND] [--target PATH] -- <command...>
+hk review add --backend NAME --reviewer NAME --rubric NAME --summary TEXT [--disposition TEXT]
 hk sync [--target PATH] [--json]
 hk sync --check [--target PATH] [--json]
-hk capture [--target PATH] [--kind KIND] [--shell TEXT] [--no-log|--raw-log] -- <command...>
-hk evidence list [--target PATH] [--json]
+hk ready [--target PATH] [--json]
 hk handoff [--target PATH] [--format markdown|pr|json] [--write PATH]
-hk spec init --local [--target PATH] [--json]
-hk spec status [--target PATH] [--json]
-hk spec outline [--target PATH] [--json]
-hk spec promote --dry-run [--target PATH]
+hk spec init|status|outline|promote
 hk profile list|show|create
 ```
 
-Planned parity commands before deprecating the plan-artifact workflow:
+Lower-level/compatibility commands may remain during migration, but should not
+be equally promoted when a lifecycle command exists. If a redundant command is
+only marginally useful, prefer cutting or explicitly marking it advanced or
+legacy.
 
 ```bash
-compact plan record/readiness checks, with optional task/checklist commands only when useful
-hk capture --why "WHAT THIS VALIDATES" -- <command...>
-hk review add --backend NAME --reviewer NAME --rubric NAME --summary TEXT --disposition TEXT
-hk ready --check [--target PATH] [--json]
-hk work materialize --format handoff|plan-dir [--target PATH]
+hk work start|status|materialize        # advanced/legacy work-state surface
+hk note --kind ...                      # advanced event entry, if retained
+hk capture ... -- <command...>          # lower-level command evidence
+hk evidence list                        # inspection/debugging
+hk export --format handoff|plan-dir [--target PATH]
 ```
 
 Deferred commands also include state cleanup, deep spec impact, profile
@@ -291,8 +338,8 @@ Future committed/adopted config uses:
 
 ```text
 .harness/
-  harness.toml
-  profiles/
+  harness.toml        # repo adoption/config: defaults, policies, selected profiles
+  profiles/           # optional repo-specific profile definitions
   workflows/
   checks/
   schemas/
@@ -345,15 +392,15 @@ Each implementation phase must:
 3. Local state + work ledger + typed notes.
 4. Sync checkpoint.
 5. Capture evidence + redaction prototype/interface.
-6. Handoff/materialized views.
+6. Handoff/exported views.
 7. Optional local/external SPEC.
 8. Scaffold task-contract prototype.
 9. Readiness parity with plan artifacts:
    - compact plan records and optional task/checklist events;
    - validation evidence rationale;
    - review events with backend/reviewer/rubrics/findings/disposition;
-   - `hk ready --check`;
-   - plan-directory materialization from the ledger.
+   - `hk ready`;
+   - plan-directory export from the ledger.
 10. Docs/release/public cutover.
 
 ## Validation philosophy
@@ -368,7 +415,7 @@ Test layers:
 
 - unit tests for state resolution, event appending, JSON schemas, and sync
   freshness;
-- golden tests for brief, handoff, and materialized Markdown;
+- golden tests for brief, handoff, and exported Markdown;
 - E2E tests for clean worktree, overlay/external state, capture success/failure;
 - migration/parity tests comparing current v1 concepts to v2 behavior where
   applicable.

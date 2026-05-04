@@ -21,7 +21,7 @@ index:
 
 ## Summary
 
-harness-toolkit contains two related CLIs: `harness-scaffold`, the starter-template CLI for new agent-ready repositories, and `hk` / `harness-kit`, the portable workflow CLI for existing repositories. `harness-scaffold` transforms a cloned template into a fully configured project with a stable 22-task command surface. `hk` applies planning, validation, and handoff workflow state without committing scaffold files, and is evolving toward a ledger-first local assistant with read-only briefs, local work ledgers, sync checkpoints, captured command evidence, generated handoffs, and optional local specs. Both humans and AI agents benefit from language-agnostic, CI-parity contracts where `mise run check` is the fast local gate and handoff evidence stays inspectable.
+harness-toolkit contains two related CLIs: `harness-scaffold`, the starter-template CLI for new agent-ready repositories, and `hk` / `harness-kit`, the portable workflow CLI for existing repositories. `harness-scaffold` transforms a cloned template into a fully configured project with a stable 22-task command surface. `hk` applies planning, validation, review, readiness, and handoff workflow state without committing scaffold files, and is evolving toward a cleaner lifecycle-first HK 2.0 backed by local ledgers, sync checkpoints, captured command evidence, generated handoffs, and optional local specs. Both humans and AI agents benefit from language-agnostic, CI-parity contracts where `mise run check` is the fast local gate and handoff evidence stays inspectable.
 
 ## Goals / Non-Goals
 
@@ -101,36 +101,32 @@ hk checks --target <repo-or-module> --profile <profile> --json
 hk sync-check --target <repo-or-module> --profile <profile> --json
 ```
 
-Ledger-first 2.0 local assistant commands may coexist during migration:
+Ledger-backed 2.0 commands may coexist during migration. The target public
+shape is lifecycle-first rather than generic-note-first:
 
 ```
 hk brief --target <repo-or-module> --json
-hk init --target <repo-or-module> --json
-hk work start <slug> --target <repo-or-module> --json
-hk note --kind plan|background|learning|decision|gap|spec-impact "TEXT" --target <repo-or-module> --json
-hk note --kind plan|background|learning|decision|gap|spec-impact --from-file <path> --target <repo-or-module> --json
+hk start <slug> --target <repo-or-module> --json
+hk status --target <repo-or-module> --json
+hk plan "TEXT" --target <repo-or-module> --json
+hk plan --from-file <path> --target <repo-or-module> --json
+hk context "TEXT" --target <repo-or-module> --json
+hk decide "TEXT" --spec-impact "TEXT" --target <repo-or-module> --json
+hk validate --why "WHAT THIS VALIDATES" --target <repo-or-module> -- <command...>
+hk review add --backend <name> --reviewer <name> --rubric <name> --summary "TEXT" --target <repo-or-module> --json
 hk sync --target <repo-or-module> --json
 hk sync --check --target <repo-or-module> --json
-hk capture --kind test --target <repo-or-module> -- <command...>
-hk evidence list --target <repo-or-module> --json
+hk ready --target <repo-or-module> --json
 hk handoff --target <repo-or-module> --format markdown|pr|json
-hk spec init --local --target <repo-or-module> --json
-hk spec status --target <repo-or-module> --json
-hk spec outline --target <repo-or-module> --json
-hk spec promote --dry-run --target <repo-or-module>
+hk export --target <repo-or-module> --format handoff|plan-dir --json
+hk spec init|status|outline|promote --target <repo-or-module> --json
 ```
 
-Before the plan-artifact workflow is deprecated, HK 2.0 must close readiness
-parity gaps with ledger-backed equivalents for task planning, validation
-rationale, review records, readiness checking, and plan-directory materialization:
-
-```
-compact plan records with optional task/checklist events when useful
-hk capture --why "WHAT THIS VALIDATES" -- <command...>
-hk review add --backend <name> --reviewer <name> --rubric <name> ...
-hk ready --check --target <repo-or-module> --json
-hk work materialize --format handoff|plan-dir --target <repo-or-module>
-```
+Profiles and repo-owned scripts are validation guidance and stable native command
+surfaces for `hk validate`, not task-runner commands that HK chooses and runs.
+Lower-level work/note/capture/evidence commands may remain as compatibility or
+advanced interfaces, but HK 2.0 is not complete until lifecycle readiness reaches
+parity with the plan-artifact workflow.
 
 `harness-kit` is the readable long command for the same portable CLI. `hk` is the
 short daily command.
@@ -183,9 +179,10 @@ class Stack(Protocol):
 - **Stack dispatch via env**: Tasks read `SCAFFOLD_PROJECT_STACK` from `.mise.toml` to dispatch to the correct toolchain. Wrong dispatch = wrong tools run.
 - **Deterministic output**: Non-interactive init with identical inputs produces identical output. Template rendering is deterministic.
 - **stdlib-only test helpers**: `_docs_helpers.py` uses only stdlib (no pyyaml) so it's portable into generated repos without adding dependencies.
-- **Shell-first local assistant**: `hk` MAY capture exact native commands and local work state, but MUST NOT hide validation behind `hk run`-style task-runner commands. Captured evidence preserves command identity, exit code, and transcript metadata.
-- **Freshness vs readiness**: `hk sync --check` answers whether ledger work changed after the last checkpoint. Handoff readiness is a separate contract currently implemented by `mise run sync-check` over plan artifacts and targeted for a ledger-backed `hk ready --check` successor.
-- **No heuristic readiness/profile scoring**: `hk brief` and profile commands report facts and guidance, not readiness grades, confidence scores, or silent validation command selection. Planning may happen outside HK, but agents must translate the agreed intent into explicit plan/background/decision records; HK records those declarations and checks evidence consistency while humans/reviewers judge quality.
+- **Lifecycle-first HK 2.0**: HK 2.0 MUST preserve the HK 1.0 handoff-safety spine: useful context when it prevents rediscovery, explicit plan, spec/decision reflection, validation evidence, external-enough review, readiness gate, and handoff artifact. A generic note ledger without readiness parity is an implementation foundation, not the completed product.
+- **Shell-first command evidence**: `hk` MAY capture exact native commands and local work state, but MUST NOT hide validation behind `hk run`-style task-runner commands. Captured evidence preserves command identity, exit code, rationale, and transcript metadata. Profiles and dumb scripts may guide which native commands to validate, but the proof remains `hk validate --why ... -- <native command>`.
+- **Freshness vs readiness**: `hk sync --check` answers whether ledger work changed after the last checkpoint. Handoff readiness is a separate contract currently implemented by `mise run sync-check` over plan artifacts and targeted for a ledger-backed `hk ready` successor.
+- **No heuristic readiness/profile scoring**: `hk brief` and profile commands report facts and guidance, not readiness grades, confidence scores, or silent validation command selection. Planning may happen outside HK, but agents must translate the agreed intent into explicit lifecycle records; HK records those declarations and checks evidence consistency while humans/reviewers judge quality. HK does not infer whether context is non-obvious; agents record `hk context` when it improves handoff or prevents rediscovery.
 - **Local-first adoption boundary**: default `hk` local assistant state stays ignored or external. Committed `.harness/`, `SPEC.md`, or task-contract artifacts require explicit adoption/promotion.
 
 ## Acceptance
