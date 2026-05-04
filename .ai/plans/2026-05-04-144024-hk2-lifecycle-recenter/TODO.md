@@ -19,9 +19,11 @@ description: >
 
 ## Follow-up candidates
 
-- Implement Slice 1: `hk start`, `hk status`, `hk context`, `hk plan`, and `hk decide` lifecycle facade.
-- Implement Slice 2: `hk validate --why ... -- <command>`.
-- Implement Slice 3: `hk review add`.
-- Implement Slice 4: `hk ready`.
-- Implement Slice 5: export/deprecation plan.
-- Revisit profile vs `.harness/harness.toml` design; likely simplification is to make `.harness` the durable config model and treat profiles as presets/checksets or migration compatibility.
+- [x] Implement Slice 1: `hk start`, `hk status`, `hk context`, `hk plan`, and `hk decide` lifecycle facade.
+- [x] Implement Slice 2: `hk validate --why ... -- <command>`.
+- [x] Implement Slice 3: `hk review add`.
+- [x] Implement Slice 4: `hk ready`.
+- [x] Implement initial `hk export` handoff/view export.
+- [ ] Dogfood HK-on-HK using the lifecycle commands.
+- [ ] Run independent subagent build trial and capture UX findings.
+- [ ] Revisit profile vs `.harness/harness.toml` design; likely simplification is to make `.harness` the durable config model and treat profiles as presets/checksets or migration compatibility.

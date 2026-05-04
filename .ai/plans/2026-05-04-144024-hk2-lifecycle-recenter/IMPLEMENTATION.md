@@ -7,8 +7,8 @@ title: Implementation Notes
 
 ## Current slice
 
-This slice captures the product-direction correction and implementation plan. It
-also updates durable docs. It does not implement the new CLI yet.
+This slice captures the product-direction correction and implementation plan,
+then reshapes PR #12 with the first lifecycle CLI implementation.
 
 Changed/added docs:
 
@@ -34,31 +34,42 @@ Full details are in `artifacts/lifecycle-implementation-plan.md`.
 
 ### Slice 1 — Start/status and lifecycle record commands
 
+Implemented in this branch:
+
 - `hk start <slug>`
-- `hk status`
+- lifecycle-oriented `hk status`
 - `hk context "..."`
 - `hk plan "..."` / `hk plan --from-file`
 - `hk decide "..." --spec-impact ...` / `--no-spec-impact`
-- Lifecycle-oriented handoff rendering.
+- lifecycle-oriented handoff rendering.
 
 ### Slice 2 — Validation rationale
 
+Implemented in this branch:
+
 - `hk validate --why "..." -- <command>` as primary validation/evidence path.
-- Preserve `hk capture` as lower-level command evidence.
+- `why` rationale stored in evidence records and rendered in handoff/evidence
+  output.
+- `hk capture` preserved as lower-level command evidence.
 
 ### Slice 3 — Review records
 
+Implemented in this branch:
+
 - `hk review add` with backend, reviewer, rubric, summary, disposition.
-- Accepted external-enough sources: AI subagent review, manual human review,
-  GitHub PR review.
+- Review records render in handoff and feed readiness.
 
 ### Slice 4 — Ready gate
 
-- `hk ready` strict by default with explicit waivers/gaps.
+Implemented initial strict readiness gate:
+
+- `hk ready` and `hk ready --json`.
 - Checks plan, decision/spec reflection, validation rationale, external review,
   sync freshness, and handoff renderability.
 - Does not fail by default solely because no context exists; context is
   agent-guided and informational unless a future strict profile says otherwise.
+- `hk dangerously-skip review|validation --reason ...` records explicit dangerous
+  skips. The exact final spelling can still be refined.
 
 ### Slice 5 — Export/materialize and deprecation plan
 

@@ -85,7 +85,8 @@ def test_workflow_help_includes_agent_copyable_examples() -> None:
 
     assert result.returncode == 0, result.stderr
     assert "Examples:" in result.stdout
-    assert "hk plan investigate-cache-bug" in result.stdout
+    assert "hk plan" in result.stdout
+    assert "hk legacy plan investigate-cache-bug" in result.stdout
 
 
 def test_harness_kit_long_command_is_available() -> None:

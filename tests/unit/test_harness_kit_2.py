@@ -9,6 +9,7 @@ import pytest
 
 from harness_toolkit.kit.local import (
     add_note,
+    add_review,
     brief,
     capture_command,
     create_work,
@@ -17,6 +18,7 @@ from harness_toolkit.kit.local import (
     init_spec,
     init_state,
     materialize_work,
+    ready,
     spec_outline,
     spec_promote_dry_run,
     spec_status,
@@ -282,6 +284,47 @@ def test_handoff_does_not_overclaim_without_evidence(tmp_path: Path) -> None:
     assert "No validation evidence recorded" in result.content
 
 
+def test_lifecycle_ready_requires_plan_decision_validation_review_and_sync(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "ready-work")
+    add_note(target, kind="context", text="Cyclopts is the CLI convention.")
+    missing = ready(target)
+
+    add_note(target, kind="plan", text="Implement the lifecycle facade.")
+    add_note(target, kind="decision", text="Use validate as the primary evidence verb.")
+    add_note(target, kind="spec-impact", text="SPEC documents lifecycle-first HK2.")
+    capture_command(
+        target,
+        ("python3", "-c", "print('ok')"),
+        kind="test",
+        why="Focused lifecycle smoke test.",
+    )
+    add_review(
+        target,
+        backend="manual_external",
+        reviewer="Alex",
+        rubrics=("core-quality",),
+        summary="No blocking findings.",
+    )
+    sync_checkpoint(target)
+    done = ready(target)
+    handoff_result = handoff(target)
+
+    assert missing.ready is False
+    assert any(
+        check.id == "plan" and check.status == "fail" for check in missing.checks
+    )
+    assert done.ready is True
+    assert done.status == "ready"
+    assert "## Context" in handoff_result.content
+    assert "Focused lifecycle smoke test" in handoff_result.content
+    assert "manual_external / Alex" in handoff_result.content
+
+
 def test_generated_handoff_views_do_not_make_synced_work_stale(
     tmp_path: Path,
 ) -> None:
@@ -440,6 +483,90 @@ def test_cli_note_rejects_text_and_from_file(tmp_path: Path) -> None:
 
     assert result.returncode != 0
     assert "Use either note TEXT or --from-file" in result.stderr
+
+
+def test_cli_lifecycle_commands_record_handoff_and_ready(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+
+    start = _run_hk("start", "cli-life", "--target", str(target), "--json")
+    context = _run_hk(
+        "context", "Important repo fact.", "--target", str(target), "--json"
+    )
+    plan = _run_hk("plan", "Implement the feature.", "--target", str(target), "--json")
+    decide = _run_hk(
+        "decide",
+        "Keep lifecycle commands primary.",
+        "--spec-impact",
+        "SPEC updated.",
+        "--target",
+        str(target),
+        "--json",
+    )
+    validate = _run_hk(
+        "validate",
+        "--target",
+        str(target),
+        "--kind",
+        "test",
+        "--why",
+        "Smoke test validates CLI evidence.",
+        "--json",
+        "--",
+        "python3",
+        "-c",
+        "print('validated')",
+    )
+    review = _run_hk(
+        "review",
+        "add",
+        "--target",
+        str(target),
+        "--backend",
+        "manual_external",
+        "--reviewer",
+        "Alex",
+        "--rubric",
+        "core-quality",
+        "--summary",
+        "No blocking findings.",
+        "--json",
+    )
+    sync = _run_hk("sync", "--target", str(target), "--json")
+    ready_result = _run_hk("ready", "--target", str(target), "--json")
+    handoff_result = _run_hk("handoff", "--target", str(target))
+
+    assert start.returncode == 0, start.stderr
+    assert json.loads(context.stdout)["kind"] == "context"
+    assert json.loads(plan.stdout)["kind"] == "plan"
+    assert decide.returncode == 0, decide.stderr
+    assert validate.returncode == 0, validate.stderr
+    assert "validated" in validate.stderr
+    assert review.returncode == 0, review.stderr
+    assert sync.returncode == 0, sync.stderr
+    payload = json.loads(ready_result.stdout)
+    assert ready_result.returncode == 0, ready_result.stderr
+    assert payload["ready"] is True
+    assert "## Context" in handoff_result.stdout
+    assert "Smoke test validates CLI evidence" in handoff_result.stdout
+
+
+def test_cli_validate_requires_why(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    assert _run_hk("start", "validate-why", "--target", str(target)).returncode == 0
+
+    result = _run_hk(
+        "validate",
+        "--target",
+        str(target),
+        "--",
+        "python3",
+        "-c",
+        "print('missing why')",
+    )
+
+    assert result.returncode != 0
 
 
 def test_cli_capture_json_stdout_is_parseable(tmp_path: Path) -> None:

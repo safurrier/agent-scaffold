@@ -26,7 +26,15 @@ LOCAL_STATE_DIR = ".harness-local"
 KIT_STATE_DIR = "harness-kit"
 STATE_SCHEMA_VERSION = 1
 WORK_DIR_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-\d{6}-")
-VALID_NOTE_KINDS = ("plan", "background", "learning", "decision", "gap", "spec-impact")
+VALID_NOTE_KINDS = (
+    "context",
+    "plan",
+    "background",
+    "learning",
+    "decision",
+    "gap",
+    "spec-impact",
+)
 VALID_EVIDENCE_KINDS = ("test", "lint", "typecheck", "build", "check", "e2e", "other")
 SYNC_IGNORED_EVENT_TYPES = frozenset(
     {"sync_checkpoint", "view_materialized", "handoff_generated"}
@@ -60,7 +68,9 @@ SECRET_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
 )
 
 StateMode = Literal["local", "external"]
-NoteKind = Literal["plan", "background", "learning", "decision", "gap", "spec-impact"]
+NoteKind = Literal[
+    "context", "plan", "background", "learning", "decision", "gap", "spec-impact"
+]
 EvidenceKind = Literal["test", "lint", "typecheck", "build", "check", "e2e", "other"]
 HandoffFormat = Literal["markdown", "pr", "json"]
 
@@ -135,6 +145,33 @@ class CaptureResult:
     exit_code: int
     status: str
     transcript_path: str
+    why: str = ""
+
+
+@dataclass(frozen=True)
+class ReviewResult:
+    work_id: str
+    seq: int
+    backend: str
+    reviewer: str
+    rubrics: list[str]
+    summary: str
+    disposition: str
+
+
+@dataclass(frozen=True)
+class ReadyCheck:
+    id: str
+    status: str
+    message: str
+
+
+@dataclass(frozen=True)
+class ReadyResult:
+    work_id: str
+    ready: bool
+    status: str
+    checks: list[ReadyCheck]
 
 
 @dataclass(frozen=True)
@@ -165,6 +202,8 @@ JsonDataclass = (
     | NoteResult
     | SyncResult
     | CaptureResult
+    | ReviewResult
+    | ReadyResult
     | SpecResult
     | SpecOutline
     | HandoffResult
@@ -203,6 +242,7 @@ class EvidenceRecord:
     duration_ms: int
     transcript_path: str
     redaction: str
+    why: str = ""
 
 
 def utc_now() -> str:
@@ -484,7 +524,7 @@ def create_work(
 def require_work(state: LocalState) -> Path:
     work_dir = active_work_dir(state)
     if work_dir is None:
-        raise LocalWorkflowError("No active work. Run `hk work start <slug>` first.")
+        raise LocalWorkflowError("No active work. Run `hk start <slug>` first.")
     return work_dir
 
 
@@ -557,6 +597,7 @@ def read_evidence(work_dir: Path) -> list[EvidenceRecord]:
                 duration_ms=int(data["duration_ms"]),
                 transcript_path=str(data["transcript_path"]),
                 redaction=str(data["redaction"]),
+                why=str(data.get("why", "")),
             )
         )
     return records
@@ -680,6 +721,7 @@ def capture_command(
     *,
     shell_command: str = "",
     kind: str = "other",
+    why: str = "",
     no_log: bool = False,
     raw_log: bool = False,
     no_local_files: bool = False,
@@ -772,13 +814,19 @@ def capture_command(
         duration_ms=duration_ms,
         transcript_path=str(transcript if not no_log else ""),
         redaction="raw" if raw_log else "builtin",
+        why=why,
     )
     with (work_dir / "evidence.jsonl").open("a") as file:
         file.write(json.dumps(asdict(record), sort_keys=True) + "\n")
     append_event(
         work_dir,
         "command_captured",
-        {"evidence_id": evidence_id, "exit_code": exit_code, "status": status},
+        {
+            "evidence_id": evidence_id,
+            "exit_code": exit_code,
+            "status": status,
+            "why": why,
+        },
     )
     return CaptureResult(
         work_id=work_dir.name,
@@ -786,6 +834,7 @@ def capture_command(
         exit_code=exit_code,
         status=status,
         transcript_path=str(transcript if not no_log else ""),
+        why=why,
     )
 
 
@@ -924,6 +973,20 @@ def notes_by_kind(events: list[EventRecord], kind: str) -> list[str]:
     return notes_by_kinds(events, (kind,))
 
 
+def review_events(events: list[EventRecord]) -> list[dict[str, object]]:
+    return [event.data for event in events if event.type == "review_added"]
+
+
+def dangerous_skip_events(
+    events: list[EventRecord], check_id: str
+) -> list[dict[str, object]]:
+    return [
+        event.data
+        for event in events
+        if event.type == "dangerous_skip_added" and event.data.get("check") == check_id
+    ]
+
+
 def notes_by_kinds(events: list[EventRecord], kinds: tuple[str, ...]) -> list[str]:
     rows: list[str] = []
     for event in events:
@@ -948,21 +1011,24 @@ def render_handoff(work_dir: Path, state: LocalState) -> str:
         f"- Dirty: `{str(git_dirty(state.target_root)).lower()}`",
         f"- Sync status: `{sync_status}`",
         "",
-        "## Plan",
+        "## Context",
     ]
+    lines.extend(
+        [f"- {item}" for item in notes_by_kinds(events, ("context", "background"))]
+        or ["- None recorded."]
+    )
+    lines.extend(["", "## Plan"])
     lines.extend(
         [f"- {item}" for item in notes_by_kind(events, "plan")] or ["- None recorded."]
     )
-    lines.extend(["", "## Decisions"])
+    lines.extend(["", "## Decisions and spec reflection"])
     lines.extend(
         [f"- {item}" for item in notes_by_kind(events, "decision")]
         or ["- None recorded."]
     )
-    lines.extend(["", "## Background"])
-    lines.extend(
-        [f"- {item}" for item in notes_by_kinds(events, ("background", "context"))]
-        or ["- None recorded."]
-    )
+    spec_impact = notes_by_kind(events, "spec-impact")
+    if spec_impact:
+        lines.extend([f"  - Spec: {item}" for item in spec_impact])
     lines.extend(["", "## Learning"])
     lines.extend(
         [f"- {item}" for item in notes_by_kind(events, "learning")]
@@ -978,17 +1044,177 @@ def render_handoff(work_dir: Path, state: LocalState) -> str:
             transcript = (
                 f" — `{record.transcript_path}`" if record.transcript_path else ""
             )
+            why = f" — validates: {record.why}" if record.why else ""
             lines.append(
-                f"- `{record.command_display}`: {record.status} (exit {record.exit_code}){transcript}"
+                f"- `{record.command_display}`: {record.status} (exit {record.exit_code}){why}{transcript}"
             )
     else:
         lines.append("- No validation evidence recorded.")
-    lines.extend(["", "## Spec impact"])
-    lines.extend(
-        [f"- {item}" for item in notes_by_kind(events, "spec-impact")]
-        or ["- None recorded."]
-    )
+    lines.extend(["", "## Review"])
+    reviews = review_events(events)
+    if reviews:
+        for review in reviews:
+            raw_rubrics = review.get("rubrics", [])
+            rubrics_list = raw_rubrics if isinstance(raw_rubrics, list) else []
+            rubrics = ", ".join(str(item) for item in rubrics_list)
+            lines.append(
+                f"- {review.get('backend')} / {review.get('reviewer')} ({rubrics}): {review.get('summary')} [{review.get('disposition')}]"
+            )
+    else:
+        lines.append("- None recorded.")
+    skips = [event.data for event in events if event.type == "dangerous_skip_added"]
+    if skips:
+        lines.extend(["", "## Dangerous skips"])
+        for skip in skips:
+            lines.append(f"- {skip.get('check')}: {skip.get('reason')}")
     return "\n".join(lines) + "\n"
+
+
+def add_review(
+    target: Path,
+    *,
+    backend: str,
+    reviewer: str,
+    rubrics: tuple[str, ...],
+    summary: str,
+    disposition: str = "accepted",
+    no_local_files: bool = False,
+) -> ReviewResult:
+    if not backend.strip():
+        raise LocalWorkflowError("review requires --backend")
+    if not reviewer.strip():
+        raise LocalWorkflowError("review requires --reviewer")
+    if not summary.strip():
+        raise LocalWorkflowError("review requires --summary")
+    clean_rubrics = [item.strip() for item in rubrics if item.strip()]
+    if not clean_rubrics:
+        raise LocalWorkflowError("review requires at least one --rubric")
+    state = ensure_state(target, no_local_files=no_local_files)
+    work_dir = require_work(state)
+    record = append_event(
+        work_dir,
+        "review_added",
+        {
+            "backend": backend.strip(),
+            "reviewer": reviewer.strip(),
+            "rubrics": clean_rubrics,
+            "summary": summary.strip(),
+            "disposition": disposition.strip() or "accepted",
+        },
+    )
+    return ReviewResult(
+        work_id=work_dir.name,
+        seq=record.seq,
+        backend=backend.strip(),
+        reviewer=reviewer.strip(),
+        rubrics=clean_rubrics,
+        summary=summary.strip(),
+        disposition=disposition.strip() or "accepted",
+    )
+
+
+def add_dangerous_skip(
+    target: Path,
+    *,
+    check: str,
+    reason: str,
+    no_local_files: bool = False,
+) -> NoteResult:
+    if check not in {"review", "validation"}:
+        raise LocalWorkflowError("dangerously-skip supports: review, validation")
+    if not reason.strip():
+        raise LocalWorkflowError("dangerously-skip requires --reason")
+    state = ensure_state(target, no_local_files=no_local_files)
+    work_dir = require_work(state)
+    record = append_event(
+        work_dir,
+        "dangerous_skip_added",
+        {"check": check, "reason": reason.strip()},
+    )
+    return NoteResult(work_id=work_dir.name, seq=record.seq, kind=check, text=reason)
+
+
+def ready(target: Path, *, no_local_files: bool = False) -> ReadyResult:
+    state = ensure_state(target, no_local_files=no_local_files)
+    work_dir = require_work(state)
+    events = read_events(work_dir)
+    evidence = read_evidence(work_dir)
+    checks: list[ReadyCheck] = []
+
+    def add_check(check_id: str, passed: bool, message: str) -> None:
+        checks.append(
+            ReadyCheck(
+                id=check_id, status="pass" if passed else "fail", message=message
+            )
+        )
+
+    context = notes_by_kinds(events, ("context", "background"))
+    checks.append(
+        ReadyCheck(
+            id="context",
+            status="info",
+            message=(
+                "context recorded"
+                if context
+                else "no context recorded; okay for trivial work, add hk context if it prevents rediscovery"
+            ),
+        )
+    )
+    add_check("plan", bool(notes_by_kind(events, "plan")), "plan recorded")
+    has_decision = bool(notes_by_kind(events, "decision"))
+    has_spec_reflection = bool(notes_by_kind(events, "spec-impact"))
+    add_check(
+        "decision",
+        has_decision and has_spec_reflection,
+        "decision and spec reflection recorded",
+    )
+    validation_skipped = bool(dangerous_skip_events(events, "validation"))
+    evidence_with_why = [record for record in evidence if record.why]
+    add_check(
+        "validation",
+        bool(evidence_with_why) or validation_skipped,
+        "validation evidence with rationale recorded"
+        if evidence_with_why
+        else "validation dangerously skipped"
+        if validation_skipped
+        else "missing validation evidence with --why",
+    )
+    review_skipped = bool(dangerous_skip_events(events, "review"))
+    reviews = review_events(events)
+    add_check(
+        "review",
+        bool(reviews) or review_skipped,
+        "external-enough review recorded"
+        if reviews
+        else "review dangerously skipped"
+        if review_skipped
+        else "missing external-enough review record",
+    )
+    synced = sync_status_for(state) == "synced"
+    add_check(
+        "sync", synced, "sync checkpoint fresh" if synced else "sync checkpoint stale"
+    )
+    try:
+        render_handoff(work_dir, state)
+    except Exception as e:  # pragma: no cover - defensive render check
+        add_check("handoff", False, f"handoff render failed: {e}")
+    else:
+        add_check("handoff", True, "handoff renders")
+    failed = [check for check in checks if check.status == "fail"]
+    has_skips = bool(validation_skipped or review_skipped)
+    status = (
+        "ready"
+        if not failed and not has_skips
+        else "ready-with-dangerous-skips"
+        if not failed
+        else "not-ready"
+    )
+    return ReadyResult(
+        work_id=work_dir.name,
+        ready=not failed,
+        status=status,
+        checks=checks,
+    )
 
 
 def materialize_work(target: Path, *, no_local_files: bool = False) -> HandoffResult:
@@ -1001,7 +1227,8 @@ def materialize_work(target: Path, *, no_local_files: bool = False) -> HandoffRe
         ("plan.md", ("plan",), "Plan"),
         ("learning-log.md", ("learning",), "Learning Log"),
         ("decisions.md", ("decision",), "Decisions"),
-        ("background.md", ("background", "context"), "Background"),
+        ("context.md", ("context", "background"), "Context"),
+        ("background.md", ("context", "background"), "Context"),
         ("gaps.md", ("gap",), "Gaps"),
     ):
         items = notes_by_kinds(events, kinds)

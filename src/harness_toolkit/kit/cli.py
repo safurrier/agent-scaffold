@@ -13,7 +13,9 @@ from cyclopts import App
 from harness_toolkit.kit.local import (
     LocalWorkflowError,
     active_work_dir,
+    add_dangerous_skip,
     add_note,
+    add_review,
     brief_markdown,
     capture_command,
     create_work,
@@ -33,6 +35,9 @@ from harness_toolkit.kit.local import (
 )
 from harness_toolkit.kit.local import (
     handoff as local_handoff,
+)
+from harness_toolkit.kit.local import (
+    ready as local_ready,
 )
 from harness_toolkit.kit.local import (
     spec_outline as local_spec_outline,
@@ -76,10 +81,14 @@ profile_app = App(name="profile", help="List, show, and create workflow profiles
 work_app = App(name="work", help="Manage ledger-backed local work units.")
 evidence_app = App(name="evidence", help="List captured evidence.")
 spec_app = App(name="spec", help="Manage optional local/external specs.")
+review_app = App(name="review", help="Record external-enough review evidence.")
+legacy_app = App(name="legacy", help="Legacy HK 1 plan-artifact workflow commands.")
 app.command(profile_app, name="profile")
 app.command(work_app, name="work")
 app.command(evidence_app, name="evidence")
 app.command(spec_app, name="spec")
+app.command(review_app, name="review")
+app.command(legacy_app, name="legacy")
 
 
 def resolve_catalog(profiles_dir: Path | None) -> ProfileCatalog:
@@ -489,6 +498,54 @@ def init_command(
     print(f"mode={result.mode}")
 
 
+@app.command(name="start")
+def start(
+    slug: str,
+    *,
+    target: Path = Path("."),
+    no_local_files: bool = False,
+    json: bool = False,
+) -> None:
+    """Start a lifecycle work item backed by the local ledger."""
+    try:
+        result = create_work(target, slug, no_local_files=no_local_files)
+    except (WorkflowError, LocalWorkflowError) as e:
+        print_error(str(e))
+        raise SystemExit(1) from e
+    if json:
+        print(json_dump_dataclass(result))
+        return
+    print(f"work_id={result.work_id}")
+    print(f"work_dir={result.work_dir}")
+    print(
+        "next: hk context ... (if useful), hk plan ..., hk validate --why ... -- <command>"
+    )
+
+
+@app.command(name="context")
+def context_command(
+    text: str,
+    *,
+    target: Path = Path("."),
+    no_local_files: bool = False,
+    json: bool = False,
+) -> None:
+    """Record durable context that prevents rediscovery."""
+    try:
+        if not text.strip():
+            raise LocalWorkflowError("context requires TEXT")
+        result = add_note(
+            target, kind="context", text=text, no_local_files=no_local_files
+        )
+    except (WorkflowError, LocalWorkflowError) as e:
+        print_error(str(e))
+        raise SystemExit(1) from e
+    if json:
+        print(json_dump_dataclass(result))
+        return
+    print(f"context: {result.text}")
+
+
 @work_app.command(name="start")
 def work_start(
     slug: str,
@@ -563,13 +620,15 @@ def work_materialize(
 def note(
     text: str = "",
     *,
-    kind: Literal["plan", "background", "learning", "decision", "gap", "spec-impact"],
+    kind: Literal[
+        "context", "plan", "background", "learning", "decision", "gap", "spec-impact"
+    ],
     from_file: Path | None = None,
     target: Path = Path("."),
     no_local_files: bool = False,
     json: bool = False,
 ) -> None:
-    """Append a typed plan, background, learning, decision, gap, or spec-impact note."""
+    """Append an advanced typed lifecycle note/event."""
     try:
         if from_file is not None:
             if text:
@@ -592,6 +651,45 @@ def note(
         print(json_dump_dataclass(result))
         return
     print(f"{result.kind}: {result.text}")
+
+
+@app.command(name="decide")
+def decide(
+    text: str,
+    *,
+    spec_impact: str = "",
+    no_spec_impact: bool = False,
+    target: Path = Path("."),
+    no_local_files: bool = False,
+    json: bool = False,
+) -> None:
+    """Record a lifecycle decision and its spec reflection."""
+    try:
+        if not text.strip():
+            raise LocalWorkflowError("decide requires TEXT")
+        if spec_impact and no_spec_impact:
+            raise LocalWorkflowError(
+                "Use either --spec-impact or --no-spec-impact, not both."
+            )
+        if not spec_impact and not no_spec_impact:
+            raise LocalWorkflowError(
+                "decide requires --spec-impact TEXT or --no-spec-impact"
+            )
+        result = add_note(
+            target, kind="decision", text=text, no_local_files=no_local_files
+        )
+        impact_text = spec_impact or f"No spec impact: {text}"
+        add_note(
+            target, kind="spec-impact", text=impact_text, no_local_files=no_local_files
+        )
+    except (WorkflowError, LocalWorkflowError) as e:
+        print_error(str(e))
+        raise SystemExit(1) from e
+    if json:
+        print(json_dump_dataclass(result))
+        return
+    print(f"decision: {result.text}")
+    print(f"spec-impact: {impact_text}")
 
 
 @app.command(
@@ -622,6 +720,56 @@ def sync(
                 print(f"- {item}")
     if check and not result.synced:
         raise SystemExit(1)
+
+
+@app.command(
+    help_epilogue=(
+        "Examples:\n"
+        "  hk validate --why 'Focused regression coverage' -- uv run pytest tests/test_example.py -q\n"
+        "  hk validate --why 'Lint and typecheck gate' --shell 'pnpm run lint && pnpm run typecheck'\n"
+    )
+)
+def validate(
+    command: tuple[str, ...] = (),
+    *,
+    why: str,
+    target: Path = Path("."),
+    kind: Literal[
+        "test", "lint", "typecheck", "build", "check", "e2e", "other"
+    ] = "other",
+    shell: str = "",
+    no_log: bool = False,
+    raw_log: bool = False,
+    no_local_files: bool = False,
+    json: bool = False,
+) -> None:
+    """Run a native command and record validation evidence with rationale."""
+    try:
+        if not why.strip():
+            raise LocalWorkflowError("validate requires --why TEXT")
+        result = capture_command(
+            target,
+            command,
+            shell_command=shell,
+            kind=kind,
+            why=why.strip(),
+            no_log=no_log,
+            raw_log=raw_log,
+            no_local_files=no_local_files,
+            stream_to_stderr=json,
+        )
+    except (WorkflowError, LocalWorkflowError) as e:
+        print_error(str(e))
+        raise SystemExit(1) from e
+    if json:
+        print_capture_and_exit(result)
+        return
+    print(f"evidence_id={result.evidence_id}")
+    print(f"status={result.status}")
+    print(f"why={result.why}")
+    print(f"transcript_path={result.transcript_path}")
+    if result.exit_code != 0:
+        raise SystemExit(result.exit_code)
 
 
 @app.command(
@@ -669,6 +817,40 @@ def capture(
         raise SystemExit(result.exit_code)
 
 
+@review_app.command(name="add")
+def review_add(
+    *,
+    backend: str,
+    reviewer: str,
+    rubric: tuple[str, ...] = (),
+    summary: str,
+    disposition: str = "accepted",
+    target: Path = Path("."),
+    no_local_files: bool = False,
+    json: bool = False,
+) -> None:
+    """Record external-enough review evidence for readiness."""
+    try:
+        result = add_review(
+            target,
+            backend=backend,
+            reviewer=reviewer,
+            rubrics=rubric,
+            summary=summary,
+            disposition=disposition,
+            no_local_files=no_local_files,
+        )
+    except (WorkflowError, LocalWorkflowError) as e:
+        print_error(str(e))
+        raise SystemExit(1) from e
+    if json:
+        print(json_dump_dataclass(result))
+        return
+    print(f"review={result.backend}/{result.reviewer}")
+    print(f"rubrics={', '.join(result.rubrics)}")
+    print(f"summary={result.summary}")
+
+
 @evidence_app.command(name="list")
 def evidence_list(
     *,
@@ -689,7 +871,76 @@ def evidence_list(
         print(json_dump_object({"evidence": rows}))
         return
     for record in records:
-        print(f"{record.id}: {record.status} {record.command_display}")
+        why = f" — {record.why}" if record.why else ""
+        print(f"{record.id}: {record.status} {record.command_display}{why}")
+
+
+@app.command(name="ready")
+def ready_command(
+    *,
+    target: Path = Path("."),
+    no_local_files: bool = False,
+    json: bool = False,
+) -> None:
+    """Check lifecycle handoff readiness."""
+    try:
+        result = local_ready(target, no_local_files=no_local_files)
+    except (WorkflowError, LocalWorkflowError) as e:
+        print_error(str(e))
+        raise SystemExit(1) from e
+    if json:
+        print(json_dump_dataclass(result))
+    else:
+        print(result.status)
+        for check in result.checks:
+            print(f"- {check.id}: {check.status} — {check.message}")
+    if not result.ready:
+        raise SystemExit(1)
+
+
+@app.command(name="dangerously-skip")
+def ready_dangerously_skip(
+    check: Literal["review", "validation"],
+    *,
+    reason: str,
+    target: Path = Path("."),
+    no_local_files: bool = False,
+    json: bool = False,
+) -> None:
+    """Record an explicit dangerous skip for a readiness check."""
+    try:
+        result = add_dangerous_skip(
+            target, check=check, reason=reason, no_local_files=no_local_files
+        )
+    except (WorkflowError, LocalWorkflowError) as e:
+        print_error(str(e))
+        raise SystemExit(1) from e
+    if json:
+        print(json_dump_dataclass(result))
+        return
+    print(f"dangerously-skipped={check}")
+    print(f"reason={reason}")
+
+
+@app.command(name="export")
+def export_command(
+    *,
+    target: Path = Path("."),
+    format: Literal["handoff", "plan-dir"] = "handoff",
+    no_local_files: bool = False,
+    json: bool = False,
+) -> None:
+    """Export generated lifecycle views from the active ledger."""
+    _ = format
+    try:
+        result = materialize_work(target, no_local_files=no_local_files)
+    except (WorkflowError, LocalWorkflowError) as e:
+        print_error(str(e))
+        raise SystemExit(1) from e
+    if json:
+        print(json_dump_dataclass(result))
+        return
+    print(result.path)
 
 
 @app.command(
@@ -829,29 +1080,56 @@ def attach(
 @app.command(
     help_epilogue=(
         "Examples:\n"
-        "  hk plan investigate-cache-bug --target /work/repo --json\n"
-        "  hk plan api-timeout --target /work/my-python-package --profile python --json"
+        "  hk plan 'Implement lifecycle-first ready checks'\n"
+        "  hk plan --from-file /tmp/adopted-plan.md --json\n"
+        "  hk legacy plan investigate-cache-bug --target /work/repo --json"
     )
 )
 def plan(
-    slug: str,
+    text: str = "",
     *,
+    from_file: Path | None = None,
     target: Path = Path("."),
     mode: WorkflowMode = "external",
     profile: ProfileName = "generic",
     profiles_dir: Path | None = None,
     state_root: Path | None = None,
+    no_local_files: bool = False,
     json: bool = False,
 ) -> None:
-    """Create a local workflow plan for a target repo."""
+    """Record the agreed lifecycle implementation plan."""
+    if state_root is not None or mode != "external" or profiles_dir is not None:
+        try:
+            catalog = resolve_catalog(profiles_dir)
+            catalog.get(profile)
+            result = create_plan(target, text, mode=mode, state_root=state_root)
+        except (WorkflowError, KeyError, ProfileError) as e:
+            print_error(f"{e}\nTry: hk legacy plan my-slice --target <repo> --json")
+            raise SystemExit(1) from e
+        emit(result, json=json)
+        return
     try:
-        catalog = resolve_catalog(profiles_dir)
-        catalog.get(profile)
-        result = create_plan(target, slug, mode=mode, state_root=state_root)
-    except (WorkflowError, KeyError, ProfileError) as e:
-        print_error(f"{e}\nTry: hk plan my-slice --target <repo> --json")
+        if from_file is not None:
+            if text:
+                raise LocalWorkflowError(
+                    "Use either plan TEXT or --from-file, not both."
+                )
+            try:
+                text = from_file.read_text().strip()
+            except OSError as e:
+                raise LocalWorkflowError(
+                    f"Could not read plan file: {from_file}"
+                ) from e
+        if not text:
+            raise LocalWorkflowError("plan requires TEXT or --from-file PATH")
+        result = add_note(target, kind="plan", text=text, no_local_files=no_local_files)
+    except (WorkflowError, LocalWorkflowError) as e:
+        print_error(str(e))
         raise SystemExit(1) from e
-    emit(result, json=json)
+    if json:
+        print(json_dump_dataclass(result))
+        return
+    print(f"plan: {result.text}")
 
 
 @app.command(
@@ -868,15 +1146,51 @@ def status(
     profile: ProfileName = "generic",
     profiles_dir: Path | None = None,
     state_root: Path | None = None,
+    no_local_files: bool = False,
     json: bool = False,
 ) -> None:
-    """Show portable workflow status for a target repo."""
+    """Show lifecycle work status for a target repo."""
+    if state_root is not None or mode != "external" or profiles_dir is not None:
+        try:
+            catalog = resolve_catalog(profiles_dir)
+            catalog.get(profile)
+            result = workflow_status(target, mode=mode, state_root=state_root)
+        except (WorkflowError, KeyError, ProfileError) as e:
+            print_error(f"{e}\nTry: hk status --target <repo> --json")
+            raise SystemExit(1) from e
+        emit(result, json=json)
+        return
+    try:
+        result = local_brief(target, no_local_files=no_local_files)
+    except (WorkflowError, LocalWorkflowError) as e:
+        print_error(str(e))
+        raise SystemExit(1) from e
+    if json:
+        print(json_dump_dataclass(result))
+        return
+    print(f"active_work={result.active_work or 'none'}")
+    print(f"sync_status={result.sync_status}")
+    print(f"state_dir={result.state_dir}")
+
+
+@legacy_app.command(name="plan")
+def legacy_plan(
+    slug: str,
+    *,
+    target: Path = Path("."),
+    mode: WorkflowMode = "external",
+    profile: ProfileName = "generic",
+    profiles_dir: Path | None = None,
+    state_root: Path | None = None,
+    json: bool = False,
+) -> None:
+    """Create a legacy plan-artifact workflow plan."""
     try:
         catalog = resolve_catalog(profiles_dir)
         catalog.get(profile)
-        result = workflow_status(target, mode=mode, state_root=state_root)
+        result = create_plan(target, slug, mode=mode, state_root=state_root)
     except (WorkflowError, KeyError, ProfileError) as e:
-        print_error(f"{e}\nTry: hk status --target <repo> --json")
+        print_error(f"{e}\nTry: hk legacy plan my-slice --target <repo> --json")
         raise SystemExit(1) from e
     emit(result, json=json)
 
