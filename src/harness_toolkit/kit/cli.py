@@ -563,13 +563,13 @@ def work_materialize(
 def note(
     text: str = "",
     *,
-    kind: Literal["plan", "learning", "decision", "gap", "context", "spec-impact"],
+    kind: Literal["plan", "background", "learning", "decision", "gap", "spec-impact"],
     from_file: Path | None = None,
     target: Path = Path("."),
     no_local_files: bool = False,
     json: bool = False,
 ) -> None:
-    """Append a typed plan, learning, decision, gap, context, or spec-impact note."""
+    """Append a typed plan, background, learning, decision, gap, or spec-impact note."""
     try:
         if from_file is not None:
             if text:

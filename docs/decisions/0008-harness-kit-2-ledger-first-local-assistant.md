@@ -71,9 +71,11 @@ or materialized from the ledger. They are not the source of truth by default.
 
 ### Typed notes
 
-Learning, decisions, gaps, context, and spec impact are captured as typed events:
+Plan, background, learning, decisions, gaps, and spec impact are captured as typed events:
 
 ```bash
+hk note --kind plan "..."
+hk note --kind background "..."
 hk note --kind learning "..."
 hk note --kind decision "..."
 hk note --kind gap "..."

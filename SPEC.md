@@ -107,8 +107,8 @@ Ledger-first 2.0 local assistant commands may coexist during migration:
 hk brief --target <repo-or-module> --json
 hk init --target <repo-or-module> --json
 hk work start <slug> --target <repo-or-module> --json
-hk note --kind plan|learning|decision|gap|context|spec-impact "TEXT" --target <repo-or-module> --json
-hk note --kind plan|learning|decision|gap|context|spec-impact --from-file <path> --target <repo-or-module> --json
+hk note --kind plan|background|learning|decision|gap|spec-impact "TEXT" --target <repo-or-module> --json
+hk note --kind plan|background|learning|decision|gap|spec-impact --from-file <path> --target <repo-or-module> --json
 hk sync --target <repo-or-module> --json
 hk sync --check --target <repo-or-module> --json
 hk capture --kind test --target <repo-or-module> -- <command...>
@@ -185,7 +185,7 @@ class Stack(Protocol):
 - **stdlib-only test helpers**: `_docs_helpers.py` uses only stdlib (no pyyaml) so it's portable into generated repos without adding dependencies.
 - **Shell-first local assistant**: `hk` MAY capture exact native commands and local work state, but MUST NOT hide validation behind `hk run`-style task-runner commands. Captured evidence preserves command identity, exit code, and transcript metadata.
 - **Freshness vs readiness**: `hk sync --check` answers whether ledger work changed after the last checkpoint. Handoff readiness is a separate contract currently implemented by `mise run sync-check` over plan artifacts and targeted for a ledger-backed `hk ready --check` successor.
-- **No heuristic readiness/profile scoring**: `hk brief` and profile commands report facts and guidance, not readiness grades, confidence scores, or silent validation command selection. Planning may happen outside HK, but agents must translate the agreed intent into explicit plan/context/decision records; HK records those declarations and checks evidence consistency while humans/reviewers judge quality.
+- **No heuristic readiness/profile scoring**: `hk brief` and profile commands report facts and guidance, not readiness grades, confidence scores, or silent validation command selection. Planning may happen outside HK, but agents must translate the agreed intent into explicit plan/background/decision records; HK records those declarations and checks evidence consistency while humans/reviewers judge quality.
 - **Local-first adoption boundary**: default `hk` local assistant state stays ignored or external. Committed `.harness/`, `SPEC.md`, or task-contract artifacts require explicit adoption/promotion.
 
 ## Acceptance

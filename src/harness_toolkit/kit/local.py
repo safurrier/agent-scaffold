@@ -26,7 +26,7 @@ LOCAL_STATE_DIR = ".harness-local"
 KIT_STATE_DIR = "harness-kit"
 STATE_SCHEMA_VERSION = 1
 WORK_DIR_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-\d{6}-")
-VALID_NOTE_KINDS = ("plan", "learning", "decision", "gap", "context", "spec-impact")
+VALID_NOTE_KINDS = ("plan", "background", "learning", "decision", "gap", "spec-impact")
 VALID_EVIDENCE_KINDS = ("test", "lint", "typecheck", "build", "check", "e2e", "other")
 SYNC_IGNORED_EVENT_TYPES = frozenset(
     {"sync_checkpoint", "view_materialized", "handoff_generated"}
@@ -60,7 +60,7 @@ SECRET_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
 )
 
 StateMode = Literal["local", "external"]
-NoteKind = Literal["plan", "learning", "decision", "gap", "context", "spec-impact"]
+NoteKind = Literal["plan", "background", "learning", "decision", "gap", "spec-impact"]
 EvidenceKind = Literal["test", "lint", "typecheck", "build", "check", "e2e", "other"]
 HandoffFormat = Literal["markdown", "pr", "json"]
 
@@ -592,7 +592,7 @@ def sync_checkpoint(
         "Evidence: did you capture or explain validation?",
         "Learning: did you record anything future agents should know?",
         "Decisions: did you record non-obvious choices?",
-        "Gaps: did you disclose missing validation or context?",
+        "Gaps: did you disclose missing validation or follow-up work?",
         "Spec/docs: did behavior or product intent change?",
     ]
     if check:
@@ -921,11 +921,15 @@ def brief_markdown(value: Brief) -> str:
 
 
 def notes_by_kind(events: list[EventRecord], kind: str) -> list[str]:
+    return notes_by_kinds(events, (kind,))
+
+
+def notes_by_kinds(events: list[EventRecord], kinds: tuple[str, ...]) -> list[str]:
     rows: list[str] = []
     for event in events:
         if event.type != "note_added":
             continue
-        if event.data.get("kind") == kind:
+        if event.data.get("kind") in kinds:
             rows.append(str(event.data.get("text", "")))
     return rows
 
@@ -954,9 +958,9 @@ def render_handoff(work_dir: Path, state: LocalState) -> str:
         [f"- {item}" for item in notes_by_kind(events, "decision")]
         or ["- None recorded."]
     )
-    lines.extend(["", "## Context"])
+    lines.extend(["", "## Background"])
     lines.extend(
-        [f"- {item}" for item in notes_by_kind(events, "context")]
+        [f"- {item}" for item in notes_by_kinds(events, ("background", "context"))]
         or ["- None recorded."]
     )
     lines.extend(["", "## Learning"])
@@ -993,14 +997,14 @@ def materialize_work(target: Path, *, no_local_files: bool = False) -> HandoffRe
     events = read_events(work_dir)
     views = work_dir / "views"
     views.mkdir(exist_ok=True)
-    for filename, kind, title in (
-        ("plan.md", "plan", "Plan"),
-        ("learning-log.md", "learning", "Learning Log"),
-        ("decisions.md", "decision", "Decisions"),
-        ("context.md", "context", "Context"),
-        ("gaps.md", "gap", "Gaps"),
+    for filename, kinds, title in (
+        ("plan.md", ("plan",), "Plan"),
+        ("learning-log.md", ("learning",), "Learning Log"),
+        ("decisions.md", ("decision",), "Decisions"),
+        ("background.md", ("background", "context"), "Background"),
+        ("gaps.md", ("gap",), "Gaps"),
     ):
-        items = notes_by_kind(events, kind)
+        items = notes_by_kinds(events, kinds)
         content = f"# {title}\n\n" + "\n".join(f"- {item}" for item in items)
         if not items:
             content += "None recorded."

@@ -118,7 +118,9 @@ def test_init_work_note_materialize_keep_local_state_ignored(tmp_path: Path) -> 
     work = create_work(target, "demo-work")
     note = add_note(target, kind="learning", text="Local state is okay when ignored.")
     plan = add_note(target, kind="plan", text="Adopt the agreed lightweight plan.")
-    context = add_note(target, kind="context", text="Planning happened in chat first.")
+    background = add_note(
+        target, kind="background", text="Planning happened in chat first."
+    )
     materialized = materialize_work(target)
     views = Path(materialized.path).parent
 
@@ -126,11 +128,11 @@ def test_init_work_note_materialize_keep_local_state_ignored(tmp_path: Path) -> 
     assert Path(work.work_dir, "events.jsonl").exists()
     assert note.seq == 2
     assert plan.seq == 3
-    assert context.seq == 4
+    assert background.seq == 4
     assert "Adopt the agreed lightweight plan" in Path(materialized.path).read_text()
     assert "Planning happened in chat first" in Path(materialized.path).read_text()
     assert "Adopt the agreed lightweight plan" in (views / "plan.md").read_text()
-    assert "Planning happened in chat first" in (views / "context.md").read_text()
+    assert "Planning happened in chat first" in (views / "background.md").read_text()
     assert _git_status(target) == ""
 
 

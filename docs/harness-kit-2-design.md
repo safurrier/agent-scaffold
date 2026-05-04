@@ -106,11 +106,12 @@ note instead of asking HK to parse the conversation heuristically. The plan note
 is a durable summary of implementation intent, not a project-management system
 or a requirement to explode work into many serial task commands.
 
-Plan, learning, decisions, gaps, context, and spec impact are typed events:
+Plan, background, learning, decisions, gaps, and spec impact are typed events:
 
 ```bash
 hk note --kind plan "Update sync/readiness docs, validate with check/sync-check, and record external review."
 hk note --kind plan --from-file /tmp/adopted-plan.md
+hk note --kind background "Relevant files: src/auth/session.py and tests/test_session.py."
 hk note --kind learning "Auth timeout behavior is owned by session refresh."
 hk note --kind decision "Preserved retry count semantics."
 hk note --kind gap "Full suite not run."
@@ -174,8 +175,8 @@ renderable.
 
 The intended human/agent loop is phase-oriented:
 
-1. **Research** — read repo context, inspect specs/instructions, and record
-   discoveries with learning/context notes.
+1. **Research** — read repo background, inspect specs/instructions, and record
+   stable framing with background notes and discoveries with learning notes.
 2. **Plan** — planning may happen in chat or external docs first; record the
    agreed implementation intent as a compact plan note, with optional tasks only
    when a checklist is useful.
@@ -193,7 +194,7 @@ The current scaffold artifacts map to those phases as follows:
 
 | Phase | Current plan artifact | HK 2.0 target |
 |---|---|---|
-| Research | `LEARNING_LOG.md` | learning/context events |
+| Research | `LEARNING_LOG.md` | background/learning events |
 | Plan | `TODO.md`, `IMPLEMENTATION.md` | plan notes, optional task events, and generated plan view |
 | Decisions/spec | `DECISIONS.md`, ADR/ledger links | decision/spec-impact events with durable reflection metadata |
 | Validation | `VALIDATION.md`, `artifacts/manifest.yaml` | captured command evidence with rationale and generated evidence views |
@@ -238,8 +239,8 @@ hk init [--target PATH] [--no-local-files] [--json]
 hk work start <slug> [--target PATH] [--json]
 hk work status [--target PATH] [--json]
 hk work materialize [--target PATH] [--json]
-hk note --kind plan|learning|decision|gap|context|spec-impact "TEXT" [--target PATH] [--json]
-hk note --kind plan|learning|decision|gap|context|spec-impact --from-file PATH [--target PATH] [--json]
+hk note --kind plan|background|learning|decision|gap|spec-impact "TEXT" [--target PATH] [--json]
+hk note --kind plan|background|learning|decision|gap|spec-impact --from-file PATH [--target PATH] [--json]
 hk sync [--target PATH] [--json]
 hk sync --check [--target PATH] [--json]
 hk capture [--target PATH] [--kind KIND] [--shell TEXT] [--no-log|--raw-log] -- <command...>

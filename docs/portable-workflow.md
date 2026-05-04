@@ -77,7 +77,7 @@ hk brief --target . --json
 hk init --target . --json
 hk work start <slug> --target . --json
 hk note --kind plan "..." --target .
-hk note --kind learning|decision|gap|context|spec-impact "..." --target .
+hk note --kind background|learning|decision|gap|spec-impact "..." --target .
 hk capture --kind test --target . -- <native validation command>
 hk sync --target .
 hk handoff --target . --format markdown
@@ -232,7 +232,7 @@ info/exclude`, so linked worktrees and `.git` file checkouts are handled.
 | `hk brief` | Print a read-only repo brief without choosing validation commands |
 | `hk init` | Initialize ignored local or external Harness Kit 2 state |
 | `hk work start` | Start a ledger-backed local work unit |
-| `hk note` | Append typed plan, learning, decision, gap, context, or spec-impact notes |
+| `hk note` | Append typed plan, background, learning, decision, gap, or spec-impact notes |
 | `hk sync` | Record or check a freshness checkpoint for the active work snapshot |
 | `hk capture` | Run a native command and record exact evidence |
 | `hk handoff` | Render a conservative handoff from the work ledger |
