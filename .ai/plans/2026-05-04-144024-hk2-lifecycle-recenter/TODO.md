@@ -25,5 +25,5 @@ description: >
 - [x] Implement Slice 4: `hk ready`.
 - [x] Implement initial `hk export` handoff/view export.
 - [x] Dogfood HK-on-HK using the lifecycle commands.
-- [ ] Run independent subagent build trial and capture UX findings.
+- [x] Run independent subagent build trial and capture UX findings.
 - [ ] Revisit profile vs `.harness/harness.toml` design; likely simplification is to make `.harness` the durable config model and treat profiles as presets/checksets or migration compatibility.

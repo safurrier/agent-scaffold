@@ -36,6 +36,9 @@ description: >
 - Subagent review found readiness blockers: failed validation evidence could pass
   readiness, rejected reviews could pass readiness, and `hk instructions` still
   described the legacy workflow. These were fixed before handoff.
+- Independent subagent build trial succeeded on a synthetic tinycalc repo. The
+  main UX finding was that `uv --directory ... run hk` changes cwd, so dogfood
+  instructions need explicit `--target` or an installed binary.
 
 ## Disposition
 

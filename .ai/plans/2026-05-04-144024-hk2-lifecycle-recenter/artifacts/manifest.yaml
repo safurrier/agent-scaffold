@@ -5,3 +5,6 @@ artifacts:
   - path: artifacts/lifecycle-implementation-plan.md
     type: report
     description: Task-by-task HK 2.0 lifecycle implementation plan with validation strategy
+  - path: artifacts/subagent-dogfood-findings.md
+    type: report
+    description: Independent subagent build trial findings for HK 2.0 lifecycle dogfood
