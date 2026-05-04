@@ -554,20 +554,36 @@ def work_materialize(
 @app.command(
     help_epilogue=(
         "Examples:\n"
+        "  hk note --kind plan 'Implement the agreed sync/readiness docs update'\n"
         "  hk note --kind learning 'Auth timeout is owned by session refresh'\n"
         "  hk note --kind gap 'Full suite not run' --json\n"
+        "  hk note --kind plan --from-file /tmp/plan-summary.md\n"
     )
 )
 def note(
-    text: str,
+    text: str = "",
     *,
-    kind: str,
+    kind: Literal["plan", "learning", "decision", "gap", "context", "spec-impact"],
+    from_file: Path | None = None,
     target: Path = Path("."),
     no_local_files: bool = False,
     json: bool = False,
 ) -> None:
-    """Append a typed learning, decision, gap, context, or spec-impact note."""
+    """Append a typed plan, learning, decision, gap, context, or spec-impact note."""
     try:
+        if from_file is not None:
+            if text:
+                raise LocalWorkflowError(
+                    "Use either note TEXT or --from-file, not both."
+                )
+            try:
+                text = from_file.read_text().strip()
+            except OSError as e:
+                raise LocalWorkflowError(
+                    f"Could not read note file: {from_file}"
+                ) from e
+        if not text:
+            raise LocalWorkflowError("note requires TEXT or --from-file PATH")
         result = add_note(target, kind=kind, text=text, no_local_files=no_local_files)
     except (WorkflowError, LocalWorkflowError) as e:
         print_error(str(e))

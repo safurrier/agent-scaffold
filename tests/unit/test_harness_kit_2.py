@@ -117,12 +117,20 @@ def test_init_work_note_materialize_keep_local_state_ignored(tmp_path: Path) -> 
     init = init_state(target)
     work = create_work(target, "demo-work")
     note = add_note(target, kind="learning", text="Local state is okay when ignored.")
+    plan = add_note(target, kind="plan", text="Adopt the agreed lightweight plan.")
+    context = add_note(target, kind="context", text="Planning happened in chat first.")
     materialized = materialize_work(target)
+    views = Path(materialized.path).parent
 
     assert init.ignored_by_local_git is True
     assert Path(work.work_dir, "events.jsonl").exists()
     assert note.seq == 2
-    assert "Local state is okay" in Path(materialized.path).read_text()
+    assert plan.seq == 3
+    assert context.seq == 4
+    assert "Adopt the agreed lightweight plan" in Path(materialized.path).read_text()
+    assert "Planning happened in chat first" in Path(materialized.path).read_text()
+    assert "Adopt the agreed lightweight plan" in (views / "plan.md").read_text()
+    assert "Planning happened in chat first" in (views / "context.md").read_text()
     assert _git_status(target) == ""
 
 
@@ -373,6 +381,63 @@ def test_cli_handoff_rejects_invalid_format(tmp_path: Path) -> None:
     result = _run_hk("handoff", "--target", str(target), "--format", "xml")
 
     assert result.returncode != 0
+
+
+def test_cli_note_from_file_records_plan_note(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    plan_file = tmp_path / "plan.md"
+    plan_file.write_text(
+        "Plan:\n- Translate external planning into one durable note.\n"
+    )
+    assert _run_hk("init", "--target", str(target), "--json").returncode == 0
+    assert (
+        _run_hk("work", "start", "plan-note", "--target", str(target)).returncode == 0
+    )
+
+    result = _run_hk(
+        "note",
+        "--target",
+        str(target),
+        "--kind",
+        "plan",
+        "--from-file",
+        str(plan_file),
+        "--json",
+    )
+    handoff_result = _run_hk("handoff", "--target", str(target))
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["kind"] == "plan"
+    assert "Translate external planning" in payload["text"]
+    assert "## Plan" in handoff_result.stdout
+    assert "Translate external planning" in handoff_result.stdout
+
+
+def test_cli_note_rejects_text_and_from_file(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    plan_file = tmp_path / "plan.md"
+    plan_file.write_text("Plan\n")
+    assert _run_hk("init", "--target", str(target), "--json").returncode == 0
+    assert (
+        _run_hk("work", "start", "plan-note", "--target", str(target)).returncode == 0
+    )
+
+    result = _run_hk(
+        "note",
+        "inline text",
+        "--target",
+        str(target),
+        "--kind",
+        "plan",
+        "--from-file",
+        str(plan_file),
+    )
+
+    assert result.returncode != 0
+    assert "Use either note TEXT or --from-file" in result.stderr
 
 
 def test_cli_capture_json_stdout_is_parseable(tmp_path: Path) -> None:

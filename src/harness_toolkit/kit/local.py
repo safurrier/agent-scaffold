@@ -26,7 +26,7 @@ LOCAL_STATE_DIR = ".harness-local"
 KIT_STATE_DIR = "harness-kit"
 STATE_SCHEMA_VERSION = 1
 WORK_DIR_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-\d{6}-")
-VALID_NOTE_KINDS = ("learning", "decision", "gap", "context", "spec-impact")
+VALID_NOTE_KINDS = ("plan", "learning", "decision", "gap", "context", "spec-impact")
 VALID_EVIDENCE_KINDS = ("test", "lint", "typecheck", "build", "check", "e2e", "other")
 SYNC_IGNORED_EVENT_TYPES = frozenset(
     {"sync_checkpoint", "view_materialized", "handoff_generated"}
@@ -60,7 +60,7 @@ SECRET_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
 )
 
 StateMode = Literal["local", "external"]
-NoteKind = Literal["learning", "decision", "gap", "context", "spec-impact"]
+NoteKind = Literal["plan", "learning", "decision", "gap", "context", "spec-impact"]
 EvidenceKind = Literal["test", "lint", "typecheck", "build", "check", "e2e", "other"]
 HandoffFormat = Literal["markdown", "pr", "json"]
 
@@ -588,6 +588,7 @@ def sync_checkpoint(
     current_hash = git_diff_hash(state.target_root)
     sync_events = [event for event in events if event.type == "sync_checkpoint"]
     guidance = [
+        "Plan: did you record the agreed implementation intent?",
         "Evidence: did you capture or explain validation?",
         "Learning: did you record anything future agents should know?",
         "Decisions: did you record non-obvious choices?",
@@ -943,10 +944,19 @@ def render_handoff(work_dir: Path, state: LocalState) -> str:
         f"- Dirty: `{str(git_dirty(state.target_root)).lower()}`",
         f"- Sync status: `{sync_status}`",
         "",
-        "## Decisions",
+        "## Plan",
     ]
     lines.extend(
+        [f"- {item}" for item in notes_by_kind(events, "plan")] or ["- None recorded."]
+    )
+    lines.extend(["", "## Decisions"])
+    lines.extend(
         [f"- {item}" for item in notes_by_kind(events, "decision")]
+        or ["- None recorded."]
+    )
+    lines.extend(["", "## Context"])
+    lines.extend(
+        [f"- {item}" for item in notes_by_kind(events, "context")]
         or ["- None recorded."]
     )
     lines.extend(["", "## Learning"])
@@ -984,8 +994,10 @@ def materialize_work(target: Path, *, no_local_files: bool = False) -> HandoffRe
     views = work_dir / "views"
     views.mkdir(exist_ok=True)
     for filename, kind, title in (
+        ("plan.md", "plan", "Plan"),
         ("learning-log.md", "learning", "Learning Log"),
         ("decisions.md", "decision", "Decisions"),
+        ("context.md", "context", "Context"),
         ("gaps.md", "gap", "Gaps"),
     ):
         items = notes_by_kind(events, kind)

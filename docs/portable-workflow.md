@@ -76,6 +76,7 @@ exact command evidence, and a generated handoff without committing ceremony:
 hk brief --target . --json
 hk init --target . --json
 hk work start <slug> --target . --json
+hk note --kind plan "..." --target .
 hk note --kind learning|decision|gap|context|spec-impact "..." --target .
 hk capture --kind test --target . -- <native validation command>
 hk sync --target .
@@ -102,6 +103,15 @@ Conceptually, the intended agent/human lifecycle is:
 research → plan → implement → validate → review → handoff
 ```
 
+Planning can happen outside HK in chat, issues, or scratch docs. Once the plan is
+stable enough to implement, agents should translate the agreed intent into a
+compact HK plan note, for example:
+
+```bash
+hk note --kind plan --from-file /tmp/adopted-plan.md --target .
+```
+
+HK records the explicit plan; it does not parse conversations or infer plans.
 Today, plan artifacts represent that lifecycle as Markdown/YAML files. HK 2.0's
 target is to represent it as ledger events and generate the Markdown/YAML views
 when needed.
@@ -222,7 +232,7 @@ info/exclude`, so linked worktrees and `.git` file checkouts are handled.
 | `hk brief` | Print a read-only repo brief without choosing validation commands |
 | `hk init` | Initialize ignored local or external Harness Kit 2 state |
 | `hk work start` | Start a ledger-backed local work unit |
-| `hk note` | Append typed learning, decision, gap, context, or spec-impact notes |
+| `hk note` | Append typed plan, learning, decision, gap, context, or spec-impact notes |
 | `hk sync` | Record or check a freshness checkpoint for the active work snapshot |
 | `hk capture` | Run a native command and record exact evidence |
 | `hk handoff` | Render a conservative handoff from the work ledger |

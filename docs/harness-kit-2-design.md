@@ -98,11 +98,19 @@ files.
 Generated views may include `learning-log.md`, `decisions.md`, `gaps.md`, and
 `handoff.md`, but the ledger remains the source of truth.
 
-### Typed notes capture learning without ceremony
+### Typed notes capture planning and learning without ceremony
 
-Learning, decisions, gaps, context, and spec impact are typed events:
+Planning may happen outside HK in a human/AI conversation, issue, scratch doc, or
+research pass. Agents should translate the agreed result into a compact `plan`
+note instead of asking HK to parse the conversation heuristically. The plan note
+is a durable summary of implementation intent, not a project-management system
+or a requirement to explode work into many serial task commands.
+
+Plan, learning, decisions, gaps, context, and spec impact are typed events:
 
 ```bash
+hk note --kind plan "Update sync/readiness docs, validate with check/sync-check, and record external review."
+hk note --kind plan --from-file /tmp/adopted-plan.md
 hk note --kind learning "Auth timeout behavior is owned by session refresh."
 hk note --kind decision "Preserved retry count semantics."
 hk note --kind gap "Full suite not run."
@@ -168,7 +176,9 @@ The intended human/agent loop is phase-oriented:
 
 1. **Research** — read repo context, inspect specs/instructions, and record
    discoveries with learning/context notes.
-2. **Plan** — produce and update a task plan as research changes the approach.
+2. **Plan** — planning may happen in chat or external docs first; record the
+   agreed implementation intent as a compact plan note, with optional tasks only
+   when a checklist is useful.
 3. **Implement** — edit code in the normal shell/editor loop; record notable
    decisions and spec impacts.
 4. **Validate** — run native repo commands directly and capture exact evidence
@@ -184,7 +194,7 @@ The current scaffold artifacts map to those phases as follows:
 | Phase | Current plan artifact | HK 2.0 target |
 |---|---|---|
 | Research | `LEARNING_LOG.md` | learning/context events |
-| Plan | `TODO.md` | task events and generated plan view |
+| Plan | `TODO.md`, `IMPLEMENTATION.md` | plan notes, optional task events, and generated plan view |
 | Decisions/spec | `DECISIONS.md`, ADR/ledger links | decision/spec-impact events with durable reflection metadata |
 | Validation | `VALIDATION.md`, `artifacts/manifest.yaml` | captured command evidence with rationale and generated evidence views |
 | Review | `REVIEW.md` | review events with backend/reviewer/rubrics/findings/disposition |
@@ -228,7 +238,8 @@ hk init [--target PATH] [--no-local-files] [--json]
 hk work start <slug> [--target PATH] [--json]
 hk work status [--target PATH] [--json]
 hk work materialize [--target PATH] [--json]
-hk note --kind learning|decision|gap|context|spec-impact "TEXT" [--target PATH] [--json]
+hk note --kind plan|learning|decision|gap|context|spec-impact "TEXT" [--target PATH] [--json]
+hk note --kind plan|learning|decision|gap|context|spec-impact --from-file PATH [--target PATH] [--json]
 hk sync [--target PATH] [--json]
 hk sync --check [--target PATH] [--json]
 hk capture [--target PATH] [--kind KIND] [--shell TEXT] [--no-log|--raw-log] -- <command...>
@@ -244,7 +255,7 @@ hk profile list|show|create
 Planned parity commands before deprecating the plan-artifact workflow:
 
 ```bash
-hk task add|done|defer|list ...
+compact plan record/readiness checks, with optional task/checklist commands only when useful
 hk capture --why "WHAT THIS VALIDATES" -- <command...>
 hk review add --backend NAME --reviewer NAME --rubric NAME --summary TEXT --disposition TEXT
 hk ready --check [--target PATH] [--json]
@@ -337,7 +348,7 @@ Each implementation phase must:
 7. Optional local/external SPEC.
 8. Scaffold task-contract prototype.
 9. Readiness parity with plan artifacts:
-   - task/plan events;
+   - compact plan records and optional task/checklist events;
    - validation evidence rationale;
    - review events with backend/reviewer/rubrics/findings/disposition;
    - `hk ready --check`;
