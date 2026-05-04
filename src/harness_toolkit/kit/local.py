@@ -28,6 +28,9 @@ STATE_SCHEMA_VERSION = 1
 WORK_DIR_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-\d{6}-")
 VALID_NOTE_KINDS = ("learning", "decision", "gap", "context", "spec-impact")
 VALID_EVIDENCE_KINDS = ("test", "lint", "typecheck", "build", "check", "e2e", "other")
+SYNC_IGNORED_EVENT_TYPES = frozenset(
+    {"sync_checkpoint", "view_materialized", "handoff_generated"}
+)
 SENSITIVE_OPTION_NAMES = {
     "--password",
     "--passwd",
@@ -568,13 +571,20 @@ def int_from_event_data(data: dict[str, object], key: str) -> int:
     return 0
 
 
+def latest_sync_relevant_seq(events: list[EventRecord]) -> int:
+    return max(
+        (event.seq for event in events if event.type not in SYNC_IGNORED_EVENT_TYPES),
+        default=0,
+    )
+
+
 def sync_checkpoint(
     target: Path, *, check: bool = False, no_local_files: bool = False
 ) -> SyncResult:
     state = ensure_state(target, no_local_files=no_local_files)
     work_dir = require_work(state)
     events = read_events(work_dir)
-    latest_seq = events[-1].seq if events else 0
+    latest_seq = latest_sync_relevant_seq(events)
     current_hash = git_diff_hash(state.target_root)
     sync_events = [event for event in events if event.type == "sync_checkpoint"]
     guidance = [
@@ -595,7 +605,7 @@ def sync_checkpoint(
         latest_sync = sync_events[-1]
         synced_seq = int_from_event_data(latest_sync.data, "event_seq")
         synced_hash = str(latest_sync.data.get("diff_hash", ""))
-        synced = synced_seq >= latest_seq - 1 and synced_hash == current_hash
+        synced = synced_seq >= latest_seq and synced_hash == current_hash
         message = "synced" if synced else "needs sync: work changed after checkpoint"
         return SyncResult(
             work_id=work_dir.name, synced=synced, message=message, guidance=guidance
@@ -818,9 +828,9 @@ def sync_status_for(state: LocalState) -> str:
     sync_events = [event for event in events if event.type == "sync_checkpoint"]
     if not sync_events:
         return "needs-sync"
-    latest = events[-1]
     latest_sync = sync_events[-1]
-    if latest.type != "sync_checkpoint" and latest.seq > latest_sync.seq:
+    synced_seq = int_from_event_data(latest_sync.data, "event_seq")
+    if synced_seq < latest_sync_relevant_seq(events):
         return "needs-sync"
     if str(latest_sync.data.get("diff_hash", "")) != git_diff_hash(state.target_root):
         return "needs-sync"

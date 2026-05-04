@@ -272,6 +272,27 @@ def test_handoff_does_not_overclaim_without_evidence(tmp_path: Path) -> None:
     assert "No validation evidence recorded" in result.content
 
 
+def test_generated_handoff_views_do_not_make_synced_work_stale(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "handoff-sync")
+    add_note(target, kind="decision", text="Keep generated views non-semantic.")
+    sync_checkpoint(target)
+
+    rendered = handoff(target)
+    materialized = materialize_work(target)
+    checked = sync_checkpoint(target, check=True)
+    repo_brief = brief(target)
+
+    assert "Sync status: `synced`" in rendered.content
+    assert Path(materialized.path).exists()
+    assert checked.synced is True
+    assert repo_brief.sync_status == "synced"
+
+
 def test_local_spec_can_be_created_and_promoted_as_dry_run(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
