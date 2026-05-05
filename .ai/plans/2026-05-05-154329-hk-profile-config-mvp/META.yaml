@@ -1,0 +1,20 @@
+slug: hk-profile-config-mvp
+branch: feat/harness-kit-2-ledger-assistant
+created: 2026-05-05
+pr:
+status: complete
+source: user-requested HK profile/config MVP design after final-polish dogfood
+contract_change: contract_changed
+decision_record: none
+review_mode: external_required
+review_backend: pi subagent
+review_rubrics:
+  - core-quality
+  - cli-ergonomics
+  - config-safety
+  - dogfood-evidence
+evidence_required:
+  - commands
+  - report
+continues_from:
+supersedes:

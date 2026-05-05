@@ -1,0 +1,19 @@
+slug: hk2-final-polish-dogfood
+branch: feat/harness-kit-2-ledger-assistant
+created: 2026-05-05
+pr:
+status: planned
+source: user questionnaire after hk2-agent-ergonomics-coach rollout
+contract_change: implementation_only
+decision_record: adr
+review_mode: external_required
+review_backend: pi subagent
+review_rubrics:
+  - core-quality
+  - cli-ergonomics
+  - dogfood-evidence
+evidence_required:
+  - commands
+  - dogfood-rerun
+continues_from: .ai/plans/2026-05-05-092246-hk2-agent-ergonomics-coach
+supersedes:

@@ -1,0 +1,29 @@
+version: 1
+artifacts:
+  - path: artifacts/design-questionnaire-summary.md
+    type: report
+    description: User questionnaire decisions for the HK2 agent-ergonomics slice.
+  - path: artifacts/pr-sized-dogfood-v3-study.md
+    type: dogfood-rerun
+    description: Targeted three-worker PR-sized dogfood rollout for start --plan, status coaching, and dangerous sync skips.
+  - path: artifacts/dogfood-v3-hk-commands.log
+    type: log
+    description: Raw HK command log from the targeted PR-sized dogfood rollout, saved as reviewable log artifact.
+  - path: artifacts/dogfood-v3-dread-worker-report.md
+    type: report
+    description: Dread worker report from dogfood v3.
+  - path: artifacts/dogfood-v3-dread-handoff.md
+    type: report
+    description: Dread generated HK handoff from dogfood v3.
+  - path: artifacts/dogfood-v3-foreman-worker-report.md
+    type: report
+    description: Foreman worker report from dogfood v3.
+  - path: artifacts/dogfood-v3-foreman-handoff.md
+    type: report
+    description: Foreman generated HK handoff from dogfood v3.
+  - path: artifacts/dogfood-v3-obsidian-sync-worker-report.md
+    type: report
+    description: Obsidian-sync worker report from dogfood v3.
+  - path: artifacts/dogfood-v3-obsidian-sync-handoff.md
+    type: report
+    description: Obsidian-sync generated HK handoff from dogfood v3.
