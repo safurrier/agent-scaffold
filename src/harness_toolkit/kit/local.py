@@ -982,6 +982,17 @@ ACCEPTED_REVIEW_DISPOSITIONS = {
     "no_findings",
 }
 SELF_REVIEW_TOKENS = ("self", "same-agent", "implementation-agent", "worker-self")
+SELF_REVIEW_GUIDANCE = (
+    "self-review does not count; run a separate reviewer/subagent with fresh "
+    "context, record that review, or use `hk dangerously-skip review --reason ...`"
+)
+
+
+def is_self_review_identity(value: str) -> bool:
+    clean = value.strip().lower()
+    if clean in {"", "self", "pending", "todo"}:
+        return True
+    return any(token in clean for token in SELF_REVIEW_TOKENS)
 
 
 def review_events(events: list[EventRecord]) -> list[dict[str, object]]:
@@ -994,11 +1005,9 @@ def accepted_review_events(events: list[EventRecord]) -> list[dict[str, object]]
         backend = str(review.get("backend", "")).strip().lower()
         reviewer = str(review.get("reviewer", "")).strip().lower()
         disposition = str(review.get("disposition", "")).strip().lower()
-        if backend in {"", "self", "pending", "todo"}:
+        if is_self_review_identity(backend):
             continue
-        if reviewer in {"", "self", "pending", "todo"}:
-            continue
-        if any(token in reviewer for token in SELF_REVIEW_TOKENS):
+        if is_self_review_identity(reviewer):
             continue
         if disposition not in ACCEPTED_REVIEW_DISPOSITIONS:
             continue
@@ -1118,6 +1127,8 @@ def add_review(
         raise LocalWorkflowError("review requires --backend")
     if not reviewer.strip():
         raise LocalWorkflowError("review requires --reviewer")
+    if is_self_review_identity(backend) or is_self_review_identity(reviewer):
+        raise LocalWorkflowError(f"review must be independent: {SELF_REVIEW_GUIDANCE}")
     if not summary.strip():
         raise LocalWorkflowError("review requires --summary")
     clean_rubrics = [item.strip() for item in rubrics if item.strip()]
@@ -1228,6 +1239,7 @@ def ready_for_work(
     )
     review_skipped = bool(dangerous_skip_events(events, "review"))
     reviews = accepted_review_events(events)
+    recorded_reviews = review_events(events)
     add_check(
         "review",
         bool(reviews) or review_skipped,
@@ -1235,7 +1247,9 @@ def ready_for_work(
         if reviews
         else "review dangerously skipped"
         if review_skipped
-        else "missing accepted external-enough review record",
+        else SELF_REVIEW_GUIDANCE
+        if recorded_reviews
+        else "missing accepted external-enough review record; run a separate reviewer/subagent with fresh context",
     )
     synced = sync_status_for(state) == "synced"
     add_check(

@@ -111,9 +111,10 @@ hk status --target <repo-or-module> --json
 hk plan "TEXT" --target <repo-or-module> --json
 hk plan --from-file <path> --target <repo-or-module> --json
 hk context "TEXT" --target <repo-or-module> --json
+hk context --from-file <path|-> --target <repo-or-module> --json
 hk decide "TEXT" --spec-impact "TEXT" --target <repo-or-module> --json
 hk validate --why "WHAT THIS VALIDATES" --target <repo-or-module> -- <command...>
-hk review add --backend <name> --reviewer <name> --rubric <name> --summary "TEXT" --target <repo-or-module> --json
+hk review add --backend <independent-tool> --reviewer <independent-reviewer-or-fresh-context-subagent> --rubric <name> --summary "TEXT" --target <repo-or-module> --json
 hk sync --target <repo-or-module> --json
 hk sync --check --target <repo-or-module> --json
 hk ready --target <repo-or-module> --json
@@ -121,6 +122,10 @@ hk handoff --target <repo-or-module> --format markdown|pr|json
 hk export --target <repo-or-module> --format handoff --json
 hk spec init|status|outline|promote --target <repo-or-module> --json
 ```
+
+Review records must come from an independent human/tool or a fresh-context
+subagent. Same-agent self-review does not satisfy readiness; if no independent
+review is available, the agent must use an explicit dangerous review skip.
 
 Profiles and repo-owned scripts are validation guidance and stable native command
 surfaces for `hk validate`, not task-runner commands that HK chooses and runs.

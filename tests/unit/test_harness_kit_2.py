@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from harness_toolkit.kit.local import (
+    LocalWorkflowError,
     add_note,
     add_review,
     brief,
@@ -323,6 +324,30 @@ def test_lifecycle_ready_requires_plan_decision_validation_review_and_sync(
     assert "## Context" in handoff_result.content
     assert "Focused lifecycle smoke test" in handoff_result.content
     assert "manual_external / Alex" in handoff_result.content
+
+
+def test_cli_review_help_warns_self_review_does_not_count() -> None:
+    result = _run_hk("review", "add", "--help")
+
+    assert result.returncode == 0
+    assert "Self-review does not satisfy readiness" in result.stdout
+    assert "reviewer-fresh-context" in result.stdout
+
+
+def test_review_add_rejects_self_review_identity(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "review-self")
+
+    with pytest.raises(LocalWorkflowError, match="self-review does not count"):
+        add_review(
+            target,
+            backend="manual_external",
+            reviewer="implementation-agent-self-check",
+            rubrics=("core-quality",),
+            summary="I checked my own implementation.",
+        )
 
 
 def test_generated_handoff_views_do_not_make_synced_work_stale(

@@ -100,7 +100,9 @@ During the Harness Kit 2.0 migration, `hk` supports two related workflows:
 The intended lifecycle is `context when useful → plan → implement → decide →
 validate → review → ready → handoff/export`. Planning can happen outside HK in
 chat, issues, or scratch docs; agents translate the agreed intent into compact HK
-context/plan/decision records rather than asking HK to infer it. Today,
+context/plan/decision records rather than asking HK to infer it. Review must come
+from an independent human/tool or a fresh-context subagent; same-agent
+self-review does not satisfy readiness. Today,
 scaffolded plan artifacts represent that lifecycle as Markdown/YAML files. The HK
 2.0 direction is to make the ledger canonical and export durable handoff views
 only when needed.

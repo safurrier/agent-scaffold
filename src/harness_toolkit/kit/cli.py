@@ -121,7 +121,8 @@ Standard loop:
 {KIT_COMMAND} decide 'Decision already made by the human/agent' --no-spec-impact --target . --json
 {KIT_COMMAND} checks --target . --profile {profile.name}{profiles_dir_arg} --json
 {KIT_COMMAND} validate --why 'What this command proves' --target . -- <native command>
-{KIT_COMMAND} review add --backend manual_external --reviewer <name> --rubric core-quality --summary 'Review summary' --target . --json
+# review must come from a different reviewer or fresh-context subagent; self-review does not count
+{KIT_COMMAND} review add --backend subagent --reviewer reviewer-fresh-context --rubric core-quality --summary 'Review summary' --target . --json
 {KIT_COMMAND} sync --target . --json
 {KIT_COMMAND} ready --target . --json
 {KIT_COMMAND} handoff --target .
@@ -846,7 +847,16 @@ def capture(
         raise SystemExit(result.exit_code)
 
 
-@review_app.command(name="add")
+@review_app.command(
+    name="add",
+    help_epilogue=(
+        "Examples:\n"
+        "  hk review add --backend subagent --reviewer reviewer-fresh-context --rubric core-quality --summary 'No blocking findings' --target . --json\n"
+        "  hk review add --backend codex --reviewer codex-bug-hunter --rubric bug-hunt --summary 'No blocking findings' --target . --json\n\n"
+        "Self-review does not satisfy readiness. If no independent review is possible, record the risk explicitly:\n"
+        "  hk dangerously-skip review --reason 'docs-only change; no independent reviewer available' --target . --json"
+    ),
+)
 def review_add(
     *,
     backend: str,
@@ -860,8 +870,9 @@ def review_add(
 ) -> None:
     """Record external-enough review evidence for readiness.
 
-    Do not record your own implementation self-review as manual_external; use a
-    separate reviewer/subagent or `hk dangerously-skip review --reason ...`.
+    Do not record your own implementation self-review. The reviewer must be a
+    different human/tool or a fresh-context subagent; otherwise use
+    `hk dangerously-skip review --reason ...`.
     """
     try:
         result = add_review(

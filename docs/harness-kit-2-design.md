@@ -286,9 +286,10 @@ hk status [--target PATH] [--json]
 hk plan "TEXT" [--target PATH] [--json]
 hk plan --from-file PATH [--target PATH] [--json]
 hk context "TEXT" [--target PATH] [--json]
+hk context --from-file PATH|- [--target PATH] [--json]
 hk decide "TEXT" [--spec-impact TEXT] [--target PATH] [--json]
 hk validate --why "WHAT THIS VALIDATES" [--kind KIND] [--target PATH] -- <command...>
-hk review add --backend NAME --reviewer NAME --rubric NAME --summary TEXT [--disposition TEXT]
+hk review add --backend NAME --reviewer INDEPENDENT_OR_FRESH_CONTEXT_REVIEWER --rubric NAME --summary TEXT [--disposition TEXT]
 hk sync [--target PATH] [--json]
 hk sync --check [--target PATH] [--json]
 hk ready [--target PATH] [--json]
@@ -296,6 +297,12 @@ hk handoff [--target PATH] [--format markdown|pr|json] [--write PATH]
 hk spec init|status|outline|promote
 hk profile list|show|create
 ```
+
+`hk review add` is intentionally not a self-review note. It records review from
+an independent human/tool or a fresh-context subagent. Same-agent self-approval
+must fail readiness; if no independent review is available, the workflow should
+use an explicit dangerous review skip instead of laundering self-review as
+external review.
 
 Lower-level/compatibility commands may remain during migration, but should not
 be equally promoted when a lifecycle command exists. If a redundant command is
