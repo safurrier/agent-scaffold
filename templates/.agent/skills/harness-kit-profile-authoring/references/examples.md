@@ -57,7 +57,7 @@ run_from = "repo-root"
 [[checks]]
 name = "handoff"
 purpose = "Validate portable workflow evidence and review state."
-command_template = "hk sync-check --target <target> --profile example-rust-root --profiles-dir <profiles-dir> --json"
+command_template = "hk legacy sync-check --target <target> --profile example-rust-root --profiles-dir <profiles-dir> --json"
 run_from = "current-directory"
 ```
 
@@ -109,7 +109,7 @@ run_from = "repo-root"
 [[checks]]
 name = "handoff"
 purpose = "Validate portable workflow evidence and review state."
-command_template = "hk sync-check --target <target> --profile example-dotfiles-root --profiles-dir <profiles-dir> --json"
+command_template = "hk legacy sync-check --target <target> --profile example-dotfiles-root --profiles-dir <profiles-dir> --json"
 run_from = "current-directory"
 notes = ["This checks recorded evidence; it does not rerun validation."]
 ```

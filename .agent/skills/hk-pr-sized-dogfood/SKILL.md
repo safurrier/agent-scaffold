@@ -43,6 +43,13 @@ If you build your own wrapper, do **not** use `uv --directory ... run hk` unless
 you also force absolute `--target` paths; `uv --directory` changes cwd and can
 make `--target .` point at harness-toolkit.
 
+For the current final-polish rollout, the behavior under test is natural discoverability:
+
+- whether workers find the lifecycle happy path without being handed it;
+- whether workers use constrained sync exclusions for known local-only state;
+- whether structured spec impact and fresh-context review prompts are discoverable;
+- whether status phase/next-action guidance is useful without extra parent hints.
+
 ## Setup
 
 Create a clean trial root:
@@ -111,6 +118,7 @@ Keep HK guidance intentionally small:
 ```text
 Use the HK CLI for this workflow; begin by exploring the CLI to onboard to it.
 For this trial, the HK CLI binary is /tmp/hk2-pr-sized-trials/bin/hk.
+Do not force a fixed command sequence; this rollout is testing natural discovery.
 
 Task: <PR-sized implementation directive>.
 
@@ -172,8 +180,13 @@ For each trial, record:
 - HK commands that failed or were guessed incorrectly;
 - places the worker chose not to use HK;
 - whether context/plan/decision/review/sync/handoff were used;
+- whether `hk start --plan` replaced separate start/plan commands;
+- whether `hk status` changed the worker's next action;
+- whether structured spec impact was used;
+- whether review prompt / independent AI-tool or fresh-context review dispatch guidance was discovered (Pi `subagent`, Claude Code `Agent`/legacy `Task`, Codex Shell tool with `codex review --uncommitted` examples);
 - whether readiness failures were actionable;
-- whether sync freshness matched worker expectations.
+- whether sync freshness matched worker expectations;
+- whether `hk sync --exclude` was discovered for explicit local-state risk.
 
 ## Findings to look for
 
@@ -183,7 +196,7 @@ Common known sharp edges:
 - bare command groups such as `hk evidence`;
 - legacy commands attracting agents during HK 2 onboarding;
 - `decide` discovered only after `ready` failure;
-- missing review because implementation workers cannot self-review;
+- missing review because implementation workers cannot self-review and did not dispatch an independent AI/tool or fresh-context subagent reviewer;
 - failed validation wording in handoff;
 - local agent dirs such as `.pi/` affecting sync freshness;
 - context under-use on PR-sized tasks.

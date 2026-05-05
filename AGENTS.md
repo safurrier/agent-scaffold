@@ -110,11 +110,17 @@ use it only in a copied scaffold or throwaway init target.
   skipped review/validation behind bland waiver language. **BECAUSE** skipping a
   lifecycle guarantee should read like a conscious YOLO-style exception.
 
-- **DO** make HK 2.0 review UX plainly require an independent human/tool or a
+- **DO** make HK 2.0 review UX plainly require an independent AI/tool or a
   fresh-context subagent review. **NOT** rely only on regex-style self-review
   detection or let agents record their own review as external. **BECAUSE** the
   point of the review gate is to prevent same-context self-approval; heuristics
   are guardrails, not the guarantee.
+
+- **DO** describe harness-specific review options as tool-callable mechanisms.
+  **NOT** tell agents to use Codex slash commands like `/review` or `/agent` in
+  harness-facing instructions. **BECAUSE** harnesses can call tools, not TUI slash
+  commands; use Pi `subagent`, Claude Code `Agent`/legacy `Task`, or Codex via
+  the Shell tool running `codex review --uncommitted`.
 
 - **DO** treat profiles and dumb repo scripts as validation guidance and stable
   command surfaces that feed `hk validate -- <native command>`. **NOT** turn HK

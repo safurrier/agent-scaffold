@@ -18,6 +18,8 @@ index:
 **Deciders**: Alex Furrier
 **Generated from**: HK 2.0 product-direction review
 **Plan**: `.ai/plans/2026-05-04-144024-hk2-lifecycle-recenter/`
+**Follow-up plan**: `.ai/plans/2026-05-05-092246-hk2-agent-ergonomics-coach/`
+**Final polish plan**: `.ai/plans/2026-05-05-105158-hk2-final-polish-dogfood/`
 **Amends**: `docs/decisions/0008-harness-kit-2-ledger-first-local-assistant.md`
 
 ---
@@ -51,15 +53,21 @@ contract while using the ledger as the internal storage model.
 The target public workflow should be close to:
 
 ```bash
-hk start <slug>
-hk context "..."
-hk plan "..."
-hk decide "..."
+hk start <slug> --plan "..."
+hk context "..."  # optional, when it prevents rediscovery
+hk status
+hk decide "..." --spec-impact none
 hk validate --why "unit tests cover the new branch" -- uv run pytest ...
+hk review prompt
 hk review add --summary "..."
+hk sync --exclude .pi --reason "Only local agent state changed"
 hk ready
 hk handoff
 ```
+
+`hk plan "..."` remains the refinement command when an already-active work item
+needs an updated lifecycle plan. Legacy plan-artifact creation belongs under
+`hk legacy plan <slug>`.
 
 The ledger remains useful, but it should be an implementation detail behind
 clear lifecycle verbs. Users should not have to think in terms of generic note
@@ -139,7 +147,8 @@ or inconsistent declarations, not assign scores or infer quality.
 2. Add lifecycle aliases or first-class commands:
    - `hk start` over `hk work start`.
    - `hk context` for context-engineering records.
-   - `hk plan` as the common path for plan records.
+   - `hk start --plan` as the common path for initial plan records.
+   - `hk plan` as the refinement path for active-work plan records.
    - `hk decide` for decision/spec reflection records.
    - `hk validate --why ... -- <command>` over capture evidence.
    - `hk review add` for external-enough review records.
@@ -147,8 +156,8 @@ or inconsistent declarations, not assign scores or infer quality.
 3. Make `hk handoff` render lifecycle-oriented sections, not generic note dumps.
 4. Keep old plan-artifact commands until `hk ready` reaches parity with
    `mise run sync-check`.
-5. Only then consider deprecating or demoting `hk plan/status/checks/sync-check`
-   compatibility behavior.
+5. Only then consider deprecating or demoting remaining compatibility behavior,
+   keeping legacy plan artifacts under `hk legacy plan` / `hk legacy sync-check`.
 
 ## Alternatives considered
 

@@ -132,13 +132,13 @@ obvious small changes. Lower-level note/event storage may keep `background` as a
 internal or migration alias when needed.
 
 ```bash
+hk start auth-timeout-fix --plan "Update session timeout handling and validate focused auth tests."
 hk context "Relevant files: src/auth/session.py and tests/test_session.py."
-hk plan "Update sync/readiness docs, validate with check/sync-check, and record external review."
+hk plan "Refined plan after discovery: preserve retry count semantics."
 hk plan --from-file /tmp/adopted-plan.md
 hk note --kind learning "Auth timeout behavior is owned by session refresh."
-hk decide "Preserved retry count semantics."
+hk decide "Preserved retry count semantics." --no-spec-impact
 hk note --kind gap "Full suite not run."
-hk decide "Internal refactor only." --no-spec-impact
 ```
 
 ### Evidence is exact command capture
@@ -172,7 +172,12 @@ Default behavior:
 
 Events after the last sync or a changed diff hash make the work unsynced.
 Generated views such as handoffs and materialized Markdown are sync-neutral
-because they do not change the substance of the work.
+because they do not change the substance of the work. If a final freshness check
+is stale only because of understood local agent state, the user may record an
+explicit `hk dangerously-skip sync --reason ...`; that skip is tied to the current
+event sequence and diff hash, should be one of the final freshness actions when
+agent-local files keep changing, and is rendered under dangerous skips in
+handoff.
 
 Adopted/scaffolded repos may configure stricter checks later.
 
@@ -196,11 +201,32 @@ renderable.
 
 ### Agent work lifecycle
 
-The intended human/agent loop is phase-oriented:
+HK 2.0 should teach the workflow as a journey rather than dump every command at
+once. The primary reader is an implementation agent. The human usually sets up a
+small `AGENTS.md` directive, plans the change through normal back-and-forth, then
+hands the agreed intent to an agent and says to use `hk`.
+
+The happy path is short:
+
+```bash
+hk start <slug> --plan 'Adopted implementation intent'
+# implement normally
+hk validate --why 'What this command proves' -- <native command>
+hk status
+hk ready
+hk handoff
+```
+
+`hk status` is the guide through the rest of the journey. It can ask for context,
+decision/spec reflection, review, sync reconciliation, or an explicit dangerous
+skip. This keeps the agent from memorizing a long checklist while preserving the
+handoff guarantees.
+
+The underlying lifecycle remains phase-oriented:
 
 1. **Context** — read repo background, inspect specs/instructions, and record
    stable framing, constraints, relevant files, and discovered repo facts with
-   `hk context`.
+   `hk context` only when it prevents rediscovery.
 2. **Plan** — planning may happen in chat or external docs first; record the
    agreed implementation intent as a compact plan note, with optional tasks only
    when a checklist is useful.
@@ -234,26 +260,60 @@ the ledger-first UX as the public 2.0 shape.
 
 ### Profiles and dumb scripts guide validation; they do not run it
 
-Keep profile UX close to the current model:
+Keep profile UX explicit and guidance-oriented:
 
 ```bash
 hk profile list --target . --json
+hk profile resolve --target . --json
 hk profile show generic --json
+hk checks --target . --json
 hk profile create <name> ...
 ```
 
 Do not add heuristic command mining or auto-selected profile recommendations.
-`hk brief` may report facts such as `.mise.toml`, `scripts/check`, and CI files,
-but must not claim a recommended command or confidence score.
+Explicit user config may resolve a target path to a profile by longest path prefix,
+but HK should not score or infer commands from repo files. `hk brief` may report
+facts such as `.mise.toml`, `scripts/check`, and CI files, but must not claim a
+recommended command or confidence score.
 
 Profiles and dumb repo scripts fit into HK 2.0 as guidance and stable native
-command surfaces for `hk validate`, not as a task-runner layer. Profiles are not
-the same thing as `.harness/harness.toml`: a profile is a named validation and
-workflow guidance object, while `.harness/harness.toml` is the optional committed
-repo config/adoption root that can select defaults, policies, and repo-specific
-profile locations. For example, `hk profile show python` or `hk checks` may point
-an agent at `mise run check`, `uv run pytest`, or `scripts/check`, but the proof
-should still be captured as:
+command surfaces for `hk validate`, not as a task-runner layer. A user-level
+`harness.toml` can bind known repo/module paths to inline profiles:
+
+```toml
+[[targets]]
+name = "foreman"
+path = "~/git_repositories/foreman"
+profile = "foreman"
+
+[profiles.foreman]
+title = "Foreman"
+summary = "Rust CLI/TUI project."
+target_hint = "~/git_repositories/foreman"
+instructions = "Use focused cargo tests and Codex review when useful."
+
+[[profiles.foreman.checks]]
+name = "cli-config-tests"
+purpose = "Run CLI config tests."
+command_template = "cargo test --test cli_config"
+run_from = "repo-root"
+
+[[profiles.foreman.reviews]]
+name = "core-quality"
+purpose = "Fresh-context review before handoff."
+backend = "codex"
+rubric = "core-quality"
+dispatch_hint = "codex review --uncommitted"
+```
+
+Review entries are guidance just like checks: agents dispatch them via the current
+harness and record accepted results with `hk review add`; HK does not launch them.
+Profiles are not the same thing as `.harness/harness.toml`: a profile is named
+validation/review workflow guidance, while `.harness/harness.toml` is the future
+optional committed repo config/adoption root that can select defaults, policies,
+and repo-specific profile locations. For example, `hk profile show python` or
+`hk checks` may point an agent at `mise run check`, `uv run pytest`, or
+`scripts/check`, but the proof should still be captured as:
 
 ```bash
 hk validate --why "Full repo quality gate." -- mise run check
@@ -281,28 +341,54 @@ Target lifecycle-first 2.0 commands:
 
 ```bash
 hk brief [--target PATH] [--json|--markdown]
-hk start <slug> [--target PATH] [--json]
+hk start <slug> [--context TEXT] [--plan TEXT] [--target PATH] [--json]
 hk status [--target PATH] [--json]
 hk plan "TEXT" [--target PATH] [--json]
 hk plan --from-file PATH [--target PATH] [--json]
 hk context "TEXT" [--target PATH] [--json]
 hk context --from-file PATH|- [--target PATH] [--json]
-hk decide "TEXT" [--spec-impact TEXT] [--target PATH] [--json]
+hk decide "TEXT" [--spec-impact none|updated|not-needed] [--spec-ref PATH]... [--target PATH] [--json]
 hk validate --why "WHAT THIS VALIDATES" [--kind KIND] [--target PATH] -- <command...>
 hk review add --backend NAME --reviewer INDEPENDENT_OR_FRESH_CONTEXT_REVIEWER --rubric NAME --summary TEXT [--disposition TEXT]
-hk sync [--target PATH] [--json]
+hk review prompt [--target PATH] [--json]
+hk sync [--exclude PATH]... [--reason TEXT] [--target PATH] [--json]
 hk sync --check [--target PATH] [--json]
+hk dangerously-skip sync --reason TEXT [--target PATH] [--json]
 hk ready [--target PATH] [--json]
 hk handoff [--target PATH] [--format markdown|pr|json] [--write PATH]
 hk spec init|status|outline|promote
 hk profile list|show|create
 ```
 
-`hk review add` is intentionally not a self-review note. It records review from
-an independent human/tool or a fresh-context subagent. Same-agent self-approval
-must fail readiness; if no independent review is available, the workflow should
-use an explicit dangerous review skip instead of laundering self-review as
-external review.
+`hk start --plan` is the promoted way to cut a slice with the first lifecycle
+plan already recorded. `hk plan` remains the refinement command for already-active
+work. Slugs are short human-readable names; timestamped work IDs provide ordering.
+`hk status` is a preflight/next-action coach, while `hk ready` remains the final
+handoff gate.
+
+`hk decide` records a structured spec-impact mode. `none` means no product/docs
+impact was declared, `updated` means relevant specs/docs were updated or verified,
+and `not-needed` means the change does not need spec/docs updates. `--spec-ref`
+links the declaration to specific files without asking HK to infer correctness.
+
+`hk sync --exclude PATH --reason TEXT` records a constrained checkpoint that
+ignores only explicit, currently-dirty paths such as `.pi`. The checkpoint stores
+excluded path metadata and passes readiness only while non-excluded work remains
+unchanged. It renders under `## Sync exclusions`, not dangerous skips. Use
+`hk dangerously-skip sync` only when a constrained checkpoint is not appropriate.
+
+`hk review add` is intentionally not a self-review note. Review is required by
+default. Preferred review comes from an independent AI/tool reviewer, ideally a
+different model, runtime, or context. A fresh-context subagent is the minimum
+acceptable fallback. Implementation-agent self-approval must fail readiness.
+`hk review prompt` prints a copy-paste prompt for that reviewer. If the harness
+has a fresh-context review mechanism, the implementation agent should dispatch
+that prompt to it before handoff. Examples include Pi `subagent`, Claude Code
+`Agent`/legacy `Task`, and Codex via the Shell tool running
+`codex review --uncommitted`. Agents should re-run `hk status` after review because
+review tools may create agent-local state. If review is impossible, the agent must record `hk dangerously-skip review --reason ...`,
+which is auditable and renders in handoff. Future review-source config is
+deferred.
 
 Lower-level/compatibility commands may remain during migration, but should not
 be equally promoted when a lifecycle command exists. If a redundant command is
@@ -315,8 +401,12 @@ hk note --kind ...                      # advanced event entry, if retained
 hk capture ... -- <command...>          # lower-level command evidence
 hk evidence list                        # inspection/debugging
 hk export --format handoff [--target PATH]
-hk legacy plan|sync-check               # legacy plan-artifact workflow only
+hk legacy plan|sync-check               # deprecated compatibility for HK1 plan artifacts only
 ```
+
+Legacy plan-artifact commands are fully deprecated for new HK2 work. Keep them
+only as compatibility shims until scaffold/task-contract repos no longer depend
+on durable plan packages.
 
 Deferred commands also include state cleanup, deep spec impact, profile
 validation, skill validation, and compatibility link helpers.

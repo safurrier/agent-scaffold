@@ -225,28 +225,116 @@ This makes files visible to editors and agents while avoiding committed
 `.gitignore` changes. The implementation uses `git rev-parse --git-path
 info/exclude`, so linked worktrees and `.git` file checkouts are handled.
 
+## Agent journey
+
+`hk` is mostly an agent-facing lifecycle CLI. Humans usually add a small
+`AGENTS.md` directive, shape the work in chat/issues/scratch docs, then hand the
+agreed intent to an implementation agent and tell it to use `hk`.
+
+The minimal path is:
+
+```bash
+hk start <slug> --plan 'Adopted implementation intent'
+hk validate --why 'What this command proves' -- <native command>
+hk status
+hk ready
+hk handoff
+```
+
+`hk status` is the journey guide. It tells the agent when to record context,
+decisions/spec impact, review, sync, or explicit dangerous skips.
+
+## User config and profiles
+
+For cross-repo use, HK can load a user-level config from:
+
+1. `$HARNESS_KIT_CONFIG`
+2. `$XDG_CONFIG_HOME/harness-toolkit/harness.toml`
+3. `~/.config/harness-toolkit/harness.toml`
+
+The config is explicit routing plus inline profile guidance. It does not auto-run
+checks and does not silently ignore sync paths.
+
+```toml
+version = 1
+default_profile = "generic"
+
+[[targets]]
+name = "foreman"
+path = "~/git_repositories/foreman"
+profile = "foreman"
+
+[profiles.foreman]
+title = "Foreman"
+summary = "Rust CLI/TUI project."
+target_hint = "~/git_repositories/foreman"
+instructions = """
+Use focused cargo tests while iterating.
+Use `cargo fmt --check` before handoff.
+For review, use Codex via `codex review --uncommitted` when available.
+"""
+
+[[profiles.foreman.checks]]
+name = "cli-config-tests"
+purpose = "Run CLI config tests."
+command_template = "cargo test --test cli_config"
+run_from = "repo-root"
+
+[[profiles.foreman.reviews]]
+name = "core-quality"
+purpose = "Fresh-context review before handoff."
+backend = "codex"
+rubric = "core-quality"
+dispatch_hint = "codex review --uncommitted"
+prompt = "Focus on correctness, regression risk, and test adequacy."
+# Optional for longer prompts, resolved relative to harness.toml:
+# prompt_file = "prompts/foreman-core-review.md"
+```
+
+Use:
+
+```bash
+hk profile resolve --target . --json
+hk checks --target . --json
+```
+
+Resolution uses explicit longest path-prefix matching. If a profile has multiple
+review entries, the agent should dispatch them independently/in parallel when the
+harness supports it, then record accepted reviews with `hk review add`.
+
+Repo-level `.harness/harness.toml`, structured review backend adapters, and
+persistent sync ignore config are deferred.
+
 ## Commands
 
 | Command | Purpose |
 |---|---|
 | `hk brief` | Print a read-only repo brief without choosing validation commands |
 | `hk init` | Initialize ignored local or external Harness Kit 2 state |
-| `hk work start` | Start a ledger-backed local work unit |
-| `hk note` | Append typed plan, background, learning, decision, gap, or spec-impact notes |
-| `hk sync` | Record or check a freshness checkpoint for the active work snapshot |
-| `hk capture` | Run a native command and record exact evidence |
+| `hk start <slug> --plan <text>` | Start a lifecycle work item and optionally seed context/plan records |
+| `hk work start` | Advanced compatibility surface for ledger-backed local work units |
+| `hk note` | Advanced: append typed plan, background, learning, decision, gap, or spec-impact notes |
+| `hk status` | Show active work, readiness checks, and next-action guidance |
+| `hk sync` | Record or check a freshness checkpoint for the active work snapshot; use `--exclude PATH --reason TEXT` for explicit one-shot local-state exclusions |
+| `hk capture` | Advanced: run a native command and record exact evidence |
+| `hk review prompt` | Print a reviewer prompt to dispatch to an independent AI/tool or fresh-context reviewer, e.g. Pi `subagent`, Claude Code `Agent`/legacy `Task`, or Codex via Shell tool running `codex review --uncommitted`; re-run `hk status` after review tools run |
 | `hk handoff` | Render a conservative handoff from the work ledger |
 | `hk spec` | Manage optional local/external spec drafts |
 | `hk instructions` | Print the minimal `AGENTS.md` snippet, optionally profile-specific |
-| `hk profile list` | List built-in/custom profile contracts and model-directed selection guidance |
-| `hk profile show <name>` | Show one profile's instructions and checks |
+| `hk profile list` | List built-in/custom/user-config profile contracts and model-directed selection guidance |
+| `hk profile resolve` | Resolve the configured profile for a target using explicit user config bindings |
+| `hk profile show <name>` | Show one profile's instructions, checks, and review guidance |
 | `hk profile create <name>` | Create an editable custom profile TOML template |
-| `hk checks --profile <name>` | Show named verification loops without executing them |
+| `hk checks [--profile <name>]` | Show named verification loops and review guidance without executing them; resolves user config when `--profile` is omitted |
 | `hk attach` | Prepare external or overlay workflow state for a target repo |
-| `hk plan <text>` | Record the lifecycle implementation plan in the active ledger |
-| `hk legacy plan <slug>` | Create a legacy plan directory in the workflow state |
-| `hk status` | Show active plan and validation status |
-| `hk legacy sync-check` | Run legacy plan-artifact handoff checks without requiring tracked artifacts |
+| `hk plan <text>` | Record or refine the lifecycle implementation plan for active HK2 work |
+| `hk legacy plan <slug>` | Deprecated compatibility: create a legacy plan directory in the workflow state |
+| `hk dangerously-skip sync --reason <text>` | Explicitly mark sync freshness as dangerously skipped for the current snapshot |
+| `hk legacy sync-check` | Deprecated compatibility: run legacy plan-artifact handoff checks without requiring tracked artifacts |
+
+Legacy plan-artifact commands are fully deprecated for new HK work. They remain
+available only so existing scaffold/task-contract plan packages can be maintained
+while HK2 ledger workflows finish the migration.
 
 Profiles are small workflow contracts for agentic engineering checks. They
 describe the checks that exist for an environment; they do **not** run those

@@ -85,24 +85,62 @@ mise run init -- --non-interactive --name my-project --shape single --stack pyth
 
 ## Harness Kit Workflow Modes
 
+Harness Kit 2.0 documentation follows a teaching journey: first explain what the
+tool is for, then give agents a small path that works, then let `hk status` reveal
+the deeper lifecycle only when needed. `hk` is mostly an **agent-facing** CLI, not
+a human task manager. The usual adoption story is:
+
+1. Add a small Harness Kit directive to repo or user `AGENTS.md`.
+2. Research and shape the idea in chat, issues, or scratch docs with normal
+   human/agent back-and-forth.
+3. Hand the agreed intent to an implementation agent and tell it to use `hk`.
+4. The agent records enough lifecycle evidence for handoff without committing
+   workflow ceremony.
+
+The happy-path agent loop is intentionally short:
+
+```bash
+hk profile resolve --target . --json   # optional; uses explicit user config if present
+hk start <slug> --plan 'Adopted implementation intent'
+# work normally in the repo
+hk checks --target . --json            # shows configured checks/reviews, does not run them
+hk validate --why 'What this command proves' -- <native command>
+hk status
+hk ready
+hk handoff
+```
+
+`hk status` is the coach. It tells the agent when to add optional context, record
+a decision/spec reflection, dispatch review, reconcile sync state, or use a
+scary explicit bypass. Agents should not memorize a long command checklist.
+User-level `harness.toml` can bind known repo/module paths to inline profiles so
+agents do not need validation/review conventions re-explained every session.
+
 During the Harness Kit 2.0 migration, `hk` supports two related workflows:
 
-- **Lifecycle-first local assistant** — use `hk brief`, `hk start`, `hk context`,
-  `hk plan`, `hk decide`, `hk validate --why ... -- <command>`, `hk review add`,
-  `hk sync`, `hk ready`, `hk handoff`, and `hk export` for local agent memory,
-  compact adopted plans, exact command evidence with rationale, readiness checks,
-  and generated handoffs without committing ceremony.
-- **Legacy plan-artifact workflow** — use `hk legacy plan`, `hk checks`, and
-  `hk legacy sync-check` when you need the existing durable plan package and
-  handoff-readiness contract over TODO, decisions/spec impact, validation
-  evidence, review records, and artifact manifests.
+- **Lifecycle-first local assistant** — local agent memory, compact adopted
+  plans, exact command evidence with rationale, review records, readiness checks,
+  and generated handoffs without committed ceremony. Use `hk start --plan`,
+  `hk validate`, `hk status`, and then follow the next actions.
+- **Deprecated legacy plan-artifact workflow** — `hk legacy plan` and
+  `hk legacy sync-check` remain as compatibility shims for existing scaffold/plan
+  artifacts. Do not teach new agents to start here; use HK2 lifecycle commands
+  unless you are maintaining an existing durable plan package.
 
-The intended lifecycle is `context when useful → plan → implement → decide →
-validate → review → ready → handoff/export`. Planning can happen outside HK in
-chat, issues, or scratch docs; agents translate the agreed intent into compact HK
-context/plan/decision records rather than asking HK to infer it. Review must come
-from an independent human/tool or a fresh-context subagent; same-agent
-self-review does not satisfy readiness. Today,
+Planning can happen outside HK; agents translate the agreed intent into compact
+HK context/plan/decision records rather than asking HK to infer it. `hk start
+--plan` seeds the first lifecycle plan when work starts; `hk plan` refines the
+plan after work is active. Slugs should be short human-readable task names;
+HK-generated work IDs provide chronological ordering. Review is required by
+default: prefer an independent AI/tool reviewer (ideally different model,
+runtime, or context) and use a fresh-context subagent as the minimum fallback.
+Implementation-agent self-review does not satisfy readiness. If the harness has a
+fresh-context review mechanism, dispatch `hk review prompt` to it before handoff.
+Examples include Pi `subagent`, Claude Code `Agent`/legacy `Task`, and Codex via
+the Shell tool running `codex review --uncommitted`. Re-run `hk status` after
+review because review tools may create agent-local state. If review is impossible,
+record an explicit dangerous review skip. Known local-only state can be handled
+with explicit one-shot sync exclusions rather than silent ignores. Today,
 scaffolded plan artifacts represent that lifecycle as Markdown/YAML files. The HK
 2.0 direction is to make the ledger canonical and export durable handoff views
 only when needed.

@@ -52,7 +52,7 @@ Use names that describe the decision the agent must make.
 | `heavy-gate` | Broad confidence before merge, release, or risky runtime changes. |
 | `apply` | Applies generated/local config when source changes need deployment. |
 | `drift-check` | Detects generated/config drift after template changes. |
-| `handoff` | Runs `hk sync-check`; verifies recorded evidence, not validation execution. |
+| `handoff` | Runs `hk legacy sync-check` for legacy plan artifacts, or `hk sync && hk ready` for HK2 lifecycle state; verifies recorded evidence, not validation execution. |
 
 ## TOML Draft Pattern
 
@@ -81,7 +81,7 @@ required_inputs = ["test_path_or_selector"]
 [[checks]]
 name = "handoff"
 purpose = "Validate portable workflow evidence and review state."
-command_template = "hk sync-check --target <target> --profile <profile> --profiles-dir <profiles-dir> --json"
+command_template = "hk legacy sync-check --target <target> --profile <profile> --profiles-dir <profiles-dir> --json"
 run_from = "current-directory"
 notes = ["This checks recorded evidence; it does not rerun validation."]
 ```

@@ -18,10 +18,18 @@ Then choose target and profile:
 
 ```bash
 hk profile list --target <repo-or-module> --profiles-dir ~/.config/harness-toolkit/profiles --json
-hk status --target <repo-or-module> --profile <profile> --profiles-dir ~/.config/harness-toolkit/profiles --json
-hk plan <slug> --target <repo-or-module> --profile <profile> --profiles-dir ~/.config/harness-toolkit/profiles --json
+hk start <slug> --plan 'Adopted implementation intent' --target <repo-or-module> --json
+hk status --target <repo-or-module> --json
 hk checks --target <repo-or-module> --profile <profile> --profiles-dir ~/.config/harness-toolkit/profiles --json
-hk sync-check --target <repo-or-module> --profile <profile> --profiles-dir ~/.config/harness-toolkit/profiles --json
+hk sync --target <repo-or-module> --json
+hk ready --target <repo-or-module> --json
+```
+
+For the legacy plan-artifact workflow only, use:
+
+```bash
+hk legacy plan <slug> --target <repo-or-module> --profile <profile> --profiles-dir ~/.config/harness-toolkit/profiles --json
+hk legacy sync-check --target <repo-or-module> --profile <profile> --profiles-dir ~/.config/harness-toolkit/profiles --json
 ```
 
 Omit `--profiles-dir` only when intentionally using built-in profiles only.
@@ -32,7 +40,8 @@ Omit `--profiles-dir` only when intentionally using built-in profiles only.
 - Run profile-suggested validation commands directly in the shell.
 - Record exact command/result evidence in `VALIDATION.md`.
 - Use the same `--target`, `--profile`, and `--profiles-dir` consistently for
-  `status`, `plan`, `checks`, and `sync-check`.
+  profile/check commands. Lifecycle status/ready state is target-scoped; legacy
+  plan artifacts use `hk legacy plan` and `hk legacy sync-check`.
 - For shared repos, prefer portable external state. Do not commit `.ai/`,
   `.agent/`, `.mise/`, or `.gitignore` workflow files unless explicitly asked.
 - For repos that already have committed scaffold/task-contract infrastructure
