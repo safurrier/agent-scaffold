@@ -44,7 +44,7 @@ mise run check
 Result:
 
 ```text
-760 passed in 144.84s
+761 passed in 141.88s
 All checks passed
 ```
 
@@ -97,3 +97,4 @@ Sync-check passed
 - `artifacts/lifecycle-implementation-plan.md` captures the task breakdown, validation plan, dogfood rollout, open questions, and latest decisions on export/dangerous skips/profiles.
 - HK-on-HK dogfood work is stored locally under `.harness-local/harness-kit/root/work/2026-05-04-162253-hk2-lifecycle-dogfood/` and includes `hk validate`, `hk review add`, `hk ready`, and `hk export` records.
 - `artifacts/subagent-dogfood-findings.md` captures the independent subagent build trial on `/tmp/hk2-subagent-trial`.
+- `artifacts/real-repo-dogfood-study.md` captures the real-repo dogfood trials on Dread and Foreman temp clones plus UX fixes.

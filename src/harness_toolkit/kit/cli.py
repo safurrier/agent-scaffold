@@ -116,12 +116,12 @@ Standard loop:
 {KIT_COMMAND} brief --target . --json
 {KIT_COMMAND} start <slug> --target . --json
 # record context only when it prevents rediscovery
-{KIT_COMMAND} context "Relevant constraints, files, or repo facts" --target . --json
-{KIT_COMMAND} plan "Adopted implementation intent" --target . --json
-{KIT_COMMAND} decide "Decision already made by the human/agent" --no-spec-impact --target . --json
+{KIT_COMMAND} context 'Relevant constraints, files, or repo facts' --target . --json
+{KIT_COMMAND} plan 'Adopted implementation intent' --target . --json
+{KIT_COMMAND} decide 'Decision already made by the human/agent' --no-spec-impact --target . --json
 {KIT_COMMAND} checks --target . --profile {profile.name}{profiles_dir_arg} --json
-{KIT_COMMAND} validate --why "What this command proves" --target . -- <native command>
-{KIT_COMMAND} review add --backend manual_external --reviewer <name> --rubric core-quality --summary "Review summary" --target . --json
+{KIT_COMMAND} validate --why 'What this command proves' --target . -- <native command>
+{KIT_COMMAND} review add --backend manual_external --reviewer <name> --rubric core-quality --summary 'Review summary' --target . --json
 {KIT_COMMAND} sync --target . --json
 {KIT_COMMAND} ready --target . --json
 {KIT_COMMAND} handoff --target .
@@ -528,18 +528,41 @@ def start(
     )
 
 
-@app.command(name="context")
+@app.command(
+    name="context",
+    help_epilogue=(
+        "Examples:\n"
+        "  hk context 'Relevant constraints, files, or repo facts' --target . --json\n"
+        "  hk context --from-file /tmp/context.md --target . --json\n"
+        "  printf '%s\\n' 'Rich context with `backticks`' | hk context --from-file - --target . --json"
+    ),
+)
 def context_command(
-    text: str,
+    text: str = "",
     *,
+    from_file: Path | None = None,
     target: Path = Path("."),
     no_local_files: bool = False,
     json: bool = False,
 ) -> None:
     """Record durable context that prevents rediscovery."""
     try:
+        if from_file is not None:
+            if text:
+                raise LocalWorkflowError(
+                    "Use either context TEXT or --from-file, not both."
+                )
+            if str(from_file) == "-":
+                text = sys.stdin.read().strip()
+            else:
+                try:
+                    text = from_file.read_text().strip()
+                except OSError as e:
+                    raise LocalWorkflowError(
+                        f"Could not read context file: {from_file}"
+                    ) from e
         if not text.strip():
-            raise LocalWorkflowError("context requires TEXT")
+            raise LocalWorkflowError("context requires TEXT or --from-file PATH")
         result = add_note(
             target, kind="context", text=text, no_local_files=no_local_files
         )
@@ -684,7 +707,7 @@ def decide(
         result = add_note(
             target, kind="decision", text=text, no_local_files=no_local_files
         )
-        impact_text = spec_impact or f"No spec impact: {text}"
+        impact_text = spec_impact or "No spec impact declared."
         add_note(
             target, kind="spec-impact", text=impact_text, no_local_files=no_local_files
         )
@@ -835,7 +858,11 @@ def review_add(
     no_local_files: bool = False,
     json: bool = False,
 ) -> None:
-    """Record external-enough review evidence for readiness."""
+    """Record external-enough review evidence for readiness.
+
+    Do not record your own implementation self-review as manual_external; use a
+    separate reviewer/subagent or `hk dangerously-skip review --reason ...`.
+    """
     try:
         result = add_review(
             target,

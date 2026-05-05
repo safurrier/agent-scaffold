@@ -26,4 +26,6 @@ description: >
 - [x] Implement initial `hk export` handoff/view export.
 - [x] Dogfood HK-on-HK using the lifecycle commands.
 - [x] Run independent subagent build trial and capture UX findings.
+- [x] Run real-repo dogfood trials on Dread and Foreman temp clones and capture UX findings.
+- [x] Patch sharp edges found by real-repo dogfood: context file input, self-review readiness, readiness in handoff, no-spec-impact rendering, and generated event noise.
 - [ ] Revisit profile vs `.harness/harness.toml` design; likely simplification is to make `.harness` the durable config model and treat profiles as presets/checksets or migration compatibility.

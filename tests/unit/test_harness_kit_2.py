@@ -523,6 +523,28 @@ def test_ready_rejects_failed_validation_and_rejected_review(tmp_path: Path) -> 
     )
 
 
+def test_cli_context_from_file_avoids_shell_fragile_text(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    context_file = tmp_path / "context.md"
+    context_file.write_text("Use `uv sync --extra dev` before full validation.\n")
+    assert _run_hk("start", "context-file", "--target", str(target)).returncode == 0
+
+    result = _run_hk(
+        "context",
+        "--from-file",
+        str(context_file),
+        "--target",
+        str(target),
+        "--json",
+    )
+    handoff_result = _run_hk("handoff", "--target", str(target))
+
+    assert result.returncode == 0, result.stderr
+    assert "uv sync --extra dev" in json.loads(result.stdout)["text"]
+    assert "uv sync --extra dev" in handoff_result.stdout
+
+
 def test_cli_lifecycle_commands_record_handoff_and_ready(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)

@@ -8,3 +8,6 @@ artifacts:
   - path: artifacts/subagent-dogfood-findings.md
     type: report
     description: Independent subagent build trial findings for HK 2.0 lifecycle dogfood
+  - path: artifacts/real-repo-dogfood-study.md
+    type: report
+    description: Real-repo dogfood trials and UX findings for Dread and Foreman

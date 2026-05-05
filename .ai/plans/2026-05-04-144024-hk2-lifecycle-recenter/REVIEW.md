@@ -39,6 +39,10 @@ description: >
 - Independent subagent build trial succeeded on a synthetic tinycalc repo. The
   main UX finding was that `uv --directory ... run hk` changes cwd, so dogfood
   instructions need explicit `--target` or an installed binary.
+- Real-repo dogfood trials on Dread and Foreman succeeded and found sharper UX
+  issues: shell-fragile context text, self-review ambiguity, missing readiness in
+  handoff, generated event noise, and mild ceremony for tiny changes. Immediate
+  fixes were applied where practical.
 
 ## Disposition
 

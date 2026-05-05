@@ -981,6 +981,7 @@ ACCEPTED_REVIEW_DISPOSITIONS = {
     "no-findings",
     "no_findings",
 }
+SELF_REVIEW_TOKENS = ("self", "same-agent", "implementation-agent", "worker-self")
 
 
 def review_events(events: list[EventRecord]) -> list[dict[str, object]]:
@@ -996,6 +997,8 @@ def accepted_review_events(events: list[EventRecord]) -> list[dict[str, object]]
         if backend in {"", "self", "pending", "todo"}:
             continue
         if reviewer in {"", "self", "pending", "todo"}:
+            continue
+        if any(token in reviewer for token in SELF_REVIEW_TOKENS):
             continue
         if disposition not in ACCEPTED_REVIEW_DISPOSITIONS:
             continue
@@ -1076,6 +1079,11 @@ def render_handoff(work_dir: Path, state: LocalState) -> str:
             )
     else:
         lines.append("- No validation evidence recorded.")
+    lines.extend(["", "## Readiness"])
+    readiness = ready_for_work(work_dir, state, check_handoff=False)
+    lines.append(f"- Status: `{readiness.status}`")
+    for check in readiness.checks:
+        lines.append(f"- {check.id}: {check.status} — {check.message}")
     lines.extend(["", "## Review"])
     reviews = review_events(events)
     if reviews:
@@ -1163,6 +1171,12 @@ def add_dangerous_skip(
 def ready(target: Path, *, no_local_files: bool = False) -> ReadyResult:
     state = ensure_state(target, no_local_files=no_local_files)
     work_dir = require_work(state)
+    return ready_for_work(work_dir, state, check_handoff=True)
+
+
+def ready_for_work(
+    work_dir: Path, state: LocalState, *, check_handoff: bool = True
+) -> ReadyResult:
     events = read_events(work_dir)
     evidence = read_evidence(work_dir)
     checks: list[ReadyCheck] = []
@@ -1227,12 +1241,13 @@ def ready(target: Path, *, no_local_files: bool = False) -> ReadyResult:
     add_check(
         "sync", synced, "sync checkpoint fresh" if synced else "sync checkpoint stale"
     )
-    try:
-        render_handoff(work_dir, state)
-    except Exception as e:  # pragma: no cover - defensive render check
-        add_check("handoff", False, f"handoff render failed: {e}")
-    else:
-        add_check("handoff", True, "handoff renders")
+    if check_handoff:
+        try:
+            render_handoff(work_dir, state)
+        except Exception as e:  # pragma: no cover - defensive render check
+            add_check("handoff", False, f"handoff render failed: {e}")
+        else:
+            add_check("handoff", True, "handoff renders")
     failed = [check for check in checks if check.status == "fail"]
     has_skips = bool(validation_skipped or review_skipped)
     status = (
@@ -1272,7 +1287,6 @@ def materialize_work(target: Path, *, no_local_files: bool = False) -> HandoffRe
     handoff = render_handoff(work_dir, state)
     path = views / "handoff.md"
     path.write_text(handoff)
-    append_event(work_dir, "view_materialized", {"views_dir": str(views)})
     return HandoffResult(work_id=work_dir.name, content=handoff, path=str(path))
 
 
@@ -1287,7 +1301,6 @@ def handoff(
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(content)
         path_text = str(output_path)
-    append_event(work_dir, "handoff_generated", {"path": path_text})
     return HandoffResult(work_id=work_dir.name, content=content, path=path_text)
 
 
