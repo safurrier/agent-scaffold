@@ -96,9 +96,9 @@ Current portable workflow commands:
 
 ```
 hk profile list --target <repo-or-module> --json
-hk plan <slug> --target <repo-or-module> --profile <profile> --json
+hk legacy plan <slug> --target <repo-or-module> --profile <profile> --json
 hk checks --target <repo-or-module> --profile <profile> --json
-hk sync-check --target <repo-or-module> --profile <profile> --json
+hk legacy sync-check --target <repo-or-module> --profile <profile> --json
 ```
 
 Ledger-backed 2.0 commands may coexist during migration. The target public

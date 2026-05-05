@@ -311,10 +311,10 @@ def test_workflow_profile_create_stdout_and_rust_mise_preset(tmp_path: Path) -> 
     assert 'name = "foreman-root"' in result.stdout
     assert 'command_template = "mise run check"' in result.stdout
     assert (
-        'command_template = "hk sync-check --target <target> --profile foreman-root --json"'
+        'command_template = "hk sync --target <target> --json && hk ready --target <target> --json"'
         in result.stdout
     )
-    assert result.stdout.count('name = "handoff"') == 1
+    assert result.stdout.count('name = "handoff-readiness"') == 1
     assert _git_status(target) == ""
 
 
@@ -511,6 +511,7 @@ def test_workflow_sync_check_validates_local_plan_without_tracked_artifacts(
     )
 
     result = _run_workflow(
+        "legacy",
         "sync-check",
         "--target",
         str(target),
@@ -582,6 +583,7 @@ def test_workflow_sync_check_rejects_prose_only_validation_command(
     (plan / "REVIEW.md").write_text("# Review\n\n- External review complete.\n")
 
     result = _run_workflow(
+        "legacy",
         "sync-check",
         "--target",
         str(target),
@@ -637,6 +639,7 @@ def test_workflow_sync_check_rejects_required_review_placeholder(
     (plan / "VALIDATION.md").write_text("# Validation\n\n- `mise run check`\n")
 
     result = _run_workflow(
+        "legacy",
         "sync-check",
         "--target",
         str(target),
@@ -671,6 +674,7 @@ def test_workflow_sync_check_rejects_placeholder_plan_even_with_validation_comma
     )
 
     result = _run_workflow(
+        "legacy",
         "sync-check",
         "--target",
         str(target),

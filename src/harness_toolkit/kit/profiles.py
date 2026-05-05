@@ -144,8 +144,8 @@ RUST_MISE_INSTRUCTIONS = f"""Use this profile for Rust projects that expose a mi
 Prefer `mise run check` as the fast local gate and `mise run verify` when the
 change needs heavier confidence. Run commands directly and record exact
 command/result evidence in the plan. Do not assume a repo-native `mise run
-sync-check` exists; for portable workflow handoff state, use `{KIT_COMMAND}
-sync-check`.
+sync-check` exists; for HK 2 lifecycle handoff state, use `{KIT_COMMAND} sync`,
+`{KIT_COMMAND} ready`, and `{KIT_COMMAND} handoff`.
 """
 
 BUILTIN_PROFILES: dict[ProfileName, WorkflowProfile] = {
@@ -168,9 +168,9 @@ BUILTIN_PROFILES: dict[ProfileName, WorkflowProfile] = {
                 ),
             ),
             CheckDefinition(
-                name="handoff",
-                purpose="Validate portable plan evidence and review state.",
-                command_template=f"{KIT_COMMAND} sync-check --target <target> --profile generic --json",
+                name="handoff-readiness",
+                purpose="Checkpoint lifecycle freshness and check handoff readiness.",
+                command_template=f"{KIT_COMMAND} sync --target <target> --json && {KIT_COMMAND} ready --target <target> --json",
                 run_from="current-directory",
                 notes=("This checks recorded evidence; it does not rerun validation.",),
             ),
@@ -304,9 +304,9 @@ BUILTIN_PROFILES: dict[ProfileName, WorkflowProfile] = {
                 ),
             ),
             CheckDefinition(
-                name="handoff",
-                purpose="Validate portable plan evidence and review state.",
-                command_template=f"{KIT_COMMAND} sync-check --target <target> --profile rust-mise --json",
+                name="handoff-readiness",
+                purpose="Checkpoint lifecycle freshness and check handoff readiness.",
+                command_template=f"{KIT_COMMAND} sync --target <target> --json && {KIT_COMMAND} ready --target <target> --json",
                 run_from="current-directory",
                 notes=(
                     "This checks recorded portable evidence; it does not rerun validation.",
@@ -329,7 +329,7 @@ Prefer profiles in this order:
 4. generic fallback
 
 Tell the user once which profile you chose and why, then use that profile
-consistently for plan, checks, and sync-check.
+consistently for plan, checks, and readiness.
 
 Examples:
 - --target my_project/api and profile my-project-api exists -> my-project-api
@@ -525,7 +525,8 @@ def checks_view(
         checks=profile.checks,
         reminder=(
             "Run validation commands directly in the agent shell loop, then record "
-            "the exact command/result in the portable plan's VALIDATION.md."
+            "the exact command/result with `hk validate --why ... -- <command>` "
+            "for HK 2 lifecycle work, or in VALIDATION.md for legacy plans."
         ),
     )
 
@@ -564,7 +565,11 @@ def profile_template(name: str, *, target: Path, preset: str = "generic") -> str
         "in VALIDATION.md before handoff."
     )
 
-    checks = [check for check in preset_profile.checks if check.name != "handoff"]
+    checks = [
+        check
+        for check in preset_profile.checks
+        if check.name not in {"handoff", "handoff-readiness"}
+    ]
     if preset == "generic":
         checks = [
             CheckDefinition(
@@ -585,9 +590,9 @@ def profile_template(name: str, *, target: Path, preset: str = "generic") -> str
         ]
     checks.append(
         CheckDefinition(
-            name="handoff",
-            purpose="Validate portable workflow evidence and review state.",
-            command_template=f"{KIT_COMMAND} sync-check --target <target> --profile {name} --json",
+            name="handoff-readiness",
+            purpose="Checkpoint lifecycle freshness and check handoff readiness.",
+            command_template=f"{KIT_COMMAND} sync --target <target> --json && {KIT_COMMAND} ready --target <target> --json",
             run_from="current-directory",
             notes=("This checks recorded evidence; it does not rerun validation.",),
         )

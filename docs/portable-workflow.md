@@ -87,9 +87,9 @@ Use the plan-artifact workflow when a repo or user needs the existing durable
 plan package and handoff-readiness contract:
 
 ```bash
-hk plan <slug> --target . --profile <profile> --json
+hk legacy plan <slug> --target . --profile <profile> --json
 hk checks --target . --profile <profile> --json
-hk sync-check --target . --profile <profile> --json
+hk legacy sync-check --target . --profile <profile> --json
 ```
 
 The plan-artifact workflow is not deprecated yet. It remains the compatibility
@@ -182,10 +182,10 @@ Standard loop:
 hk profile list --target . --json
 # choose the closest profile yourself and tell the user once why you chose it
 hk status --target . --json
-hk plan <slug> --target . --profile <profile> --json
+hk legacy plan <slug> --target . --profile <profile> --json
 # update the returned plan files as work progresses
 hk checks --target . --profile <profile> --json
-hk sync-check --target . --profile <profile> --json
+hk legacy sync-check --target . --profile <profile> --json
 ```
 
 For monorepos, pass `--target` as the subdirectory that should own the workflow
@@ -201,9 +201,9 @@ through `.git/info/exclude`.
 External mode stores workflow state outside the target repository:
 
 ```bash
-hk plan add-cache-layer --target /path/to/repo --state-root ~/.local/share/harness-toolkit/workflows --json
+hk legacy plan add-cache-layer --target /path/to/repo --state-root ~/.local/share/harness-toolkit/workflows --json
 hk status --target /path/to/repo --json
-hk sync-check --target /path/to/repo --json
+hk legacy sync-check --target /path/to/repo --json
 ```
 
 The target repository stays clean because plans, templates, and workflow metadata
@@ -218,7 +218,7 @@ Git exclude file:
 
 ```bash
 hk attach --target /path/to/repo --mode overlay --json
-hk plan add-cache-layer --target /path/to/repo --mode overlay --json
+hk legacy plan add-cache-layer --target /path/to/repo --mode overlay --json
 ```
 
 This makes files visible to editors and agents while avoiding committed
@@ -243,9 +243,10 @@ info/exclude`, so linked worktrees and `.git` file checkouts are handled.
 | `hk profile create <name>` | Create an editable custom profile TOML template |
 | `hk checks --profile <name>` | Show named verification loops without executing them |
 | `hk attach` | Prepare external or overlay workflow state for a target repo |
-| `hk plan <slug>` | Create a plan directory in the workflow state |
+| `hk plan <text>` | Record the lifecycle implementation plan in the active ledger |
+| `hk legacy plan <slug>` | Create a legacy plan directory in the workflow state |
 | `hk status` | Show active plan and validation status |
-| `hk sync-check` | Run local handoff checks without requiring tracked artifacts |
+| `hk legacy sync-check` | Run legacy plan-artifact handoff checks without requiring tracked artifacts |
 
 Profiles are small workflow contracts for agentic engineering checks. They
 describe the checks that exist for an environment; they do **not** run those

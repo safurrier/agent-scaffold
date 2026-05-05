@@ -76,11 +76,11 @@ WorkflowMode = Literal["external", "overlay"]
 # operations behind a deeper kit module.
 app = App(
     name=Path(sys.argv[0]).name,
-    help="Use Harness Kit planning in any repo without committing scaffold files.",
+    help="Use the Harness Kit 2 lifecycle in any repo without committing scaffold files.",
 )
 profile_app = App(name="profile", help="List, show, and create workflow profiles.")
 work_app = App(name="work", help="Manage ledger-backed local work units.")
-evidence_app = App(name="evidence", help="List captured evidence.")
+evidence_app = App(name="evidence", help="Inspect captured evidence; use `list`.")
 spec_app = App(name="spec", help="Manage optional local/external specs.")
 review_app = App(name="review", help="Record external-enough review evidence.")
 legacy_app = App(name="legacy", help="Legacy HK 1 plan-artifact workflow commands.")
@@ -524,9 +524,15 @@ def start(
         return
     print(f"work_id={result.work_id}")
     print(f"work_dir={result.work_dir}")
+    print("next lifecycle:")
     print(
-        "next: hk context ... (if useful), hk plan ..., hk validate --why ... -- <command>"
+        "  hk context 'Constraints, relevant files, or repo facts'  # optional, when useful"
     )
+    print("  hk plan 'Adopted implementation intent'")
+    print("  hk decide 'Decision/spec reflection' --no-spec-impact")
+    print("  hk validate --why 'What this proves' -- <native command>")
+    print("  hk review add ...  # independent/fresh-context review, not self-review")
+    print("  hk sync && hk ready && hk handoff")
 
 
 @app.command(
@@ -895,6 +901,26 @@ def review_add(
     print(f"summary={result.summary}")
 
 
+@evidence_app.default
+def evidence_default(
+    *,
+    target: Path = Path("."),
+    json: bool = False,
+) -> None:
+    """Show the evidence-list subcommand hint for bare `hk evidence`."""
+    message = "hk evidence requires a subcommand. Try: hk evidence list --target <repo> --json"
+    if json:
+        print(
+            json_dump_object(
+                {"error": message, "try": "hk evidence list --target <repo> --json"}
+            )
+        )
+    else:
+        print_error(message)
+    _ = target
+    raise SystemExit(1)
+
+
 @evidence_app.command(name="list")
 def evidence_list(
     *,
@@ -1249,12 +1275,12 @@ def legacy_plan(
     emit(result, json=json)
 
 
-@app.command(
+@legacy_app.command(
     name="sync-check",
     help_epilogue=(
         "Examples:\n"
-        "  hk sync-check --target /work/repo\n"
-        "  hk sync-check --target /work/repo --json"
+        "  hk legacy sync-check --target /work/repo\n"
+        "  hk legacy sync-check --target /work/repo --json"
     ),
 )
 def sync_check_command(
@@ -1266,14 +1292,14 @@ def sync_check_command(
     state_root: Path | None = None,
     json: bool = False,
 ) -> None:
-    """Run local handoff checks for portable workflow state."""
+    """Run legacy plan-artifact handoff checks for portable workflow state."""
     try:
         catalog = resolve_catalog(profiles_dir)
         catalog.get(profile)
         result = sync_check(target, mode=mode, state_root=state_root)
     except (WorkflowError, KeyError, ProfileError) as e:
         print_error(
-            f"{e}\nTry: hk status --target <repo> --json to find the active plan"
+            f"{e}\nTry: hk legacy plan my-slice --target <repo> --json, or use hk ready for HK 2 lifecycle readiness"
         )
         raise SystemExit(1) from e
     emit(result, json=json)

@@ -151,6 +151,7 @@ def test_harness_kit_external_mode_rollout_matches_plan_contract(
 
     _complete_portable_plan(plan_dir)
     sync = _run_hk(
+        "legacy",
         "sync-check",
         "--target",
         str(target),

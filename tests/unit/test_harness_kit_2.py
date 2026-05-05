@@ -258,6 +258,24 @@ def test_capture_records_redacted_success_and_failed_command(tmp_path: Path) -> 
     assert failure.exit_code == 7
 
 
+def test_hk_dev_preserves_caller_cwd_for_target_dot(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+
+    result = subprocess.run(
+        [str(ROOT / "scripts" / "hk-dev"), "brief", "--target", ".", "--json"],
+        cwd=target,
+        capture_output=True,
+        check=False,
+        text=True,
+        timeout=120,
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert Path(payload["target_root"]) == target.resolve()
+
+
 def test_capture_missing_command_records_failed_evidence(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -270,6 +288,23 @@ def test_capture_missing_command_records_failed_evidence(tmp_path: Path) -> None
     assert result.exit_code == 127
     assert result.status == "fail"
     assert "failed to start command" in transcript
+
+
+def test_handoff_labels_failed_evidence_as_attempted_validation(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "failed-evidence")
+    capture_command(
+        target,
+        ("python3", "-c", "raise SystemExit(2)"),
+        why="Focused failing command.",
+    )
+
+    result = handoff(target)
+
+    assert "attempted to validate: Focused failing command" in result.content
+    assert "validates: Focused failing command" not in result.content
 
 
 def test_handoff_does_not_overclaim_without_evidence(tmp_path: Path) -> None:
@@ -326,6 +361,23 @@ def test_lifecycle_ready_requires_plan_decision_validation_review_and_sync(
     assert "manual_external / Alex" in handoff_result.content
 
 
+def test_cli_evidence_bare_command_gives_list_hint() -> None:
+    result = _run_hk("evidence", "--target", ".")
+
+    assert result.returncode != 0
+    assert "hk evidence list --target <repo> --json" in result.stderr
+
+
+def test_cli_root_help_hides_legacy_sync_check() -> None:
+    root = _run_hk("--help")
+    legacy = _run_hk("legacy", "sync-check", "--help")
+
+    assert root.returncode == 0
+    assert legacy.returncode == 0
+    assert "sync-check" not in root.stdout
+    assert "hk legacy sync-check" in legacy.stdout
+
+
 def test_cli_review_help_warns_self_review_does_not_count() -> None:
     result = _run_hk("review", "add", "--help")
 
@@ -348,6 +400,37 @@ def test_review_add_rejects_self_review_identity(tmp_path: Path) -> None:
             rubrics=("core-quality",),
             summary="I checked my own implementation.",
         )
+
+
+def test_ready_warns_when_agent_local_state_makes_sync_stale(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "agent-state")
+    add_note(target, kind="plan", text="Implement the lifecycle facade.")
+    add_note(target, kind="decision", text="Use validate as the primary evidence verb.")
+    add_note(target, kind="spec-impact", text="No spec impact declared.")
+    capture_command(target, ("python3", "-c", "print('ok')"), why="Smoke test.")
+    add_review(
+        target,
+        backend="manual_external",
+        reviewer="Alex",
+        rubrics=("core-quality",),
+        summary="No blocking findings.",
+    )
+    sync_checkpoint(target)
+    (target / ".pi").mkdir()
+    (target / ".pi" / "session.json").write_text("{}")
+
+    result = ready(target)
+
+    assert result.ready is False
+    assert any(
+        check.id == "sync"
+        and ".pi" in check.message
+        and "agent-local state" in check.message
+        for check in result.checks
+    )
 
 
 def test_generated_handoff_views_do_not_make_synced_work_stale(

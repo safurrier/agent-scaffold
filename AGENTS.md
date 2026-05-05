@@ -31,6 +31,10 @@ reference.
 
 **Focused tests**: `uv run pytest -m "not slow"`.
 
+**Current HK dev CLI**: `scripts/hk-dev ...` runs this checkout's `hk` while
+preserving the caller cwd; use it for dogfood before the installed `hk` is
+updated.
+
 **Slice prompt rendering**: `mise run slice-plan -- --task <task.md>`, then
 `mise run slice-implement` and `mise run slice-review` when useful.
 
@@ -130,6 +134,7 @@ use it only in a copied scaffold or throwaway init target.
 | `docs/init-system.md` | How `mise run init` transforms the scaffold |
 | `docs/AGENTS.md` | Docs routing index, including stack and ADR docs |
 | `docs/decisions/` | ADRs for scaffold workflow and contract choices |
+| `.agent/skills/hk-pr-sized-dogfood/` | Repo-local skill for PR-sized HK dogfood replay studies |
 | `templates/.agent/skills/slice-workflow/` | Skill shipped to generated repos |
 | `templates/.ai/plans/AGENTS.md` | Plan artifact contract shipped to generated repos |
 

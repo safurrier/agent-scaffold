@@ -39,6 +39,7 @@ VALID_EVIDENCE_KINDS = ("test", "lint", "typecheck", "build", "check", "e2e", "o
 SYNC_IGNORED_EVENT_TYPES = frozenset(
     {"sync_checkpoint", "view_materialized", "handoff_generated"}
 )
+AGENT_LOCAL_STATE_PATHS = (".pi", ".claude/worktrees")
 SENSITIVE_OPTION_NAMES = {
     "--password",
     "--passwd",
@@ -310,6 +311,32 @@ def git_dirty(path: Path) -> bool:
         text=True,
     )
     return bool(result.stdout.strip()) if result.returncode == 0 else False
+
+
+def agent_local_state_paths(path: Path) -> list[str]:
+    """Return common agent-local paths that are currently part of git status."""
+    present: list[str] = []
+    for candidate in AGENT_LOCAL_STATE_PATHS:
+        result = subprocess.run(
+            ["git", "status", "--porcelain", "--", candidate],
+            cwd=path,
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            present.append(candidate)
+    return present
+
+
+def agent_local_state_warning(path: Path) -> str:
+    paths = agent_local_state_paths(path)
+    if not paths:
+        return ""
+    return (
+        " Common agent-local state is present in git status "
+        f"({', '.join(paths)}); remove/ignore it or resync intentionally."
+    )
 
 
 def git_diff_hash(path: Path) -> str:
@@ -1082,7 +1109,13 @@ def render_handoff(work_dir: Path, state: LocalState) -> str:
             transcript = (
                 f" — `{record.transcript_path}`" if record.transcript_path else ""
             )
-            why = f" — validates: {record.why}" if record.why else ""
+            if record.why:
+                verb = (
+                    "validates" if record.status == "pass" else "attempted to validate"
+                )
+                why = f" — {verb}: {record.why}"
+            else:
+                why = ""
             lines.append(
                 f"- `{record.command_display}`: {record.status} (exit {record.exit_code}){why}{transcript}"
             )
@@ -1252,9 +1285,10 @@ def ready_for_work(
         else "missing accepted external-enough review record; run a separate reviewer/subagent with fresh context",
     )
     synced = sync_status_for(state) == "synced"
-    add_check(
-        "sync", synced, "sync checkpoint fresh" if synced else "sync checkpoint stale"
-    )
+    sync_message = "sync checkpoint fresh" if synced else "sync checkpoint stale"
+    if not synced:
+        sync_message += agent_local_state_warning(state.target_root)
+    add_check("sync", synced, sync_message)
     if check_handoff:
         try:
             render_handoff(work_dir, state)

@@ -315,6 +315,7 @@ hk note --kind ...                      # advanced event entry, if retained
 hk capture ... -- <command...>          # lower-level command evidence
 hk evidence list                        # inspection/debugging
 hk export --format handoff [--target PATH]
+hk legacy plan|sync-check               # legacy plan-artifact workflow only
 ```
 
 Deferred commands also include state cleanup, deep spec impact, profile
@@ -365,6 +366,9 @@ It must not choose validation commands, auto-select profiles, emit confidence
 scores, or mutate state.
 
 ## Handoff model
+
+Failed evidence in `hk handoff` should read as an attempted validation, not as a
+successful validation claim.
 
 `hk handoff` renders a conservative summary from ledgers and git facts. The
 initial implementation includes target/branch state, typed decisions, learning

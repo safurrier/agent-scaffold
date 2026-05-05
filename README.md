@@ -93,7 +93,7 @@ During the Harness Kit 2.0 migration, `hk` supports two related workflows:
   compact adopted plans, exact command evidence with rationale, readiness checks,
   and generated handoffs without committing ceremony.
 - **Legacy plan-artifact workflow** — use `hk legacy plan`, `hk checks`, and
-  `hk sync-check` when you need the existing durable plan package and
+  `hk legacy sync-check` when you need the existing durable plan package and
   handoff-readiness contract over TODO, decisions/spec impact, validation
   evidence, review records, and artifact manifests.
 
