@@ -9,6 +9,7 @@ import pytest
 
 from harness_toolkit.kit.local import (
     LocalWorkflowError,
+    add_dangerous_skip,
     add_note,
     add_review,
     brief,
@@ -23,6 +24,7 @@ from harness_toolkit.kit.local import (
     spec_outline,
     spec_promote_dry_run,
     spec_status,
+    status,
     sync_checkpoint,
 )
 
@@ -382,7 +384,10 @@ def test_cli_review_help_warns_self_review_does_not_count() -> None:
     result = _run_hk("review", "add", "--help")
 
     assert result.returncode == 0
-    assert "Self-review does not satisfy readiness" in result.stdout
+    assert (
+        "Implementation-agent self-review does not satisfy readiness" in result.stdout
+    )
+    assert "independent AI/tool reviewer" in result.stdout
     assert "reviewer-fresh-context" in result.stdout
 
 
@@ -431,6 +436,186 @@ def test_ready_warns_when_agent_local_state_makes_sync_stale(tmp_path: Path) -> 
         and "agent-local state" in check.message
         for check in result.checks
     )
+
+
+def test_dangerously_skip_sync_satisfies_readiness_and_handoff(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "skip-sync")
+    add_note(target, kind="plan", text="Implement the lifecycle facade.")
+    add_note(target, kind="decision", text="Use validate as the primary evidence verb.")
+    add_note(target, kind="spec-impact", text="No spec impact declared.")
+    capture_command(target, ("python3", "-c", "print('ok')"), why="Smoke test.")
+    add_review(
+        target,
+        backend="manual_external",
+        reviewer="Alex",
+        rubrics=("core-quality",),
+        summary="No blocking findings.",
+    )
+    sync_checkpoint(target)
+    (target / ".pi").mkdir()
+    (target / ".pi" / "session.json").write_text("{}")
+    stale = ready(target)
+
+    skip = add_dangerous_skip(
+        target,
+        check="sync",
+        reason="Only .pi agent-local state changed after the last checkpoint.",
+    )
+    done = ready(target)
+    checked = sync_checkpoint(target, check=True)
+    rendered = handoff(target)
+
+    assert stale.ready is False
+    assert skip.kind == "sync"
+    assert checked.synced is True
+    assert checked.message == "sync dangerously skipped"
+    assert done.ready is True
+    assert done.status == "ready-with-dangerous-skips"
+    assert any(
+        check.id == "sync"
+        and check.status == "pass"
+        and "dangerously skipped" in check.message
+        for check in done.checks
+    )
+    assert "Sync status: `sync-dangerously-skipped`" in rendered.content
+    assert "## Dangerous skips" in rendered.content
+    assert "Only .pi agent-local state changed" in rendered.content
+
+
+def test_sync_exclude_allows_agent_local_state_without_stale_ready(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "exclude-sync")
+    add_note(target, kind="plan", text="Implement the lifecycle facade.")
+    add_note(target, kind="decision", text="Use validate as the primary evidence verb.")
+    add_note(target, kind="spec-impact", text="none: No spec impact declared.")
+    capture_command(target, ("python3", "-c", "print('ok')"), why="Smoke test.")
+    add_review(
+        target,
+        backend="manual_external",
+        reviewer="Alex",
+        rubrics=("core-quality",),
+        summary="No blocking findings.",
+    )
+    (target / ".pi").mkdir()
+    (target / ".pi" / "session.json").write_text("{}")
+
+    synced = sync_checkpoint(
+        target,
+        exclude_paths=(".pi",),
+        reason="Only local agent session state changed.",
+    )
+    done = ready(target)
+    rendered = handoff(target)
+
+    assert synced.synced is True
+    assert done.ready is True
+    assert done.status == "ready"
+    assert "Sync status: `synced`" in rendered.content
+    assert "## Sync exclusions" in rendered.content
+    assert ".pi: Only local agent session state changed." in rendered.content
+    assert "## Dangerous skips" not in rendered.content
+
+
+def test_sync_exclude_rejects_missing_reason_and_absent_path(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "exclude-errors")
+    (target / ".pi").mkdir()
+    (target / ".pi" / "session.json").write_text("{}")
+
+    with pytest.raises(LocalWorkflowError, match="requires --reason"):
+        sync_checkpoint(target, exclude_paths=(".pi",))
+
+    with pytest.raises(LocalWorkflowError, match="not present in git status"):
+        sync_checkpoint(target, exclude_paths=(".missing",), reason="Nope.")
+
+
+def test_sync_exclude_does_not_hide_source_changes_after_checkpoint(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "exclude-source-change")
+    (target / ".pi").mkdir()
+    (target / ".pi" / "session.json").write_text("{}")
+    sync_checkpoint(
+        target,
+        exclude_paths=(".pi",),
+        reason="Only local agent session state changed.",
+    )
+
+    (target / "README.md").write_text("# changed\n")
+    checked = sync_checkpoint(target, check=True)
+
+    assert checked.synced is False
+
+
+def test_dangerously_skip_sync_requires_prior_checkpoint(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "skip-sync-without-checkpoint")
+
+    with pytest.raises(LocalWorkflowError, match="requires a prior `hk sync`"):
+        add_dangerous_skip(
+            target,
+            check="sync",
+            reason="No checkpoint exists yet.",
+        )
+
+
+def test_dangerously_skip_sync_goes_stale_after_later_work(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "skip-sync-stale")
+    sync_checkpoint(target)
+    (target / ".pi").mkdir()
+    (target / ".pi" / "session.json").write_text("{}")
+    add_dangerous_skip(
+        target,
+        check="sync",
+        reason="Only .pi agent-local state changed after checkpoint.",
+    )
+    fresh = sync_checkpoint(target, check=True)
+
+    add_note(
+        target, kind="learning", text="A later lifecycle note should stale the skip."
+    )
+    stale = sync_checkpoint(target, check=True)
+
+    assert fresh.synced is True
+    assert fresh.message == "sync dangerously skipped"
+    assert stale.synced is False
+
+
+def test_status_coaches_next_actions(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "coach-me")
+
+    result = status(target)
+
+    assert result.active_work.endswith("coach-me")
+    assert result.ready_status == "not-ready"
+    assert result.phase == "planning"
+    assert any(action.startswith("plan:") for action in result.next_actions)
+    assert any(
+        action.startswith("context (optional):") for action in result.next_actions
+    )
+    assert any(action.startswith("decision:") for action in result.next_actions)
+    assert any(action.startswith("validation:") for action in result.next_actions)
+    assert any(action.startswith("review required:") for action in result.next_actions)
 
 
 def test_generated_handoff_views_do_not_make_synced_work_stale(
@@ -631,6 +816,45 @@ def test_ready_rejects_failed_validation_and_rejected_review(tmp_path: Path) -> 
     )
 
 
+def test_cli_start_plan_and_context_seed_lifecycle_notes(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+
+    result = _run_hk(
+        "start",
+        "seeded-work",
+        "--target",
+        str(target),
+        "--context",
+        "Use Cyclopts conventions.",
+        "--plan",
+        "Implement the seeded lifecycle plan.",
+        "--json",
+    )
+    handoff_result = _run_hk("handoff", "--target", str(target))
+    status_result = _run_hk("status", "--target", str(target), "--json")
+
+    assert result.returncode == 0, result.stderr
+    assert "Use Cyclopts conventions." in handoff_result.stdout
+    assert "Implement the seeded lifecycle plan." in handoff_result.stdout
+    payload = json.loads(status_result.stdout)
+    assert payload["active_work"].endswith("seeded-work")
+    assert not any(action.startswith("plan:") for action in payload["next_actions"])
+
+
+def test_cli_plan_without_active_work_points_to_start_or_legacy_plan(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+
+    result = _run_hk("plan", "legacy-looking-slug", "--target", str(target))
+
+    assert result.returncode != 0
+    assert "No active work. Run `hk start <slug>` first." in result.stderr
+    assert "hk legacy plan <slug>" in result.stderr
+
+
 def test_cli_context_from_file_avoids_shell_fragile_text(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -651,6 +875,68 @@ def test_cli_context_from_file_avoids_shell_fragile_text(tmp_path: Path) -> None
     assert result.returncode == 0, result.stderr
     assert "uv sync --extra dev" in json.loads(result.stdout)["text"]
     assert "uv sync --extra dev" in handoff_result.stdout
+
+
+def test_cli_decide_records_structured_spec_impact_refs(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    assert (
+        _run_hk(
+            "start", "spec-impact", "--target", str(target), "--plan", "Plan."
+        ).returncode
+        == 0
+    )
+
+    result = _run_hk(
+        "decide",
+        "Update the lifecycle CLI shape.",
+        "--spec-impact",
+        "updated",
+        "--spec-ref",
+        "SPEC.md",
+        "--spec-ref",
+        "docs/harness-kit-2-design.md",
+        "--target",
+        str(target),
+        "--json",
+    )
+    handoff_result = _run_hk("handoff", "--target", str(target))
+
+    assert result.returncode == 0, result.stderr
+    assert "updated: Spec/docs updated or verified." in handoff_result.stdout
+    assert "SPEC.md" in handoff_result.stdout
+    assert "docs/harness-kit-2-design.md" in handoff_result.stdout
+
+
+def test_cli_review_prompt_prints_fresh_context_prompt(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    assert (
+        _run_hk(
+            "start", "review-prompt", "--target", str(target), "--plan", "Plan."
+        ).returncode
+        == 0
+    )
+    assert (
+        _run_hk(
+            "decide",
+            "No behavior change.",
+            "--spec-impact",
+            "none",
+            "--target",
+            str(target),
+        ).returncode
+        == 0
+    )
+
+    result = _run_hk("review", "prompt", "--target", str(target))
+
+    assert result.returncode == 0, result.stderr
+    assert "independent AI/tool reviewer" in result.stdout
+    assert "fresh-context subagent" in result.stdout
+    assert "Minimum fallback" in result.stdout
+    assert "Plan." in result.stdout
+    assert "hk review add --backend subagent" in result.stdout
 
 
 def test_cli_lifecycle_commands_record_handoff_and_ready(tmp_path: Path) -> None:

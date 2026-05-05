@@ -5,6 +5,8 @@ import os
 import subprocess
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -109,12 +111,133 @@ def test_workflow_instructions_prints_minimal_agents_snippet() -> None:
     payload = json.loads(result.stdout)
     assert payload["profile"] == "python"
     assert "hk brief --target . --json" in payload["agents_md"]
-    assert "hk start <slug> --target . --json" in payload["agents_md"]
+    assert (
+        "hk start <slug> --plan 'Adopted implementation intent' --target . --json"
+        in payload["agents_md"]
+    )
+    assert "hk status --target . --json" in payload["agents_md"]
     assert "hk checks --target . --profile python --json" in payload["agents_md"]
     assert "hk validate --why" in payload["agents_md"]
     assert "hk ready --target . --json" in payload["agents_md"]
     assert "Do not create or commit `.ai/`" in payload["agents_md"]
     assert "shell-first" in payload["agents_md"]
+
+
+def test_user_harness_config_resolves_inline_profile_and_checks(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "foreman"
+    repo.mkdir()
+    _git_init(repo)
+    prompt_file = tmp_path / "foreman-review.md"
+    prompt_file.write_text("Review CLI config behavior and focused tests.\n")
+    config = tmp_path / "harness.toml"
+    config.write_text(
+        f'''
+version = 1
+default_profile = "generic"
+
+[[targets]]
+name = "foreman"
+path = "{repo}"
+profile = "foreman"
+
+[profiles.foreman]
+title = "Foreman"
+summary = "Rust CLI/TUI project."
+target_hint = "Use --target {repo}."
+instructions = "Use focused cargo tests and record exact HK evidence."
+
+[[profiles.foreman.checks]]
+name = "cli-config-tests"
+purpose = "Run CLI config tests."
+command_template = "cargo test --test cli_config"
+run_from = "repo-root"
+notes = ["Use for config behavior changes."]
+
+[[profiles.foreman.reviews]]
+name = "core-quality"
+purpose = "Fresh-context review before handoff."
+backend = "codex"
+rubric = "core-quality"
+dispatch_hint = "codex review --uncommitted"
+prompt_file = "{prompt_file.name}"
+'''
+    )
+    monkeypatch.setenv("HARNESS_KIT_CONFIG", str(config))
+
+    resolved = _run_workflow("profile", "resolve", "--target", str(repo), "--json")
+    checks = _run_workflow("checks", "--target", str(repo), "--json")
+
+    assert resolved.returncode == 0, resolved.stderr
+    resolution = json.loads(resolved.stdout)
+    assert resolution["profile"] == "foreman"
+    assert resolution["source"] == "user-config"
+    assert resolution["matched_name"] == "foreman"
+    assert checks.returncode == 0, checks.stderr
+    payload = json.loads(checks.stdout)
+    assert payload["profile"] == "foreman"
+    assert payload["checks"][0]["command_template"] == "cargo test --test cli_config"
+    assert payload["reviews"][0]["backend"] == "codex"
+    assert payload["reviews"][0]["dispatch_hint"] == "codex review --uncommitted"
+    assert "Review CLI config behavior" in payload["reviews"][0]["prompt_file_text"]
+
+
+def test_user_harness_config_uses_longest_target_prefix(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "repo"
+    module = repo / "module"
+    module.mkdir(parents=True)
+    _git_init(repo)
+    config = tmp_path / "harness.toml"
+    config.write_text(
+        f'''
+version = 1
+
+[[targets]]
+name = "repo"
+path = "{repo}"
+profile = "repo-profile"
+
+[[targets]]
+name = "module"
+path = "{module}"
+profile = "module-profile"
+
+[profiles.repo-profile]
+title = "Repo"
+summary = "Repo profile."
+target_hint = "repo"
+instructions = "repo instructions"
+
+[[profiles.repo-profile.checks]]
+name = "repo-check"
+purpose = "Repo check."
+command_template = "repo-check"
+run_from = "repo-root"
+
+[profiles.module-profile]
+title = "Module"
+summary = "Module profile."
+target_hint = "module"
+instructions = "module instructions"
+
+[[profiles.module-profile.checks]]
+name = "module-check"
+purpose = "Module check."
+command_template = "module-check"
+run_from = "target"
+'''
+    )
+    monkeypatch.setenv("HARNESS_KIT_CONFIG", str(config))
+
+    result = _run_workflow("profile", "resolve", "--target", str(module), "--json")
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["profile"] == "module-profile"
+    assert payload["matched_name"] == "module"
 
 
 def test_workflow_profiles_and_checks_are_discoverable_without_execution(
@@ -340,6 +463,7 @@ def test_workflow_plan_validates_custom_profile_without_profile_scoped_state(
     assert create_profile.returncode == 0, create_profile.stderr
 
     result = _run_workflow(
+        "legacy",
         "plan",
         "custom-profile-plan",
         "--target",
@@ -369,6 +493,7 @@ def test_workflow_external_plan_keeps_target_repo_clean(tmp_path: Path) -> None:
     state_root = tmp_path / "state"
 
     result = _run_workflow(
+        "legacy",
         "plan",
         "portable-demo",
         "--target",
@@ -488,6 +613,7 @@ def test_workflow_sync_check_validates_local_plan_without_tracked_artifacts(
     state_root = tmp_path / "state"
 
     create = _run_workflow(
+        "legacy",
         "plan",
         "local-check",
         "--target",
@@ -535,6 +661,7 @@ def test_workflow_plan_allows_slug_suffixes_without_false_duplicates(
     state_root = tmp_path / "state"
 
     first = _run_workflow(
+        "legacy",
         "plan",
         "foo-bar",
         "--target",
@@ -544,6 +671,7 @@ def test_workflow_plan_allows_slug_suffixes_without_false_duplicates(
         "--json",
     )
     second = _run_workflow(
+        "legacy",
         "plan",
         "bar",
         "--target",
@@ -565,6 +693,7 @@ def test_workflow_sync_check_rejects_prose_only_validation_command(
     _git_init(target)
     state_root = tmp_path / "state"
     create = _run_workflow(
+        "legacy",
         "plan",
         "prose-validation",
         "--target",
@@ -624,6 +753,7 @@ def test_workflow_sync_check_rejects_required_review_placeholder(
     _git_init(target)
     state_root = tmp_path / "state"
     create = _run_workflow(
+        "legacy",
         "plan",
         "missing-review",
         "--target",
@@ -659,6 +789,7 @@ def test_workflow_sync_check_rejects_placeholder_plan_even_with_validation_comma
     _git_init(target)
     state_root = tmp_path / "state"
     create = _run_workflow(
+        "legacy",
         "plan",
         "placeholder-check",
         "--target",

@@ -113,6 +113,7 @@ def test_harness_kit_external_mode_rollout_matches_plan_contract(
     }
 
     plan = _run_hk(
+        "legacy",
         "plan",
         "rollout-parity",
         "--target",
@@ -190,6 +191,7 @@ def test_harness_kit_overlay_mode_uses_local_exclude_without_tracked_files(
     assert _git_status(target) == ""
 
     plan = _run_hk(
+        "legacy",
         "plan",
         "overlay-parity",
         "--target",

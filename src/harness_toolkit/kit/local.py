@@ -176,6 +176,25 @@ class ReadyResult:
 
 
 @dataclass(frozen=True)
+class StatusResult:
+    active_work: str
+    target_root: str
+    target_scope: str
+    state_dir: str
+    sync_status: str
+    ready_status: str
+    phase: str
+    checks: list[ReadyCheck]
+    next_actions: list[str]
+
+
+@dataclass(frozen=True)
+class ReviewPromptResult:
+    work_id: str
+    prompt: str
+
+
+@dataclass(frozen=True)
 class SpecResult:
     spec_path: str
     source: str
@@ -205,6 +224,8 @@ JsonDataclass = (
     | CaptureResult
     | ReviewResult
     | ReadyResult
+    | StatusResult
+    | ReviewPromptResult
     | SpecResult
     | SpecOutline
     | HandoffResult
@@ -333,19 +354,39 @@ def agent_local_state_warning(path: Path) -> str:
     paths = agent_local_state_paths(path)
     if not paths:
         return ""
+    examples = " ".join(f"--exclude {item}" for item in paths)
     return (
         " Common agent-local state is present in git status "
-        f"({', '.join(paths)}); remove/ignore it or resync intentionally."
+        f"({', '.join(paths)}); remove/ignore it, or record a constrained "
+        f"checkpoint with `hk sync {examples} --reason ...`."
     )
 
 
-def git_diff_hash(path: Path) -> str:
+def git_pathspec_excludes(exclude_paths: tuple[str, ...] = ()) -> list[str]:
+    return [f":(exclude){path}" for path in exclude_paths]
+
+
+def git_status_for_path(path: Path, candidate: str) -> str:
+    result = subprocess.run(
+        ["git", "status", "--porcelain", "--", candidate],
+        cwd=path,
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+    return result.stdout if result.returncode == 0 else ""
+
+
+def git_diff_hash(path: Path, exclude_paths: tuple[str, ...] = ()) -> str:
     """Hash unstaged, staged, and status state for sync freshness."""
     hasher = hashlib.sha256()
+    pathspec = (
+        ["--", ".", *git_pathspec_excludes(exclude_paths)] if exclude_paths else []
+    )
     commands = (
-        ["git", "diff", "--no-ext-diff", "--binary"],
-        ["git", "diff", "--cached", "--no-ext-diff", "--binary"],
-        ["git", "status", "--porcelain"],
+        ["git", "diff", "--no-ext-diff", "--binary", *pathspec],
+        ["git", "diff", "--cached", "--no-ext-diff", "--binary", *pathspec],
+        ["git", "status", "--porcelain", *pathspec],
     )
     for command in commands:
         result = subprocess.run(
@@ -361,7 +402,7 @@ def git_diff_hash(path: Path) -> str:
         hasher.update(result.stdout)
         hasher.update(b"\0")
     untracked = subprocess.run(
-        ["git", "ls-files", "--others", "--exclude-standard", "-z"],
+        ["git", "ls-files", "--others", "--exclude-standard", "-z", *pathspec],
         cwd=path,
         capture_output=True,
         check=False,
@@ -639,6 +680,13 @@ def int_from_event_data(data: dict[str, object], key: str) -> int:
     return 0
 
 
+def string_list_from_event_data(data: dict[str, object], key: str) -> tuple[str, ...]:
+    value = data.get(key, [])
+    if not isinstance(value, list):
+        return ()
+    return tuple(str(item) for item in value)
+
+
 def latest_sync_relevant_seq(events: list[EventRecord]) -> int:
     return max(
         (event.seq for event in events if event.type not in SYNC_IGNORED_EVENT_TYPES),
@@ -646,14 +694,73 @@ def latest_sync_relevant_seq(events: list[EventRecord]) -> int:
     )
 
 
+def normalize_exclude_paths(exclude_paths: tuple[str | Path, ...]) -> tuple[str, ...]:
+    normalized: list[str] = []
+    for path in exclude_paths:
+        text = str(path).strip()
+        if not text:
+            continue
+        normalized.append(text.rstrip("/"))
+    return tuple(dict.fromkeys(normalized))
+
+
+def git_path_state_hash(path: Path, candidate: str) -> str:
+    hasher = hashlib.sha256()
+    commands = (
+        ["git", "diff", "--no-ext-diff", "--binary", "--", candidate],
+        ["git", "diff", "--cached", "--no-ext-diff", "--binary", "--", candidate],
+        ["git", "status", "--porcelain", "--", candidate],
+    )
+    for command in commands:
+        result = subprocess.run(command, cwd=path, capture_output=True, check=False)
+        if result.returncode != 0:
+            return ""
+        hasher.update("\0".join(command).encode("utf-8"))
+        hasher.update(b"\0")
+        hasher.update(result.stdout)
+        hasher.update(b"\0")
+    return "sha256:" + hasher.hexdigest()
+
+
+def excluded_path_metadata(
+    path: Path, exclude_paths: tuple[str, ...]
+) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    for candidate in exclude_paths:
+        status = git_status_for_path(path, candidate)
+        rows.append(
+            {
+                "path": candidate,
+                "status": status.strip(),
+                "state_hash": git_path_state_hash(path, candidate),
+            }
+        )
+    return rows
+
+
 def sync_checkpoint(
-    target: Path, *, check: bool = False, no_local_files: bool = False
+    target: Path,
+    *,
+    check: bool = False,
+    exclude_paths: tuple[str | Path, ...] = (),
+    reason: str = "",
+    no_local_files: bool = False,
 ) -> SyncResult:
     state = ensure_state(target, no_local_files=no_local_files)
     work_dir = require_work(state)
     events = read_events(work_dir)
     latest_seq = latest_sync_relevant_seq(events)
-    current_hash = git_diff_hash(state.target_root)
+    normalized_excludes = normalize_exclude_paths(exclude_paths)
+    if check and normalized_excludes:
+        raise LocalWorkflowError("sync --check cannot be combined with --exclude")
+    if normalized_excludes and not reason.strip():
+        raise LocalWorkflowError("sync --exclude requires --reason")
+    for candidate in normalized_excludes:
+        if not git_status_for_path(state.target_root, candidate).strip():
+            raise LocalWorkflowError(
+                f"sync --exclude path is not present in git status: {candidate}"
+            )
+    current_hash = git_diff_hash(state.target_root, normalized_excludes)
     sync_events = [event for event in events if event.type == "sync_checkpoint"]
     guidance = [
         "Plan: did you record the agreed implementation intent?",
@@ -664,6 +771,7 @@ def sync_checkpoint(
         "Spec/docs: did behavior or product intent change?",
     ]
     if check:
+        skip = fresh_sync_skip(events, state) if sync_events else None
         if not sync_events:
             return SyncResult(
                 work_id=work_dir.name,
@@ -673,8 +781,19 @@ def sync_checkpoint(
             )
         latest_sync = sync_events[-1]
         synced_seq = int_from_event_data(latest_sync.data, "event_seq")
+        checkpoint_excludes = string_list_from_event_data(
+            latest_sync.data, "excluded_paths"
+        )
         synced_hash = str(latest_sync.data.get("diff_hash", ""))
+        current_hash = git_diff_hash(state.target_root, checkpoint_excludes)
         synced = synced_seq >= latest_seq and synced_hash == current_hash
+        if not synced and skip is not None:
+            return SyncResult(
+                work_id=work_dir.name,
+                synced=True,
+                message="sync dangerously skipped",
+                guidance=guidance,
+            )
         message = "synced" if synced else "needs sync: work changed after checkpoint"
         return SyncResult(
             work_id=work_dir.name, synced=synced, message=message, guidance=guidance
@@ -682,17 +801,24 @@ def sync_checkpoint(
 
     evidence_count = len(read_evidence(work_dir))
     note_count = len([event for event in events if event.type == "note_added"])
-    append_event(
-        work_dir,
-        "sync_checkpoint",
-        {
-            "git_sha": git_sha(state.target_root),
-            "diff_hash": current_hash,
-            "event_seq": latest_seq,
-            "evidence_count": evidence_count,
-            "note_count": note_count,
-        },
-    )
+    data: dict[str, object] = {
+        "git_sha": git_sha(state.target_root),
+        "diff_hash": current_hash,
+        "event_seq": latest_seq,
+        "evidence_count": evidence_count,
+        "note_count": note_count,
+    }
+    if normalized_excludes:
+        data.update(
+            {
+                "excluded_paths": list(normalized_excludes),
+                "exclude_reason": reason.strip(),
+                "excluded": excluded_path_metadata(
+                    state.target_root, normalized_excludes
+                ),
+            }
+        )
+    append_event(work_dir, "sync_checkpoint", data)
     return SyncResult(
         work_id=work_dir.name,
         synced=True,
@@ -895,6 +1021,23 @@ def find_specs(state: LocalState) -> list[str]:
     return specs
 
 
+def fresh_sync_skip(
+    events: list[EventRecord], state: LocalState
+) -> dict[str, object] | None:
+    """Return the latest dangerous sync skip if it still covers this snapshot."""
+    skips = dangerous_skip_events(events, "sync")
+    if not skips:
+        return None
+    latest = skips[-1]
+    skipped_seq = int_from_event_data(latest, "event_seq")
+    skipped_hash = str(latest.get("diff_hash", ""))
+    if skipped_seq < latest_sync_relevant_seq(events):
+        return None
+    if skipped_hash != git_diff_hash(state.target_root):
+        return None
+    return latest
+
+
 def sync_status_for(state: LocalState) -> str:
     work_dir = active_work_dir(state)
     if work_dir is None:
@@ -903,15 +1046,19 @@ def sync_status_for(state: LocalState) -> str:
     if not events:
         return "needs-sync"
     sync_events = [event for event in events if event.type == "sync_checkpoint"]
-    if not sync_events:
-        return "needs-sync"
-    latest_sync = sync_events[-1]
-    synced_seq = int_from_event_data(latest_sync.data, "event_seq")
-    if synced_seq < latest_sync_relevant_seq(events):
-        return "needs-sync"
-    if str(latest_sync.data.get("diff_hash", "")) != git_diff_hash(state.target_root):
-        return "needs-sync"
-    return "synced"
+    if sync_events:
+        latest_sync = sync_events[-1]
+        synced_seq = int_from_event_data(latest_sync.data, "event_seq")
+        checkpoint_excludes = string_list_from_event_data(
+            latest_sync.data, "excluded_paths"
+        )
+        if synced_seq >= latest_sync_relevant_seq(events) and str(
+            latest_sync.data.get("diff_hash", "")
+        ) == git_diff_hash(state.target_root, checkpoint_excludes):
+            return "synced"
+    if sync_events and fresh_sync_skip(events, state) is not None:
+        return "sync-dangerously-skipped"
+    return "needs-sync"
 
 
 def unique_paths(paths: list[Path]) -> list[str]:
@@ -1010,8 +1157,11 @@ ACCEPTED_REVIEW_DISPOSITIONS = {
 }
 SELF_REVIEW_TOKENS = ("self", "same-agent", "implementation-agent", "worker-self")
 SELF_REVIEW_GUIDANCE = (
-    "self-review does not count; run a separate reviewer/subagent with fresh "
-    "context, record that review, or use `hk dangerously-skip review --reason ...`"
+    "implementation-agent self-review does not count; preferred review is an "
+    "independent AI/tool reviewer, with fresh-context subagent review as the "
+    "minimum fallback. Run `hk review prompt`, dispatch that prompt to the "
+    "reviewer, record it with `hk review add ...`, or use "
+    "`hk dangerously-skip review --reason ...` if review is impossible"
 )
 
 
@@ -1138,12 +1288,110 @@ def render_handoff(work_dir: Path, state: LocalState) -> str:
             )
     else:
         lines.append("- None recorded.")
+    sync_exclusions = [
+        event.data
+        for event in events
+        if event.type == "sync_checkpoint" and event.data.get("excluded_paths")
+    ]
+    if sync_exclusions:
+        lines.extend(["", "## Sync exclusions"])
+        for checkpoint in sync_exclusions:
+            paths = checkpoint.get("excluded_paths", [])
+            path_text = (
+                ", ".join(str(path) for path in paths)
+                if isinstance(paths, list)
+                else str(paths)
+            )
+            lines.append(f"- {path_text}: {checkpoint.get('exclude_reason')}")
     skips = [event.data for event in events if event.type == "dangerous_skip_added"]
     if skips:
         lines.extend(["", "## Dangerous skips"])
         for skip in skips:
             lines.append(f"- {skip.get('check')}: {skip.get('reason')}")
     return "\n".join(lines) + "\n"
+
+
+def changed_paths(root: Path) -> list[str]:
+    result = subprocess.run(
+        ["git", "status", "--porcelain"],
+        cwd=root,
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+    if result.returncode != 0:
+        return []
+    paths: list[str] = []
+    for line in result.stdout.splitlines():
+        if not line.strip():
+            continue
+        paths.append(line[3:] if len(line) > 3 else line.strip())
+    return paths
+
+
+def review_prompt(target: Path, *, no_local_files: bool = False) -> ReviewPromptResult:
+    state = ensure_state(target, no_local_files=no_local_files)
+    work_dir = require_work(state)
+    events = read_events(work_dir)
+    evidence = read_evidence(work_dir)
+    lines = [
+        "You are an independent AI/tool reviewer or fresh-context subagent reviewer for this HK lifecycle work.",
+        "Do not rely on the implementation agent's self-review; review independently.",
+        "Preferred review is a separate AI/tool reviewer, ideally a different model/runtime or context.",
+        "Minimum fallback is a fresh-context subagent review. Implementation-agent self-review does not count.",
+        "If your harness has a fresh-context review mechanism, dispatch this prompt to that reviewer now.",
+        "",
+        f"Work: {work_dir.name}",
+        f"Target: {state.target_root}",
+        f"Branch: {git_branch(state.target_root)}",
+        "",
+        "Plan:",
+    ]
+    lines.extend(
+        [f"- {item}" for item in notes_by_kind(events, "plan")] or ["- None recorded."]
+    )
+    lines.extend(["", "Context:"])
+    lines.extend(
+        [f"- {item}" for item in notes_by_kinds(events, ("context", "background"))]
+        or ["- None recorded."]
+    )
+    lines.extend(["", "Decisions and spec reflection:"])
+    lines.extend(
+        [f"- {item}" for item in notes_by_kind(events, "decision")]
+        or ["- None recorded."]
+    )
+    for item in notes_by_kind(events, "spec-impact"):
+        lines.append(f"  - Spec: {item}")
+    lines.extend(["", "Validation evidence:"])
+    if evidence:
+        for record in evidence:
+            lines.append(
+                f"- {record.status}: `{record.command_display}` — {record.why or 'no rationale'}"
+            )
+    else:
+        lines.append("- None recorded.")
+    lines.extend(["", "Changed paths:"])
+    lines.extend(
+        [f"- {path}" for path in changed_paths(state.target_root)] or ["- none"]
+    )
+    lines.extend(
+        [
+            "",
+            "Review task:",
+            "1. Inspect the changed files and relevant tests.",
+            "2. Check correctness, missed edge cases, docs/spec impact, validation adequacy, and HK handoff quality.",
+            "3. Return blocking findings, non-blocking findings, and final disposition.",
+            "4. If accepted, the implementation agent must record you with `hk review add --backend subagent --reviewer reviewer-fresh-context --rubric core-quality --summary '...'`.",
+            "",
+            "Dispatch hint for implementation agents:",
+            "- If you have a fresh-context review mechanism, send this whole prompt to it now.",
+            "- Examples: Pi `subagent` tool; Claude Code `Agent` tool (legacy `Task`); Codex via Shell tool running `codex review --uncommitted`.",
+            "- Do not answer this prompt yourself as the implementation agent.",
+            "- After review tooling runs, re-run `hk status`; review tools may create agent-local state that must be removed or handled with `hk sync --exclude PATH --reason ...`.",
+            "- If no independent AI/tool or fresh-context subagent is available, record `hk dangerously-skip review --reason ...`.",
+        ]
+    )
+    return ReviewPromptResult(work_id=work_dir.name, prompt="\n".join(lines) + "\n")
 
 
 def add_review(
@@ -1198,17 +1446,27 @@ def add_dangerous_skip(
     reason: str,
     no_local_files: bool = False,
 ) -> NoteResult:
-    if check not in {"review", "validation"}:
-        raise LocalWorkflowError("dangerously-skip supports: review, validation")
+    if check not in {"review", "validation", "sync"}:
+        raise LocalWorkflowError("dangerously-skip supports: review, validation, sync")
     if not reason.strip():
         raise LocalWorkflowError("dangerously-skip requires --reason")
     state = ensure_state(target, no_local_files=no_local_files)
     work_dir = require_work(state)
-    record = append_event(
-        work_dir,
-        "dangerous_skip_added",
-        {"check": check, "reason": reason.strip()},
-    )
+    data: dict[str, object] = {"check": check, "reason": reason.strip()}
+    if check == "sync":
+        events = read_events(work_dir)
+        if not any(event.type == "sync_checkpoint" for event in events):
+            raise LocalWorkflowError(
+                "dangerously-skip sync requires a prior `hk sync` checkpoint"
+            )
+        data.update(
+            {
+                "git_sha": git_sha(state.target_root),
+                "diff_hash": git_diff_hash(state.target_root),
+                "event_seq": max((event.seq for event in events), default=0) + 1,
+            }
+        )
+    record = append_event(work_dir, "dangerous_skip_added", data)
     return NoteResult(work_id=work_dir.name, seq=record.seq, kind=check, text=reason)
 
 
@@ -1284,8 +1542,16 @@ def ready_for_work(
         if recorded_reviews
         else "missing accepted external-enough review record; run a separate reviewer/subagent with fresh context",
     )
-    synced = sync_status_for(state) == "synced"
-    sync_message = "sync checkpoint fresh" if synced else "sync checkpoint stale"
+    sync_status = sync_status_for(state)
+    sync_skipped = sync_status == "sync-dangerously-skipped"
+    synced = sync_status == "synced" or sync_skipped
+    sync_message = (
+        "sync checkpoint fresh"
+        if sync_status == "synced"
+        else "sync dangerously skipped"
+        if sync_skipped
+        else "sync checkpoint stale"
+    )
     if not synced:
         sync_message += agent_local_state_warning(state.target_root)
     add_check("sync", synced, sync_message)
@@ -1297,7 +1563,7 @@ def ready_for_work(
         else:
             add_check("handoff", True, "handoff renders")
     failed = [check for check in checks if check.status == "fail"]
-    has_skips = bool(validation_skipped or review_skipped)
+    has_skips = bool(validation_skipped or review_skipped or sync_skipped)
     status = (
         "ready"
         if not failed and not has_skips
@@ -1310,6 +1576,99 @@ def ready_for_work(
         ready=not failed,
         status=status,
         checks=checks,
+    )
+
+
+def lifecycle_phase(events: list[EventRecord], readiness: ReadyResult | None) -> str:
+    if readiness is not None and readiness.ready:
+        return "ready"
+    has_plan = bool(notes_by_kind(events, "plan"))
+    has_decision = bool(notes_by_kind(events, "decision")) and bool(
+        notes_by_kind(events, "spec-impact")
+    )
+    has_validation = bool(
+        readiness
+        and any(
+            check.id == "validation" and check.status == "pass"
+            for check in readiness.checks
+        )
+    )
+    has_review = bool(
+        readiness
+        and any(
+            check.id == "review" and check.status == "pass"
+            for check in readiness.checks
+        )
+    )
+    if has_validation or has_review:
+        return "finalizing"
+    if has_plan and has_decision:
+        return "implementing"
+    return "planning"
+
+
+def status(target: Path, *, no_local_files: bool = False) -> StatusResult:
+    state = resolve_local_state(target, no_local_files=no_local_files)
+    work_dir = active_work_dir(state) if state.state_dir.exists() else None
+    if work_dir is None:
+        return StatusResult(
+            active_work="",
+            target_root=str(state.target_root),
+            target_scope=str(state.target_scope),
+            state_dir=str(state.state_dir),
+            sync_status="no-active-work",
+            ready_status="not-started",
+            phase="not-started",
+            checks=[],
+            next_actions=[
+                "start: hk start <slug> --plan 'Describe the intended change and validation approach'"
+            ],
+        )
+
+    events = read_events(work_dir)
+    readiness = ready_for_work(work_dir, state, check_handoff=False)
+    actions: list[str] = []
+    if not notes_by_kind(events, "plan"):
+        actions.append(
+            "plan: hk plan 'Describe the intended change and validation approach' (next time: hk start <slug> --plan '...')"
+        )
+    if not notes_by_kinds(events, ("context", "background")):
+        actions.append(
+            "context (optional): hk context 'Constraints, relevant files, or repo facts' if it prevents rediscovery"
+        )
+    if not notes_by_kind(events, "decision") or not notes_by_kind(
+        events, "spec-impact"
+    ):
+        actions.append(
+            "decision: hk decide 'Decision/spec reflection' --spec-impact none|updated|not-needed [--spec-ref PATH]"
+        )
+    check_map = {check.id: check for check in readiness.checks}
+    if check_map.get("validation") and check_map["validation"].status == "fail":
+        actions.append(
+            "validation: hk validate --why 'What this proves' -- <native command>"
+        )
+    if check_map.get("review") and check_map["review"].status == "fail":
+        actions.append(
+            "review required: preferred independent AI/tool reviewer; minimum fresh-context subagent. Run `hk review prompt`; dispatch it via your harness if available (Pi `subagent` tool, Claude Code `Agent` tool/legacy `Task`, Codex Shell tool running `codex review --uncommitted`); record with `hk review add ...`, then re-run `hk status`; or explicitly `hk dangerously-skip review --reason ...`; self-review does not count"
+        )
+    if check_map.get("sync") and check_map["sync"].status == "fail":
+        sync_action = "sync: hk sync after reconciling changes"
+        warning = agent_local_state_warning(state.target_root)
+        if warning:
+            sync_action += warning
+        actions.append(sync_action)
+    if not actions and readiness.ready:
+        actions.append("handoff: hk handoff")
+    return StatusResult(
+        active_work=work_dir.name,
+        target_root=str(state.target_root),
+        target_scope=str(state.target_scope),
+        state_dir=str(state.state_dir),
+        sync_status=sync_status_for(state),
+        ready_status=readiness.status,
+        phase=lifecycle_phase(events, readiness),
+        checks=readiness.checks,
+        next_actions=actions,
     )
 
 

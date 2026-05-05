@@ -8,6 +8,7 @@ visible in the normal agent shell loop.
 from __future__ import annotations
 
 import json
+import os
 import re
 import tomllib
 from dataclasses import asdict, dataclass
@@ -17,7 +18,7 @@ from typing import Literal, cast
 from harness_toolkit.names import KIT_COMMAND
 
 ProfileName = str
-ProfileSource = Literal["built-in", "file"]
+ProfileSource = Literal["built-in", "file", "user-config"]
 RunFrom = Literal["target", "repo-root", "current-directory", "external-ui"]
 VALID_RUN_FROM: tuple[RunFrom, ...] = (
     "target",
@@ -40,6 +41,18 @@ class CheckDefinition:
 
 
 @dataclass(frozen=True)
+class ReviewDefinition:
+    name: str
+    purpose: str
+    backend: str
+    rubric: str
+    dispatch_hint: str = ""
+    prompt: str = ""
+    prompt_file: str | None = None
+    prompt_file_text: str = ""
+
+
+@dataclass(frozen=True)
 class WorkflowProfile:
     name: ProfileName
     title: str
@@ -47,6 +60,7 @@ class WorkflowProfile:
     target_hint: str
     instructions: str
     checks: tuple[CheckDefinition, ...]
+    reviews: tuple[ReviewDefinition, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -57,11 +71,37 @@ class LoadedProfile:
 
 
 @dataclass(frozen=True)
+class TargetBinding:
+    name: str
+    path: str
+    profile: ProfileName
+
+
+@dataclass(frozen=True)
+class HarnessConfig:
+    path: str
+    default_profile: ProfileName
+    targets: tuple[TargetBinding, ...]
+
+
+@dataclass(frozen=True)
+class ProfileResolution:
+    profile: ProfileName
+    source: str
+    reason: str
+    target: str
+    matched_target: str | None = None
+    matched_name: str | None = None
+    config_path: str | None = None
+
+
+@dataclass(frozen=True)
 class ProfileCheckView:
     profile: ProfileName
     target: str
     repo_root: str
     checks: tuple[CheckDefinition, ...]
+    reviews: tuple[ReviewDefinition, ...]
     reminder: str
 
 
@@ -74,10 +114,12 @@ class ProfileCatalog:
     """Loaded profile catalog with lookup, views, and template generation."""
 
     profiles: dict[str, LoadedProfile]
+    config: HarnessConfig | None = None
 
     @classmethod
     def load(cls, profiles_dir: Path | None = None) -> ProfileCatalog:
-        return cls(load_profile_catalog(profiles_dir))
+        profiles, config = load_profile_catalog(profiles_dir)
+        return cls(profiles, config)
 
     def names(self) -> tuple[ProfileName, ...]:
         return tuple(self.profiles)
@@ -101,6 +143,9 @@ class ProfileCatalog:
         self, name: str, *, target: Path, repo_root: Path
     ) -> ProfileCheckView:
         return checks_view(name, target, repo_root, catalog=self.profiles)
+
+    def resolve(self, target: Path) -> ProfileResolution:
+        return resolve_profile(target, catalog=self.profiles, config=self.config)
 
     def template(self, name: str, *, target: Path, preset: str = "generic") -> str:
         return profile_template(name, target=target, preset=preset)
@@ -317,7 +362,7 @@ BUILTIN_PROFILES: dict[ProfileName, WorkflowProfile] = {
     ),
 }
 
-PROFILE_SELECTION_GUIDANCE = """Choose the closest available profile yourself; the CLI does not auto-select one.
+PROFILE_SELECTION_GUIDANCE = """Choose the closest available profile yourself unless user config explicitly resolves one; the CLI does not use heuristic auto-selection.
 
 Match the profile to the target scope, not just the repository root. In monorepos,
 pass `--target` as the module/package/crate directory that owns the work, then
@@ -344,7 +389,8 @@ Examples:
 def profile_names(
     catalog: dict[str, LoadedProfile] | None = None,
 ) -> tuple[ProfileName, ...]:
-    return tuple((catalog or load_profile_catalog()).keys())
+    resolved_catalog = catalog or load_profile_catalog()[0]
+    return tuple(resolved_catalog.keys())
 
 
 def _loaded_builtins() -> dict[str, LoadedProfile]:
@@ -354,20 +400,120 @@ def _loaded_builtins() -> dict[str, LoadedProfile]:
     }
 
 
-def load_profile_catalog(profiles_dir: Path | None = None) -> dict[str, LoadedProfile]:
+def default_config_path() -> Path:
+    explicit = os.environ.get("HARNESS_KIT_CONFIG")
+    if explicit:
+        return Path(os.path.expandvars(explicit)).expanduser()
+    xdg_home = os.environ.get("XDG_CONFIG_HOME")
+    if xdg_home:
+        return (
+            Path(os.path.expandvars(xdg_home)).expanduser()
+            / "harness-toolkit"
+            / "harness.toml"
+        )
+    return Path.home() / ".config" / "harness-toolkit" / "harness.toml"
+
+
+def _normalize_config_path(value: str, *, base_dir: Path) -> Path:
+    expanded = Path(os.path.expandvars(value)).expanduser()
+    if not expanded.is_absolute():
+        expanded = base_dir / expanded
+    return expanded.resolve(strict=False)
+
+
+def load_profile_catalog(
+    profiles_dir: Path | None = None,
+) -> tuple[dict[str, LoadedProfile], HarnessConfig | None]:
     catalog = _loaded_builtins()
-    if profiles_dir is None:
-        return catalog
+    config = load_harness_config(default_config_path())
+    if config is not None:
+        catalog.update(load_config_profiles(Path(config.path)))
 
-    if not profiles_dir.exists():
-        raise ProfileError(f"profiles directory does not exist: {profiles_dir}")
-    if not profiles_dir.is_dir():
-        raise ProfileError(f"profiles path is not a directory: {profiles_dir}")
+    if profiles_dir is not None:
+        if not profiles_dir.exists():
+            raise ProfileError(f"profiles directory does not exist: {profiles_dir}")
+        if not profiles_dir.is_dir():
+            raise ProfileError(f"profiles path is not a directory: {profiles_dir}")
 
-    for path in sorted(profiles_dir.glob("*.toml")):
-        loaded = load_profile_file(path)
-        catalog[loaded.profile.name] = loaded
-    return catalog
+        for path in sorted(profiles_dir.glob("*.toml")):
+            loaded = load_profile_file(path)
+            catalog[loaded.profile.name] = loaded
+    return catalog, config
+
+
+def load_harness_config(path: Path) -> HarnessConfig | None:
+    explicit = os.environ.get("HARNESS_KIT_CONFIG")
+    if not path.exists():
+        if explicit:
+            raise ProfileError(f"harness config does not exist: {path}")
+        return None
+    try:
+        data = tomllib.loads(path.read_text())
+    except tomllib.TOMLDecodeError as e:
+        raise ProfileError(f"invalid harness config TOML {path}: {e}") from e
+    if not isinstance(data, dict):
+        raise ProfileError(f"harness config {path} must be a TOML table")
+    version = data.get("version", 1)
+    if version != 1:
+        raise ProfileError(f"harness config {path} has unsupported version: {version}")
+    default_profile = data.get("default_profile", "generic")
+    if not isinstance(default_profile, str) or not default_profile.strip():
+        raise ProfileError(f"harness config {path} default_profile must be a string")
+    validate_profile_name(default_profile)
+    targets_data = data.get("targets", [])
+    if not isinstance(targets_data, list):
+        raise ProfileError(f"harness config {path} targets must be an array")
+    targets: list[TargetBinding] = []
+    base_dir = path.parent
+    for index, target in enumerate(targets_data, start=1):
+        if not isinstance(target, dict):
+            raise ProfileError(f"harness config {path} target #{index} must be a table")
+        name = _required_str(target, "name", source=f"{path} target #{index}")
+        raw_path = _required_str(target, "path", source=f"{path} target #{index}")
+        profile = _required_str(target, "profile", source=f"{path} target #{index}")
+        validate_profile_name(profile)
+        targets.append(
+            TargetBinding(
+                name=name,
+                path=str(_normalize_config_path(raw_path, base_dir=base_dir)),
+                profile=profile,
+            )
+        )
+    return HarnessConfig(
+        path=str(path),
+        default_profile=default_profile,
+        targets=tuple(targets),
+    )
+
+
+def load_config_profiles(config_path: Path) -> dict[str, LoadedProfile]:
+    try:
+        data = tomllib.loads(config_path.read_text())
+    except tomllib.TOMLDecodeError as e:
+        raise ProfileError(f"invalid harness config TOML {config_path}: {e}") from e
+    profiles_data = data.get("profiles", {})
+    if profiles_data is None:
+        return {}
+    if not isinstance(profiles_data, dict):
+        raise ProfileError(f"harness config {config_path} profiles must be a table")
+    loaded: dict[str, LoadedProfile] = {}
+    for name, raw_profile in profiles_data.items():
+        validate_profile_name(name)
+        if not isinstance(raw_profile, dict):
+            raise ProfileError(f"profile {name} in {config_path} must be a table")
+        profile_data = dict(raw_profile)
+        profile_data["name"] = name
+        profile = parse_profile_data(
+            profile_data,
+            source=f"{config_path} profiles.{name}",
+            base_dir=config_path.parent,
+        )
+        loaded[name] = LoadedProfile(
+            profile=profile,
+            source="user-config",
+            path=str(config_path),
+        )
+    return loaded
 
 
 def load_profile_file(path: Path) -> LoadedProfile:
@@ -375,7 +521,7 @@ def load_profile_file(path: Path) -> LoadedProfile:
         data = tomllib.loads(path.read_text())
     except tomllib.TOMLDecodeError as e:
         raise ProfileError(f"invalid profile TOML {path}: {e}") from e
-    profile = parse_profile_data(data, source=str(path))
+    profile = parse_profile_data(data, source=str(path), base_dir=path.parent)
     return LoadedProfile(profile=profile, source="file", path=str(path))
 
 
@@ -383,6 +529,15 @@ def _required_str(data: dict[str, object], key: str, *, source: str) -> str:
     value = data.get(key)
     if not isinstance(value, str) or not value.strip():
         raise ProfileError(f"profile {source} must define non-empty string '{key}'")
+    return value
+
+
+def _optional_str(data: dict[str, object], key: str, *, source: str) -> str:
+    value = data.get(key, "")
+    if value is None:
+        return ""
+    if not isinstance(value, str):
+        raise ProfileError(f"profile {source} field '{key}' must be a string")
     return value
 
 
@@ -397,7 +552,9 @@ def _optional_str_tuple(
     return tuple(cast("list[str]", value))
 
 
-def parse_profile_data(data: object, *, source: str) -> WorkflowProfile:
+def parse_profile_data(
+    data: object, *, source: str, base_dir: Path | None = None
+) -> WorkflowProfile:
     if not isinstance(data, dict):
         raise ProfileError(f"profile {source} must be a TOML table")
     data = cast("dict[str, object]", data)
@@ -442,6 +599,46 @@ def parse_profile_data(data: object, *, source: str) -> WorkflowProfile:
             )
         )
 
+    reviews_data = data.get("reviews", [])
+    if reviews_data is None:
+        reviews_data = []
+    if not isinstance(reviews_data, list):
+        raise ProfileError(f"profile {source} field 'reviews' must be an array")
+    reviews: list[ReviewDefinition] = []
+    for index, raw_review in enumerate(reviews_data, start=1):
+        if not isinstance(raw_review, dict):
+            raise ProfileError(f"profile {source} review #{index} must be a TOML table")
+        raw_review = cast("dict[str, object]", raw_review)
+        prompt_file_value = raw_review.get("prompt_file")
+        prompt_file: str | None = None
+        prompt_file_text = ""
+        if prompt_file_value is not None:
+            if not isinstance(prompt_file_value, str) or not prompt_file_value.strip():
+                raise ProfileError(
+                    f"profile {source} review #{index} field 'prompt_file' must be a string"
+                )
+            prompt_file = prompt_file_value
+            if base_dir is not None:
+                prompt_path = _normalize_config_path(prompt_file, base_dir=base_dir)
+                try:
+                    prompt_file_text = prompt_path.read_text()
+                except OSError as e:
+                    raise ProfileError(
+                        f"profile {source} review #{index} could not read prompt_file {prompt_file}: {e}"
+                    ) from e
+        reviews.append(
+            ReviewDefinition(
+                name=_required_str(raw_review, "name", source=source),
+                purpose=_required_str(raw_review, "purpose", source=source),
+                backend=_required_str(raw_review, "backend", source=source),
+                rubric=_required_str(raw_review, "rubric", source=source),
+                dispatch_hint=_optional_str(raw_review, "dispatch_hint", source=source),
+                prompt=_optional_str(raw_review, "prompt", source=source),
+                prompt_file=prompt_file,
+                prompt_file_text=prompt_file_text,
+            )
+        )
+
     return WorkflowProfile(
         name=name,
         title=_required_str(data, "title", source=source),
@@ -449,6 +646,7 @@ def parse_profile_data(data: object, *, source: str) -> WorkflowProfile:
         target_hint=_required_str(data, "target_hint", source=source),
         instructions=_required_str(data, "instructions", source=source),
         checks=tuple(checks),
+        reviews=tuple(reviews),
     )
 
 
@@ -462,7 +660,7 @@ def validate_profile_name(name: str) -> None:
 def get_loaded_profile(
     name: str, catalog: dict[str, LoadedProfile] | None = None
 ) -> LoadedProfile:
-    resolved_catalog = catalog or load_profile_catalog()
+    resolved_catalog = catalog or load_profile_catalog()[0]
     if name not in resolved_catalog:
         valid = ", ".join(resolved_catalog)
         raise KeyError(f"Unknown profile '{name}'. Valid profiles: {valid}")
@@ -490,7 +688,7 @@ def profiles_to_json(
     target: Path | None = None,
     repo_root: Path | None = None,
 ) -> str:
-    resolved_catalog = catalog or load_profile_catalog()
+    resolved_catalog = catalog or load_profile_catalog()[0]
     rows = [
         {
             "name": loaded.profile.name,
@@ -523,16 +721,75 @@ def checks_view(
         target=str(target),
         repo_root=str(repo_root),
         checks=profile.checks,
+        reviews=profile.reviews,
         reminder=(
             "Run validation commands directly in the agent shell loop, then record "
-            "the exact command/result with `hk validate --why ... -- <command>` "
-            "for HK 2 lifecycle work, or in VALIDATION.md for legacy plans."
+            "the exact command/result with `hk validate --why ... -- <command>`. "
+            "Dispatch profile review guidance yourself and record accepted reviews "
+            "with `hk review add ...`; HK does not run checks or reviews."
         ),
     )
 
 
 def checks_to_json(view: ProfileCheckView) -> str:
     return json.dumps(asdict(view), indent=2, sort_keys=True)
+
+
+def resolution_to_json(resolution: ProfileResolution) -> str:
+    return json.dumps(asdict(resolution), indent=2, sort_keys=True)
+
+
+def resolve_profile(
+    target: Path,
+    *,
+    catalog: dict[str, LoadedProfile] | None = None,
+    config: HarnessConfig | None = None,
+) -> ProfileResolution:
+    resolved_catalog = catalog or load_profile_catalog()[0]
+    resolved_target = target.resolve(strict=False)
+    if config is None:
+        profile = "generic"
+        if profile not in resolved_catalog:
+            valid = ", ".join(resolved_catalog)
+            raise KeyError(f"Unknown profile '{profile}'. Valid profiles: {valid}")
+        return ProfileResolution(
+            profile=profile,
+            source=resolved_catalog[profile].source,
+            reason="no harness config target matched; using generic fallback",
+            target=str(resolved_target),
+        )
+
+    matches: list[TargetBinding] = []
+    for binding in config.targets:
+        binding_path = Path(binding.path).resolve(strict=False)
+        try:
+            resolved_target.relative_to(binding_path)
+        except ValueError:
+            continue
+        matches.append(binding)
+    if matches:
+        selected = max(matches, key=lambda binding: len(Path(binding.path).parts))
+        profile = selected.profile
+        reason = "target matched configured longest path prefix"
+        matched_target = selected.path
+        matched_name = selected.name
+    else:
+        profile = config.default_profile
+        reason = "no configured target matched; using config default_profile"
+        matched_target = None
+        matched_name = None
+    if profile not in resolved_catalog:
+        valid = ", ".join(resolved_catalog)
+        raise KeyError(f"Unknown profile '{profile}'. Valid profiles: {valid}")
+    return ProfileResolution(
+        profile=profile,
+        source=resolved_catalog[profile].source,
+        reason=reason,
+        target=str(resolved_target),
+        matched_target=matched_target,
+        matched_name=matched_name,
+        config_path=config.path,
+    )
 
 
 def _toml_string(value: str) -> str:

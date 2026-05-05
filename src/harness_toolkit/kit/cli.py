@@ -29,7 +29,6 @@ from harness_toolkit.kit.local import (
     resolve_local_state,
     spec_promote_dry_run,
     sync_checkpoint,
-    validate_slug,
 )
 from harness_toolkit.kit.local import (
     brief as local_brief,
@@ -41,10 +40,16 @@ from harness_toolkit.kit.local import (
     ready as local_ready,
 )
 from harness_toolkit.kit.local import (
+    review_prompt as local_review_prompt,
+)
+from harness_toolkit.kit.local import (
     spec_outline as local_spec_outline,
 )
 from harness_toolkit.kit.local import (
     spec_status as local_spec_status,
+)
+from harness_toolkit.kit.local import (
+    status as local_status,
 )
 from harness_toolkit.kit.profiles import (
     PROFILE_SELECTION_GUIDANCE,
@@ -52,6 +57,7 @@ from harness_toolkit.kit.profiles import (
     ProfileError,
     ProfileName,
     checks_to_json,
+    resolution_to_json,
 )
 from harness_toolkit.kit.workflow import (
     AttachResult,
@@ -79,11 +85,14 @@ app = App(
     help="Use the Harness Kit 2 lifecycle in any repo without committing scaffold files.",
 )
 profile_app = App(name="profile", help="List, show, and create workflow profiles.")
-work_app = App(name="work", help="Manage ledger-backed local work units.")
+work_app = App(name="work", help="Advanced: manage ledger-backed local work units.")
 evidence_app = App(name="evidence", help="Inspect captured evidence; use `list`.")
 spec_app = App(name="spec", help="Manage optional local/external specs.")
 review_app = App(name="review", help="Record external-enough review evidence.")
-legacy_app = App(name="legacy", help="Legacy HK 1 plan-artifact workflow commands.")
+legacy_app = App(
+    name="legacy",
+    help="Deprecated compatibility commands for HK 1 plan-artifact workflows.",
+)
 app.command(profile_app, name="profile")
 app.command(work_app, name="work")
 app.command(evidence_app, name="evidence")
@@ -110,22 +119,32 @@ Use `{KIT_COMMAND}` for meaningful work in this repo or scoped path. Do not crea
 
 Profile: `{profile.name}` — {profile.summary}
 
-Standard loop:
+Standard agent loop:
 
 ```bash
 {KIT_COMMAND} brief --target . --json
-{KIT_COMMAND} start <slug> --target . --json
-# record context only when it prevents rediscovery
-{KIT_COMMAND} context 'Relevant constraints, files, or repo facts' --target . --json
-{KIT_COMMAND} plan 'Adopted implementation intent' --target . --json
-{KIT_COMMAND} decide 'Decision already made by the human/agent' --no-spec-impact --target . --json
-{KIT_COMMAND} checks --target . --profile {profile.name}{profiles_dir_arg} --json
+{KIT_COMMAND} start <slug> --plan 'Adopted implementation intent' --target . --json
+# work normally in the repo
 {KIT_COMMAND} validate --why 'What this command proves' --target . -- <native command>
-# review must come from a different reviewer or fresh-context subagent; self-review does not count
-{KIT_COMMAND} review add --backend subagent --reviewer reviewer-fresh-context --rubric core-quality --summary 'Review summary' --target . --json
-{KIT_COMMAND} sync --target . --json
+{KIT_COMMAND} status --target . --json
 {KIT_COMMAND} ready --target . --json
 {KIT_COMMAND} handoff --target .
+```
+
+Follow `hk status` next actions when it asks for them:
+
+```bash
+# optional context when it prevents rediscovery
+{KIT_COMMAND} context 'Relevant constraints, files, or repo facts' --target . --json
+{KIT_COMMAND} decide 'Decision/spec reflection' --spec-impact none --target . --json
+{KIT_COMMAND} checks --target . --profile {profile.name}{profiles_dir_arg} --json
+# review is required by default: preferred independent AI/tool reviewer; minimum fresh-context subagent
+{KIT_COMMAND} review prompt --target .
+# dispatch via your harness if available (Pi subagent tool, Claude Code Agent/Task tool, Codex Shell tool: codex review --uncommitted)
+{KIT_COMMAND} review add --backend subagent --reviewer reviewer-fresh-context --rubric core-quality --summary 'Review summary' --target . --json
+# review tools may create local agent state; check status again before syncing
+{KIT_COMMAND} status --target . --json
+{KIT_COMMAND} sync --target . --json
 ```
 
 Important: `{KIT_COMMAND}` is shell-first. It may capture exact native command evidence via `validate`, but it must not hide validation behind `hk run`-style task-runner commands. Use profile/check guidance to choose native commands, then capture the selected command with `validate --why`.
@@ -255,6 +274,43 @@ def profile_list(
 
 
 @profile_app.command(
+    name="resolve",
+    help_epilogue=(
+        "Examples:\n"
+        "  hk profile resolve --target . --json\n"
+        "  HARNESS_KIT_CONFIG=/tmp/harness.toml hk profile resolve --target /work/foreman --json"
+    ),
+)
+def profile_resolve(
+    *,
+    target: Path = Path("."),
+    profiles_dir: Path | None = None,
+    json: bool = False,
+) -> None:
+    """Resolve the configured profile for a target path.
+
+    Resolution is explicit, not heuristic: user config target bindings are matched
+    by longest path prefix, then default_profile/generic fallback applies.
+    """
+    try:
+        catalog = resolve_catalog(profiles_dir)
+        resolution = catalog.resolve(target)
+    except (KeyError, ProfileError) as e:
+        print_error(str(e))
+        raise SystemExit(1) from e
+    if json:
+        print(resolution_to_json(resolution))
+        return
+    print(f"Profile: {resolution.profile} [{resolution.source}]")
+    print(f"Reason: {resolution.reason}")
+    print(f"Target: {resolution.target}")
+    if resolution.matched_target:
+        print(f"Matched target: {resolution.matched_target}")
+    if resolution.config_path:
+        print(f"Config: {resolution.config_path}")
+
+
+@profile_app.command(
     name="show",
     help_epilogue=(
         "Examples:\n"
@@ -299,6 +355,15 @@ def profile_show(
     print("Checks:")
     for check in selected.profile.checks:
         print(f"- {check.name}: {check.command_template}")
+    if selected.profile.reviews:
+        print()
+        print("Reviews:")
+        for review in selected.profile.reviews:
+            print(
+                f"- {review.name} [{review.backend}/{review.rubric}]: {review.purpose}"
+            )
+            if review.dispatch_hint:
+                print(f"  dispatch: {review.dispatch_hint}")
 
 
 @profile_app.command(
@@ -396,13 +461,14 @@ def profile_create(
 @app.command(
     help_epilogue=(
         "Examples:\n"
+        "  hk checks --target /work/my-python-package --json\n"
         "  hk checks --profile python --target /work/my-python-package --json\n"
         "  hk checks --profile my-project-api --profiles-dir ~/.config/harness-toolkit/profiles --target /work/repo/my_project/api"
     )
 )
 def checks(
     *,
-    profile: ProfileName = "generic",
+    profile: ProfileName | None = None,
     target: Path = Path("."),
     profiles_dir: Path | None = None,
     mode: WorkflowMode = "external",
@@ -414,7 +480,8 @@ def checks(
     Parameters
     ----------
     profile
-        Workflow profile.
+        Workflow profile. If omitted, explicit user config target bindings are
+        resolved first, then default_profile/generic fallback applies.
     target
         Target repository or scoped path. Used to resolve repo-root guidance.
     profiles_dir
@@ -432,8 +499,9 @@ def checks(
     try:
         catalog = resolve_catalog(profiles_dir)
         resolved_target = target.resolve()
+        selected_profile = profile or catalog.resolve(resolved_target).profile
         view = catalog.checks_view(
-            profile,
+            selected_profile,
             target=resolved_target,
             repo_root=git_root(resolved_target),
         )
@@ -453,6 +521,19 @@ def checks(
         print(f"  run from: {check.run_from}")
         if check.required_inputs:
             print(f"  inputs: {', '.join(check.required_inputs)}")
+    if view.reviews:
+        print()
+        print("Reviews:")
+        for review in view.reviews:
+            print(f"{review.name}: {review.purpose}")
+            print(f"  backend: {review.backend}")
+            print(f"  rubric: {review.rubric}")
+            if review.dispatch_hint:
+                print(f"  dispatch: {review.dispatch_hint}")
+            if review.prompt:
+                print(f"  prompt: {review.prompt}")
+            if review.prompt_file:
+                print(f"  prompt_file: {review.prompt_file}")
 
 
 @app.command(
@@ -505,10 +586,21 @@ def init_command(
     print(f"mode={result.mode}")
 
 
-@app.command(name="start")
+@app.command(
+    name="start",
+    help_epilogue=(
+        "Examples:\n"
+        "  hk start my-slice --plan 'Adopted implementation intent'\n"
+        "  hk start my-slice --context 'Relevant constraint or repo fact' --plan 'Adopted implementation intent'\n"
+        "\n"
+        "Slug guidance: use a short human-readable task name. HK adds the timestamp/work ID for chronological ordering."
+    ),
+)
 def start(
     slug: str,
     *,
+    plan: str = "",
+    context: str = "",
     target: Path = Path("."),
     no_local_files: bool = False,
     json: bool = False,
@@ -516,6 +608,17 @@ def start(
     """Start a lifecycle work item backed by the local ledger."""
     try:
         result = create_work(target, slug, no_local_files=no_local_files)
+        if context.strip():
+            add_note(
+                target,
+                kind="context",
+                text=context.strip(),
+                no_local_files=no_local_files,
+            )
+        if plan.strip():
+            add_note(
+                target, kind="plan", text=plan.strip(), no_local_files=no_local_files
+            )
     except (WorkflowError, LocalWorkflowError) as e:
         print_error(str(e))
         raise SystemExit(1) from e
@@ -524,15 +627,20 @@ def start(
         return
     print(f"work_id={result.work_id}")
     print(f"work_dir={result.work_dir}")
-    print("next lifecycle:")
-    print(
-        "  hk context 'Constraints, relevant files, or repo facts'  # optional, when useful"
-    )
-    print("  hk plan 'Adopted implementation intent'")
-    print("  hk decide 'Decision/spec reflection' --no-spec-impact")
+    if context.strip():
+        print(f"context: {context.strip()}")
+    if plan.strip():
+        print(f"plan: {plan.strip()}")
+    print("minimal loop:")
+    if not context.strip():
+        print(
+            "  hk context 'Constraints, relevant files, or repo facts'  # optional, when useful"
+        )
+    if not plan.strip():
+        print("  hk plan 'Adopted implementation intent'")
     print("  hk validate --why 'What this proves' -- <native command>")
-    print("  hk review add ...  # independent/fresh-context review, not self-review")
-    print("  hk sync && hk ready && hk handoff")
+    print("  hk status  # follow next actions for decision/review/sync when needed")
+    print("  hk ready && hk handoff")
 
 
 @app.command(
@@ -689,11 +797,20 @@ def note(
     print(f"{result.kind}: {result.text}")
 
 
-@app.command(name="decide")
+@app.command(
+    name="decide",
+    help_epilogue=(
+        "Examples:\n"
+        "  hk decide 'Kept API behavior unchanged' --spec-impact none\n"
+        "  hk decide 'Updated lifecycle command shape' --spec-impact updated --spec-ref SPEC.md --spec-ref docs/harness-kit-2-design.md\n"
+        "  hk decide 'Internal refactor only' --spec-impact not-needed"
+    ),
+)
 def decide(
     text: str,
     *,
     spec_impact: str = "",
+    spec_ref: tuple[Path, ...] = (),
     no_spec_impact: bool = False,
     target: Path = Path("."),
     no_local_files: bool = False,
@@ -709,12 +826,27 @@ def decide(
             )
         if not spec_impact and not no_spec_impact:
             raise LocalWorkflowError(
-                "decide requires --spec-impact TEXT or --no-spec-impact"
+                "decide requires --spec-impact none|updated|not-needed or --no-spec-impact"
             )
         result = add_note(
             target, kind="decision", text=text, no_local_files=no_local_files
         )
-        impact_text = spec_impact or "No spec impact declared."
+        refs = [str(path) for path in spec_ref]
+        if no_spec_impact:
+            impact_mode = "none"
+            impact_detail = "No spec impact declared."
+        elif spec_impact in {"none", "updated", "not-needed"}:
+            impact_mode = spec_impact
+            impact_detail = {
+                "none": "No spec impact declared.",
+                "updated": "Spec/docs updated or verified.",
+                "not-needed": "Spec/docs update not needed.",
+            }[spec_impact]
+        else:
+            impact_mode = "updated"
+            impact_detail = spec_impact
+        ref_text = f"; refs: {', '.join(refs)}" if refs else ""
+        impact_text = f"{impact_mode}: {impact_detail}{ref_text}"
         add_note(
             target, kind="spec-impact", text=impact_text, no_local_files=no_local_files
         )
@@ -730,19 +862,32 @@ def decide(
 
 @app.command(
     help_epilogue=(
-        "Examples:\n  hk sync --target .\n  hk sync --check --target . --json\n"
+        "Examples:\n"
+        "  hk sync --target .\n"
+        "  hk sync --check --target . --json\n"
+        "  hk sync --exclude .pi --reason 'Only local agent session state changed' --target . --json\n"
+        "\n"
+        "Repeat --exclude for multiple explicit paths. Exclusions are one-shot checkpoint evidence, not persisted ignore config."
     )
 )
 def sync(
     *,
     target: Path = Path("."),
     check: bool = False,
+    exclude: tuple[Path, ...] = (),
+    reason: str = "",
     no_local_files: bool = False,
     json: bool = False,
 ) -> None:
     """Record or check a sync checkpoint for the active work snapshot."""
     try:
-        result = sync_checkpoint(target, check=check, no_local_files=no_local_files)
+        result = sync_checkpoint(
+            target,
+            check=check,
+            exclude_paths=exclude,
+            reason=reason,
+            no_local_files=no_local_files,
+        )
     except (WorkflowError, LocalWorkflowError) as e:
         print_error(str(e))
         raise SystemExit(1) from e
@@ -828,7 +973,7 @@ def capture(
     no_local_files: bool = False,
     json: bool = False,
 ) -> None:
-    """Run a native command and record exact evidence."""
+    """Advanced: run a native command and record exact evidence."""
     try:
         result = capture_command(
             target,
@@ -859,8 +1004,11 @@ def capture(
         "Examples:\n"
         "  hk review add --backend subagent --reviewer reviewer-fresh-context --rubric core-quality --summary 'No blocking findings' --target . --json\n"
         "  hk review add --backend codex --reviewer codex-bug-hunter --rubric bug-hunt --summary 'No blocking findings' --target . --json\n\n"
-        "Self-review does not satisfy readiness. If no independent review is possible, record the risk explicitly:\n"
-        "  hk dangerously-skip review --reason 'docs-only change; no independent reviewer available' --target . --json"
+        "Review is required by default. Preferred: independent AI/tool reviewer, ideally different model/runtime/context. Minimum fallback: fresh-context subagent.\n"
+        "Implementation-agent self-review does not satisfy readiness. Generate a reviewer prompt with: hk review prompt --target .\n"
+        "If available, dispatch that prompt via your harness: Pi subagent tool, Claude Code Agent/Task tool, or Codex Shell tool running `codex review --uncommitted`. Then record with hk review add and re-run hk status because review tools may create agent-local state.\n"
+        "If no independent AI/tool or fresh-context review is possible, record the risk explicitly:\n"
+        "  hk dangerously-skip review --reason 'no independent/fresh-context reviewer available before handoff' --target . --json"
     ),
 )
 def review_add(
@@ -876,9 +1024,10 @@ def review_add(
 ) -> None:
     """Record external-enough review evidence for readiness.
 
-    Do not record your own implementation self-review. The reviewer must be a
-    different human/tool or a fresh-context subagent; otherwise use
-    `hk dangerously-skip review --reason ...`.
+    Do not record your own implementation self-review. Review is required by
+    default. Preferred review is an independent AI/tool reviewer, ideally a
+    different model/runtime/context; a fresh-context subagent is the minimum
+    acceptable fallback. Otherwise use `hk dangerously-skip review --reason ...`.
     """
     try:
         result = add_review(
@@ -899,6 +1048,25 @@ def review_add(
     print(f"review={result.backend}/{result.reviewer}")
     print(f"rubrics={', '.join(result.rubrics)}")
     print(f"summary={result.summary}")
+
+
+@review_app.command(name="prompt")
+def review_prompt_command(
+    *,
+    target: Path = Path("."),
+    no_local_files: bool = False,
+    json: bool = False,
+) -> None:
+    """Print a fresh-context reviewer prompt for the active work."""
+    try:
+        result = local_review_prompt(target, no_local_files=no_local_files)
+    except (WorkflowError, LocalWorkflowError) as e:
+        print_error(str(e))
+        raise SystemExit(1) from e
+    if json:
+        print(json_dump_dataclass(result))
+        return
+    print(result.prompt, end="")
 
 
 @evidence_app.default
@@ -968,9 +1136,18 @@ def ready_command(
         raise SystemExit(1)
 
 
-@app.command(name="dangerously-skip")
+@app.command(
+    name="dangerously-skip",
+    help_epilogue=(
+        "Examples:\n"
+        "  hk dangerously-skip review --reason 'docs-only change; no independent reviewer available' --target . --json\n"
+        "  hk dangerously-skip sync --reason 'Only .pi agent-local state changed after the last checkpoint' --target . --json\n"
+        "\n"
+        "Sync skips are tied to the current diff snapshot; run them as one of the final freshness actions."
+    ),
+)
 def ready_dangerously_skip(
-    check: Literal["review", "validation"],
+    check: Literal["review", "validation", "sync"],
     *,
     reason: str,
     target: Path = Path("."),
@@ -1152,7 +1329,10 @@ def attach(
         "Examples:\n"
         "  hk plan 'Implement lifecycle-first ready checks'\n"
         "  hk plan --from-file /tmp/adopted-plan.md --json\n"
-        "  hk legacy plan investigate-cache-bug --target /work/repo --json"
+        "  hk start my-slice --plan 'Initial implementation intent'\n"
+        "  hk legacy plan investigate-cache-bug --target /work/repo --json\n"
+        "\n"
+        "Use `hk plan` to record/refine the lifecycle plan for active HK2 work. Use `hk start --plan` to seed the first plan while starting work."
     )
 )
 def plan(
@@ -1160,34 +1340,10 @@ def plan(
     *,
     from_file: Path | None = None,
     target: Path = Path("."),
-    mode: WorkflowMode = "external",
-    profile: ProfileName = "generic",
-    profiles_dir: Path | None = None,
-    state_root: Path | None = None,
     no_local_files: bool = False,
     json: bool = False,
 ) -> None:
-    """Record the agreed lifecycle implementation plan."""
-    try_legacy = (
-        state_root is not None or mode != "external" or profiles_dir is not None
-    )
-    if not try_legacy and text and from_file is None:
-        try:
-            validate_slug(text)
-            state = resolve_local_state(target)
-            try_legacy = active_work_dir(state) is None
-        except (WorkflowError, LocalWorkflowError):
-            try_legacy = False
-    if try_legacy:
-        try:
-            catalog = resolve_catalog(profiles_dir)
-            catalog.get(profile)
-            result = create_plan(target, text, mode=mode, state_root=state_root)
-        except (WorkflowError, KeyError, ProfileError) as e:
-            print_error(f"{e}\nTry: hk legacy plan my-slice --target <repo> --json")
-            raise SystemExit(1) from e
-        emit(result, json=json)
-        return
+    """Record or refine the agreed lifecycle implementation plan."""
     try:
         if from_file is not None:
             if text:
@@ -1204,7 +1360,9 @@ def plan(
             raise LocalWorkflowError("plan requires TEXT or --from-file PATH")
         result = add_note(target, kind="plan", text=text, no_local_files=no_local_files)
     except (WorkflowError, LocalWorkflowError) as e:
-        print_error(str(e))
+        print_error(
+            f"{e}\nFor legacy plan artifacts, use: hk legacy plan <slug> --target <repo> --json"
+        )
         raise SystemExit(1) from e
     if json:
         print(json_dump_dataclass(result))
@@ -1229,7 +1387,7 @@ def status(
     no_local_files: bool = False,
     json: bool = False,
 ) -> None:
-    """Show lifecycle work status for a target repo."""
+    """Show lifecycle work status and next-action guidance for a target repo."""
     if state_root is not None or mode != "external" or profiles_dir is not None:
         try:
             catalog = resolve_catalog(profiles_dir)
@@ -1241,7 +1399,7 @@ def status(
         emit(result, json=json)
         return
     try:
-        result = local_brief(target, no_local_files=no_local_files)
+        result = local_status(target, no_local_files=no_local_files)
     except (WorkflowError, LocalWorkflowError) as e:
         print_error(str(e))
         raise SystemExit(1) from e
@@ -1250,7 +1408,18 @@ def status(
         return
     print(f"active_work={result.active_work or 'none'}")
     print(f"sync_status={result.sync_status}")
+    print(f"ready_status={result.ready_status}")
+    print(f"phase={result.phase}")
     print(f"state_dir={result.state_dir}")
+    print("checks:")
+    if result.checks:
+        for check in result.checks:
+            print(f"- {check.id}: {check.status} — {check.message}")
+    else:
+        print("- none")
+    print("next actions:")
+    for action in result.next_actions:
+        print(f"- {action}")
 
 
 @legacy_app.command(name="plan")
@@ -1264,7 +1433,7 @@ def legacy_plan(
     state_root: Path | None = None,
     json: bool = False,
 ) -> None:
-    """Create a legacy plan-artifact workflow plan."""
+    """Deprecated: create a legacy plan-artifact workflow plan."""
     try:
         catalog = resolve_catalog(profiles_dir)
         catalog.get(profile)
@@ -1292,7 +1461,7 @@ def sync_check_command(
     state_root: Path | None = None,
     json: bool = False,
 ) -> None:
-    """Run legacy plan-artifact handoff checks for portable workflow state."""
+    """Deprecated: run legacy plan-artifact handoff checks for compatibility."""
     try:
         catalog = resolve_catalog(profiles_dir)
         catalog.get(profile)

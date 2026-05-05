@@ -520,7 +520,7 @@ def sync_check(
     plan = active_plan(state)
     if plan is None:
         raise WorkflowError(
-            "No plan found. Run `hk plan <slug> --target <repo>` first."
+            "No legacy plan found. Run `hk legacy plan <slug> --target <repo>` first."
         )
     missing = [str(path) for path in PLAN_REQUIRED_FILES if not (plan / path).exists()]
     if missing:
