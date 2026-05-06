@@ -148,7 +148,7 @@ hk profile list --target <repo-or-module> --profiles-dir ~/.config/harness-toolk
 Rules to remember:
 
 - `hk` manages planning/handoff state; it does not run validation commands.
-- Run validation directly and record exact command/result evidence in `VALIDATION.md`.
+- Run validation directly and record exact command/result evidence with `hk validate --why`.
 - Keep `--target`, `--profile`, and `--profiles-dir` consistent across `hk` commands.
 - If no good profile exists, use the profile-authoring workflow to propose one;
   do not create profiles silently.
@@ -277,7 +277,7 @@ persistent sync ignore config are deferred.
 | `hk status` | Show active work, readiness checks, and next-action guidance |
 | `hk sync` | Record or check a freshness checkpoint for the active work snapshot; use `--exclude PATH --reason TEXT` for explicit one-shot local-state exclusions |
 | `hk capture` | Advanced: run a native command and record exact evidence |
-| `hk review prompt` | Print a reviewer prompt to dispatch to an independent AI/tool or fresh-context reviewer, e.g. Pi `subagent`, Claude Code `Agent`/legacy `Task`, or Codex via Shell tool running `codex review --uncommitted`; re-run `hk status` after review tools run |
+| `hk review prompt` | Print a reviewer prompt to dispatch to an independent AI/tool or fresh-context reviewer, e.g. Pi `subagent`, Claude Code `Agent`/`Task` alias, or Codex via Shell tool running `codex review --uncommitted`; re-run `hk status` after review tools run |
 | `hk handoff` | Render a conservative handoff from the work ledger |
 | `hk spec` | Manage optional local/external spec drafts |
 | `hk instructions` | Print the minimal `AGENTS.md` snippet, optionally profile-specific |
@@ -296,8 +296,7 @@ Profiles are small workflow contracts for agentic engineering checks. They
 describe the checks that exist for an environment; they do **not** run those
 checks. Agents should run the suggested validation command directly so the raw
 output stays visible in the normal shell loop, then record the exact
-command/result in `VALIDATION.md` for plan artifacts or with `hk capture` for
-ledger-backed work.
+command/result with `hk validate --why` for HK2 lifecycle work.
 
 Initial built-in profiles:
 

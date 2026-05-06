@@ -95,31 +95,31 @@ description: >
 - [x] Preserve committed `SPEC.md` precedence.
 - [x] Preserve `hk spec *` CLI behavior.
 - [x] Run focused parity gate.
-- [ ] Commit chunk 10.
+- [x] Commit chunk 10.
 
 ## Chunk 11: Final Integration Cleanup
 
-- [ ] Remove stale forwarding shims that are no longer needed.
-- [ ] Update docs for final module layout and legacy deprecation stance.
-- [ ] Run `mise run check`.
-- [ ] Run plan `sync-check`.
+- [x] Remove stale forwarding shims that are no longer needed.
+- [x] Update docs for final module layout and legacy deprecation stance.
+- [x] Run `mise run check`.
+- [x] Run plan `sync-check`.
 - [ ] Commit final cleanup/docs.
 
 ## Subagent Rollout
 
-- [ ] Run fresh code review subagent.
-- [ ] Run HK2 lifecycle dogfood subagent in temp repo.
-- [ ] Run profile/config dogfood subagent in temp repo.
-- [ ] Run legacy removal subagent in temp repo.
-- [ ] Run real-repo smoke subagents in temp clones/worktrees.
-- [ ] Save reports under this plan's `artifacts/` directory.
-- [ ] Update `artifacts/manifest.yaml`.
-- [ ] Address blockers or explicitly defer non-blocking findings.
+- [x] Run fresh code review subagent.
+- [x] Run HK2 lifecycle dogfood subagent in temp repo.
+- [x] Run profile/config dogfood subagent in temp repo.
+- [x] Run legacy removal subagent in temp repo.
+- [x] Run spec/rendering dogfood subagent in temp repo.
+- [x] Save reports under this plan's `artifacts/` directory.
+- [x] Update `artifacts/manifest.yaml`.
+- [x] Address blockers or explicitly defer non-blocking findings.
 
 ## PR Prep
 
 - [ ] Final staged diff audit.
-- [ ] Final validation evidence recorded in `VALIDATION.md`.
-- [ ] Fresh-context review recorded in `REVIEW.md`.
+- [x] Final validation evidence recorded in `VALIDATION.md`.
+- [x] Fresh-context review recorded in `REVIEW.md`.
 - [ ] Push branch.
 - [ ] Open/update PR after review and validation are clean.

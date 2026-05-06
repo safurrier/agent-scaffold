@@ -20,6 +20,7 @@ index:
 **Plan**: `.ai/plans/2026-05-04-144024-hk2-lifecycle-recenter/`
 **Follow-up plan**: `.ai/plans/2026-05-05-092246-hk2-agent-ergonomics-coach/`
 **Final polish plan**: `.ai/plans/2026-05-05-105158-hk2-final-polish-dogfood/`
+**Architecture parity refactor plan**: `.ai/plans/2026-05-05-194606-hk2-architecture-parity-refactor/`
 **Amends**: `docs/decisions/0008-harness-kit-2-ledger-first-local-assistant.md`
 
 ---

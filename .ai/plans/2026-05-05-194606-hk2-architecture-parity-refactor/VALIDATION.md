@@ -192,14 +192,19 @@ uv run pytest tests/unit/test_hk2_spec_operations.py tests/unit/test_profile_pac
 
 Result: `63 passed`.
 
-## Planned final gates
+## Final gates
 
 ```bash
-uv run pytest tests/unit/test_hk2_lifecycle_parity.py tests/e2e/test_hk2_cli_parity.py tests/unit/test_hk2_rendering_parity.py -q
-uv run pytest tests/unit/test_harness_kit_2.py tests/unit/test_portable_workflow.py tests/e2e/test_harness_kit_rollout.py -q
 mise run check
+```
+
+Result: `791 passed`.
+
+```bash
 mise run sync-check -- --plan-dir .ai/plans/2026-05-05-194606-hk2-architecture-parity-refactor
 ```
+
+Result: Sync-check passed after staging the final plan artifacts and recording `review_backend: pi-subagent`.
 
 ## Evidence
 

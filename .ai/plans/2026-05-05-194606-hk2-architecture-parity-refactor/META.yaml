@@ -5,9 +5,9 @@ pr:
 status: planned
 source: conversation request to implement all ten architecture deepening opportunities with parity checks before PR
 contract_change: implementation_only
-decision_record: ledger
+decision_record: adr
 review_mode: external_required
-review_backend:
+review_backend: pi-subagent
 review_rubrics:
   - core-quality
 evidence_required:

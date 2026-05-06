@@ -1140,7 +1140,7 @@ def status(target: Path, *, no_local_files: bool = False) -> StatusResult:
         )
     if check_map.get("review") and check_map["review"].status == "fail":
         actions.append(
-            "review required: preferred independent AI/tool reviewer; minimum fresh-context subagent. Run `hk review prompt`; dispatch it via your harness if available (Pi `subagent` tool, Claude Code `Agent` tool/legacy `Task`, Codex Shell tool running `codex review --uncommitted`); record with `hk review add ...`, then re-run `hk status`; or explicitly `hk dangerously-skip review --reason ...`; self-review does not count"
+            "review required: preferred independent AI/tool reviewer; minimum fresh-context subagent. Run `hk review prompt`; dispatch it via your harness if available (Pi `subagent` tool, Claude Code `Agent` tool/`Task` alias, Codex Shell tool running `codex review --uncommitted`); record with `hk review add ...`, then re-run `hk status`; or explicitly `hk dangerously-skip review --reason ...`; self-review does not count"
         )
     if check_map.get("sync") and check_map["sync"].status == "fail":
         sync_action = "sync: hk sync after reconciling changes"

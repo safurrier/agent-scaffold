@@ -19,7 +19,7 @@ when, while leaving execution in the normal shell loop.
    `justfile`, `Makefile`, `package.json`, `pyproject.toml`, `tox.ini`, and
    language-specific task definitions.
 5. **Recent evidence** — what actually worked. Check recent PR descriptions,
-   plan `VALIDATION.md`, release docs, or CI debug docs when available.
+   existing validation logs, release docs, or CI debug docs when available.
 
 When sources conflict, report the conflict and prefer CI for merge parity, then
 repo AGENTS for the local fast loop. When a repo spans multiple stacks, preserve
@@ -62,7 +62,7 @@ title = "<Repo Or Module> Root"
 summary = "Validation contract for <repo/module>."
 target_hint = "Use --target <repo-or-module-path>."
 
-instructions = "Use this profile for work under <repo/module>. Run validation commands directly and record exact command/result evidence in VALIDATION.md before handoff."
+instructions = "Use this profile for work under <repo/module>. Run validation commands directly and record exact command/result evidence with hk validate --why before handoff."
 
 [[checks]]
 name = "fast-gate"

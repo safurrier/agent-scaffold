@@ -31,7 +31,7 @@ Omit `--profiles-dir` only when intentionally using built-in profiles only.
 
 - `hk` manages planning and handoff state. It does **not** run validation commands.
 - Run profile-suggested validation commands directly in the shell.
-- Record exact command/result evidence in `VALIDATION.md`.
+- Record exact command/result evidence with `hk validate --why`.
 - Use the same `--target`, `--profile`, and `--profiles-dir` consistently for
   profile/check commands. Lifecycle status/ready state is target-scoped.
 - Do not commit `.ai/`, `.agent/`, `.mise/`, or `.gitignore` workflow files
@@ -102,7 +102,7 @@ hk profile list --target <repo-or-module> --profiles-dir ~/.config/harness-toolk
 Rules to remember:
 
 - `hk` manages planning/handoff state; it does not run validation commands.
-- Run validation directly and record exact command/result evidence in `VALIDATION.md`.
+- Run validation directly and record exact command/result evidence with `hk validate --why`.
 - Keep `--target`, `--profile`, and `--profiles-dir` consistent across `hk` commands.
 - If no good profile exists, use the profile-authoring workflow to propose one;
   do not create profiles silently.

@@ -64,7 +64,7 @@ def render_review_prompt(
             "",
             "Dispatch hint for implementation agents:",
             "- If you have a fresh-context review mechanism, send this whole prompt to it now.",
-            "- Examples: Pi `subagent` tool; Claude Code `Agent` tool (legacy `Task`); Codex via Shell tool running `codex review --uncommitted`.",
+            "- Examples: Pi `subagent` tool; Claude Code `Agent` tool (`Task` alias); Codex via Shell tool running `codex review --uncommitted`.",
             "- Do not answer this prompt yourself as the implementation agent.",
             "- After review tooling runs, re-run `hk status`; review tools may create agent-local state that must be removed or handled with `hk sync --exclude PATH --reason ...`.",
             "- If no independent AI/tool or fresh-context subagent is available, record `hk dangerously-skip review --reason ...`.",
