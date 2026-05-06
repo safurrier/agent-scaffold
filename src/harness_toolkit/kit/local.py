@@ -20,6 +20,17 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
 
+from harness_toolkit.kit.ledger.events import append_lifecycle_event
+from harness_toolkit.kit.ledger.models import EventRecord, EvidenceRecord
+from harness_toolkit.kit.ledger.store import (
+    next_seq as ledger_next_seq,
+)
+from harness_toolkit.kit.ledger.store import (
+    read_events as ledger_read_events,
+)
+from harness_toolkit.kit.ledger.store import (
+    read_evidence as ledger_read_evidence,
+)
 from harness_toolkit.kit.state.repo import (
     RepoStateError,
     git_branch,
@@ -238,41 +249,6 @@ JsonDataclass = (
     | SpecOutline
     | HandoffResult
 )
-
-
-@dataclass(frozen=True)
-class EventRecord:
-    schema_version: int
-    seq: int
-    type: str
-    at: str
-    data: dict[str, object]
-
-
-@dataclass(frozen=True)
-class EvidenceRecord:
-    schema_version: int
-    id: str
-    type: str
-    capture_mode: str
-    kind: str
-    command_display: str
-    argv: list[str]
-    shell_command: str
-    cwd: str
-    target: str
-    branch: str
-    git_sha: str
-    dirty_before: bool
-    dirty_after: bool
-    exit_code: int
-    status: str
-    started_at: str
-    ended_at: str
-    duration_ms: int
-    transcript_path: str
-    redaction: str
-    why: str = ""
 
 
 def utc_now() -> str:
@@ -527,38 +503,15 @@ def validate_slug(slug: str) -> str:
 
 
 def next_seq(events_path: Path) -> int:
-    if not events_path.exists():
-        return 1
-    seq = 0
-    for line in events_path.read_text().splitlines():
-        if not line.strip():
-            continue
-        try:
-            row = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        value = row.get("seq")
-        if isinstance(value, int):
-            seq = max(seq, value)
-    return seq + 1
+    return ledger_next_seq(events_path)
 
 
 def append_event(
     work_dir: Path, event_type: str, data: dict[str, object]
 ) -> EventRecord:
-    events_path = work_dir / "events.jsonl"
-    seq = next_seq(events_path)
-    record = EventRecord(
-        schema_version=STATE_SCHEMA_VERSION,
-        seq=seq,
-        type=event_type,
-        at=utc_now(),
-        data=data,
+    return append_lifecycle_event(
+        work_dir, event_type, data, schema_version=STATE_SCHEMA_VERSION
     )
-    events_path.parent.mkdir(parents=True, exist_ok=True)
-    with events_path.open("a") as file:
-        file.write(json.dumps(asdict(record), sort_keys=True) + "\n")
-    return record
 
 
 def create_work(
@@ -615,62 +568,11 @@ def add_note(
 
 
 def read_events(work_dir: Path) -> list[EventRecord]:
-    events: list[EventRecord] = []
-    path = work_dir / "events.jsonl"
-    if not path.exists():
-        return events
-    for line in path.read_text().splitlines():
-        if not line.strip():
-            continue
-        data = json.loads(line)
-        events.append(
-            EventRecord(
-                schema_version=int(data["schema_version"]),
-                seq=int(data["seq"]),
-                type=str(data["type"]),
-                at=str(data["at"]),
-                data=dict(data.get("data", {})),
-            )
-        )
-    return events
+    return ledger_read_events(work_dir)
 
 
 def read_evidence(work_dir: Path) -> list[EvidenceRecord]:
-    records: list[EvidenceRecord] = []
-    path = work_dir / "evidence.jsonl"
-    if not path.exists():
-        return records
-    for line in path.read_text().splitlines():
-        if not line.strip():
-            continue
-        data = json.loads(line)
-        records.append(
-            EvidenceRecord(
-                schema_version=int(data["schema_version"]),
-                id=str(data["id"]),
-                type=str(data["type"]),
-                capture_mode=str(data["capture_mode"]),
-                kind=str(data["kind"]),
-                command_display=str(data["command_display"]),
-                argv=list(data.get("argv", [])),
-                shell_command=str(data.get("shell_command", "")),
-                cwd=str(data["cwd"]),
-                target=str(data["target"]),
-                branch=str(data["branch"]),
-                git_sha=str(data["git_sha"]),
-                dirty_before=bool(data["dirty_before"]),
-                dirty_after=bool(data["dirty_after"]),
-                exit_code=int(data["exit_code"]),
-                status=str(data["status"]),
-                started_at=str(data["started_at"]),
-                ended_at=str(data["ended_at"]),
-                duration_ms=int(data["duration_ms"]),
-                transcript_path=str(data["transcript_path"]),
-                redaction=str(data["redaction"]),
-                why=str(data.get("why", "")),
-            )
-        )
-    return records
+    return ledger_read_evidence(work_dir)
 
 
 def int_from_event_data(data: dict[str, object], key: str) -> int:

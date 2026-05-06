@@ -35,14 +35,14 @@ description: >
 - [x] Make CLI lifecycle commands delegate through the Module.
 - [x] Keep compatibility shims where useful during migration.
 - [x] Run focused parity gate.
-- [ ] Commit chunk 3.
+- [x] Commit chunk 3.
 
 ## Chunk 4: Typed Ledger/Event Seam
 
-- [ ] Add typed lifecycle event/evidence models and parsers.
-- [ ] Keep JSONL on-disk compatibility.
-- [ ] Move consumers away from raw dict filtering where practical.
-- [ ] Run focused parity gate plus `mise run check`.
+- [x] Add typed lifecycle event/evidence models and parsers.
+- [x] Keep JSONL on-disk compatibility.
+- [x] Move consumers away from raw dict filtering where practical.
+- [x] Run focused parity gate plus `mise run check`.
 - [ ] Commit chunk 4.
 
 ## Chunk 5: Readiness Policy Module
