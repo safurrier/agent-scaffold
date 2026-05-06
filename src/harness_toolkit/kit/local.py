@@ -13,13 +13,14 @@ import os
 import re
 import shlex
 import subprocess
-import sys
-import time
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
 
+from harness_toolkit.kit.capture.process import run_process_to_transcript
+from harness_toolkit.kit.capture.redaction import redact_argv, redact_text
+from harness_toolkit.kit.capture.transcripts import transcript_path
 from harness_toolkit.kit.ledger.events import append_lifecycle_event
 from harness_toolkit.kit.ledger.models import EventRecord, EvidenceRecord
 from harness_toolkit.kit.ledger.store import (
@@ -72,34 +73,6 @@ SYNC_IGNORED_EVENT_TYPES = frozenset(
     {"sync_checkpoint", "view_materialized", "handoff_generated"}
 )
 AGENT_LOCAL_STATE_PATHS = (".pi", ".claude/worktrees")
-SENSITIVE_OPTION_NAMES = {
-    "--password",
-    "--passwd",
-    "--pwd",
-    "--secret",
-    "--token",
-    "--api-key",
-    "--apikey",
-    "--access-token",
-}
-SECRET_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
-    (
-        re.compile(
-            r"(?i)(password|passwd|pwd|secret|token|api[_-]?key)(\s*[=:]\s*)\S+"
-        ),
-        r"\1\2[REDACTED]",
-    ),
-    (re.compile(r"(?i)(bearer\s+)[A-Za-z0-9._~+/=-]{12,}"), r"\1[REDACTED]"),
-    (re.compile(r"(?i)(sk-[A-Za-z0-9]{12,})"), "[REDACTED]"),
-    (re.compile(r"gh[pousr]_[A-Za-z0-9_]{12,}"), "[REDACTED]"),
-    (
-        re.compile(
-            r"(?i)(--(?:password|passwd|pwd|secret|token|api-key|apikey|access-token)(?:=|\s+))(?:'[^']*'|\"[^\"]*\"|\S+)"
-        ),
-        r"\1[REDACTED]",
-    ),
-)
-
 StateMode = Literal["local", "external"]
 NoteKind = Literal[
     "context", "plan", "background", "learning", "decision", "gap", "spec-impact"
@@ -729,41 +702,6 @@ def sync_checkpoint(
     )
 
 
-def redact_text(text: str, *, raw_log: bool) -> str:
-    if raw_log:
-        return text
-    redacted = text
-    for pattern, replacement in SECRET_PATTERNS:
-        redacted = pattern.sub(replacement, redacted)
-    return redacted
-
-
-def option_name(argument: str) -> str:
-    return argument.split("=", 1)[0].lower()
-
-
-def redact_argv(argv: list[str], *, raw_log: bool) -> list[str]:
-    if raw_log:
-        return argv
-    redacted: list[str] = []
-    redact_next = False
-    for argument in argv:
-        if redact_next:
-            redacted.append("[REDACTED]")
-            redact_next = False
-            continue
-        name = option_name(argument)
-        if name in SENSITIVE_OPTION_NAMES:
-            if "=" in argument:
-                redacted.append(f"{argument.split('=', 1)[0]}=[REDACTED]")
-            else:
-                redacted.append(argument)
-                redact_next = True
-            continue
-        redacted.append(redact_text(argument, raw_log=raw_log))
-    return redacted
-
-
 def command_display(command: tuple[str, ...], shell_command: str) -> str:
     if shell_command:
         return shell_command
@@ -793,9 +731,8 @@ def capture_command(
         created = create_work(target, "implicit-work", no_local_files=no_local_files)
         work_dir = Path(created.work_dir)
     evidence_id = "ev_" + datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-    transcript = work_dir / "artifacts" / f"{evidence_id}.transcript.log"
+    transcript = transcript_path(work_dir, evidence_id)
     started = utc_now()
-    start_time = time.monotonic()
     dirty_before = git_dirty(state.target_root)
     if shell_command:
         popen_args: str | list[str] = shell_command
@@ -806,38 +743,18 @@ def capture_command(
         use_shell = False
         argv = list(command)
 
-    try:
-        process = subprocess.Popen(
-            popen_args,
-            cwd=state.target_scope,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            shell=use_shell,
-            bufsize=1,
-        )
-    except OSError as e:
-        message = f"failed to start command: {e}\n"
-        print(message, end="", file=sys.stderr if stream_to_stderr else sys.stdout)
-        if not no_log:
-            transcript.write_text(redact_text(message, raw_log=raw_log))
-        exit_code = 127
-    else:
-        assert process.stdout is not None
-        transcript_file = None if no_log else transcript.open("w")
-        try:
-            for chunk in process.stdout:
-                print(
-                    chunk, end="", file=sys.stderr if stream_to_stderr else sys.stdout
-                )
-                if transcript_file is not None:
-                    transcript_file.write(redact_text(chunk, raw_log=raw_log))
-        finally:
-            if transcript_file is not None:
-                transcript_file.close()
-        exit_code = process.wait()
+    process_result = run_process_to_transcript(
+        popen_args,
+        cwd=state.target_scope,
+        use_shell=use_shell,
+        transcript=transcript,
+        no_log=no_log,
+        raw_log=raw_log,
+        stream_to_stderr=stream_to_stderr,
+    )
+    exit_code = process_result.exit_code
     ended = utc_now()
-    duration_ms = int((time.monotonic() - start_time) * 1000)
+    duration_ms = process_result.duration_ms
     dirty_after = git_dirty(state.target_root)
     status = "pass" if exit_code == 0 else "fail"
     redacted_argv = redact_argv(argv, raw_log=raw_log)

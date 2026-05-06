@@ -51,14 +51,14 @@ description: >
 - [x] Move human-facing wording into message/presentation layer.
 - [x] Ensure `hk ready`, `hk status`, and handoff use the same diagnostics.
 - [x] Run focused parity gate.
-- [ ] Commit chunk 5.
+- [x] Commit chunk 5.
 
 ## Chunk 6: Command Capture Adapters
 
-- [ ] Extract process runner, git inspector, redactor, transcript store, and evidence recorder.
-- [ ] Add fake-adapter tests for pass/fail/no-log/raw-log behavior.
-- [ ] Preserve CLI `hk validate` / `hk capture` behavior.
-- [ ] Run focused parity gate.
+- [x] Extract process runner, git inspector, redactor, transcript store, and evidence recorder.
+- [x] Add fake-adapter tests for pass/fail/no-log/raw-log behavior.
+- [x] Preserve CLI `hk validate` / `hk capture` behavior.
+- [x] Run focused parity gate.
 - [ ] Commit chunk 6.
 
 ## Chunk 7: Rendering Module
