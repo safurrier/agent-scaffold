@@ -390,10 +390,9 @@ review tools may create agent-local state. If review is impossible, the agent mu
 which is auditable and renders in handoff. Future review-source config is
 deferred.
 
-Lower-level/compatibility commands may remain during migration, but should not
-be equally promoted when a lifecycle command exists. If a redundant command is
-only marginally useful, prefer cutting or explicitly marking it advanced or
-legacy.
+Lower-level commands should not be equally promoted when a lifecycle command
+exists. If a redundant command is only marginally useful, prefer cutting it or
+explicitly marking it advanced.
 
 ```bash
 hk work start|status|materialize        # advanced/legacy work-state surface
@@ -401,12 +400,11 @@ hk note --kind ...                      # advanced event entry, if retained
 hk capture ... -- <command...>          # lower-level command evidence
 hk evidence list                        # inspection/debugging
 hk export --format handoff [--target PATH]
-hk legacy plan|sync-check               # deprecated compatibility for HK1 plan artifacts only
 ```
 
-Legacy plan-artifact commands are fully deprecated for new HK2 work. Keep them
-only as compatibility shims until scaffold/task-contract repos no longer depend
-on durable plan packages.
+HK1 plan-artifact commands have been removed from `hk`. Scaffold/task-contract
+repos still use `mise run plan` and `mise run sync-check` through the separate
+slice-workflow CLI.
 
 Deferred commands also include state cleanup, deep spec impact, profile
 validation, skill validation, and compatibility link helpers.

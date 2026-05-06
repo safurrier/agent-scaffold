@@ -42,23 +42,8 @@ from harness_toolkit.kit.profiles import (
     checks_to_json,
     resolution_to_json,
 )
-from harness_toolkit.kit.workflow import (
-    AttachResult,
-    PlanResult,
-    SyncResult,
-    WorkflowError,
-    WorkflowStatus,
-    attach_workflow,
-    create_plan,
-    git_root,
-    preview_attach,
-    sync_check,
-    to_jsonable,
-    workflow_status,
-)
+from harness_toolkit.kit.state.repo import RepoStateError, git_root
 from harness_toolkit.names import KIT_COMMAND, SCAFFOLD_COMMAND
-
-WorkflowMode = Literal["external", "overlay"]
 
 # Keep this module as the Cyclopts adapter. If command behavior grows beyond
 # argument parsing, output formatting, and error translation, move application
@@ -72,16 +57,11 @@ work_app = App(name="work", help="Advanced: manage ledger-backed local work unit
 evidence_app = App(name="evidence", help="Inspect captured evidence; use `list`.")
 spec_app = App(name="spec", help="Manage optional local/external specs.")
 review_app = App(name="review", help="Record external-enough review evidence.")
-legacy_app = App(
-    name="legacy",
-    help="Deprecated compatibility commands for HK 1 plan-artifact workflows.",
-)
 app.command(profile_app, name="profile")
 app.command(work_app, name="work")
 app.command(evidence_app, name="evidence")
 app.command(spec_app, name="spec")
 app.command(review_app, name="review")
-app.command(legacy_app, name="legacy")
 
 lifecycle_app = LifecycleApp()
 
@@ -142,23 +122,6 @@ def print_error(message: str) -> None:
     print(f"Error: {message}", file=sys.stderr)
 
 
-def emit(
-    value: AttachResult | PlanResult | WorkflowStatus | SyncResult, *, json: bool
-) -> None:
-    if json:
-        print(to_jsonable(value))
-        return
-
-    if isinstance(value, AttachResult | WorkflowStatus):
-        print(f"state_dir={value.state_dir}")
-        print(f"target_root={value.target_root}")
-        print(f"target_scope={value.target_scope}")
-        print(f"scope={value.scope}")
-        print(f"mode={value.mode}")
-    elif isinstance(value, PlanResult | SyncResult):
-        print(f"plan_dir={value.plan_dir}")
-
-
 @app.command(
     help_epilogue=(
         "Examples:\n"
@@ -210,8 +173,6 @@ def profile_list(
     *,
     target: Path | None = None,
     profiles_dir: Path | None = None,
-    mode: WorkflowMode = "external",
-    state_root: Path | None = None,
     json: bool = False,
 ) -> None:
     """List workflow profiles and model-directed selection guidance.
@@ -223,16 +184,9 @@ def profile_list(
         own profile-selection pass; profiles are not auto-ranked.
     profiles_dir
         Optional directory of custom profile TOML files.
-    mode
-        Accepted for command-shape consistency with stateful workflow commands.
-        Profile selection guidance does not read or write workflow state.
-    state_root
-        Accepted for command-shape consistency with stateful workflow commands.
-        Profile selection guidance does not read or write workflow state.
     json
         Print machine-readable JSON.
     """
-    _ = (mode, state_root)
     try:
         catalog = resolve_catalog(profiles_dir)
         resolved_target: Path | None = None
@@ -240,7 +194,7 @@ def profile_list(
         if target is not None:
             resolved_target = target.resolve()
             resolved_root = git_root(resolved_target)
-    except (WorkflowError, ProfileError) as e:
+    except (RepoStateError, ProfileError) as e:
         print_error(f"{e}\nTry: hk profile list --target <repo> --json")
         raise SystemExit(1) from e
 
@@ -456,8 +410,6 @@ def checks(
     profile: ProfileName | None = None,
     target: Path = Path("."),
     profiles_dir: Path | None = None,
-    mode: WorkflowMode = "external",
-    state_root: Path | None = None,
     json: bool = False,
 ) -> None:
     """Show named verification checks for a profile without executing them.
@@ -471,16 +423,9 @@ def checks(
         Target repository or scoped path. Used to resolve repo-root guidance.
     profiles_dir
         Optional directory of custom profile TOML files.
-    mode
-        Accepted for command-shape consistency with stateful workflow commands.
-        Check discovery does not read or write workflow state.
-    state_root
-        Accepted for command-shape consistency with stateful workflow commands.
-        Check discovery does not read or write workflow state.
     json
         Print machine-readable JSON.
     """
-    _ = (mode, state_root)
     try:
         catalog = resolve_catalog(profiles_dir)
         resolved_target = target.resolve()
@@ -490,7 +435,7 @@ def checks(
             target=resolved_target,
             repo_root=git_root(resolved_target),
         )
-    except (KeyError, ProfileError, WorkflowError) as e:
+    except (KeyError, ProfileError, RepoStateError) as e:
         print_error(str(e))
         raise SystemExit(1) from e
     if json:
@@ -535,7 +480,7 @@ def brief(
     _ = markdown
     try:
         result = local_brief(target, no_local_files=no_local_files)
-    except (WorkflowError, LocalWorkflowError) as e:
+    except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e
     if json:
@@ -561,7 +506,7 @@ def init_command(
     """Initialize local or external Harness Kit 2 state for a target."""
     try:
         result = lifecycle_app.init(TargetRequest(target, no_local_files))
-    except (WorkflowError, LocalWorkflowError) as e:
+    except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e
     if json:
@@ -601,7 +546,7 @@ def start(
                 context=context.strip(),
             )
         )
-    except (WorkflowError, LocalWorkflowError) as e:
+    except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e
     if json:
@@ -668,7 +613,7 @@ def context_command(
                 text=text,
             )
         )
-    except (WorkflowError, LocalWorkflowError) as e:
+    except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e
     if json:
@@ -690,7 +635,7 @@ def work_start(
         result = lifecycle_app.start(
             StartRequest(target=target, no_local_files=no_local_files, slug=slug)
         )
-    except (WorkflowError, LocalWorkflowError) as e:
+    except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e
     if json:
@@ -711,7 +656,7 @@ def work_status(
     try:
         state = resolve_local_state(target, no_local_files=no_local_files)
         result = local_brief(target, no_local_files=no_local_files)
-    except (WorkflowError, LocalWorkflowError) as e:
+    except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e
     _ = state
@@ -732,7 +677,7 @@ def work_materialize(
     """Materialize generated Markdown views for the active work ledger."""
     try:
         result = lifecycle_app.materialize(TargetRequest(target, no_local_files))
-    except (WorkflowError, LocalWorkflowError) as e:
+    except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e
     if json:
@@ -781,7 +726,7 @@ def note(
                 target=target, no_local_files=no_local_files, kind=kind, text=text
             )
         )
-    except (WorkflowError, LocalWorkflowError) as e:
+    except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e
     if json:
@@ -853,7 +798,7 @@ def decide(
                 text=impact_text,
             )
         )
-    except (WorkflowError, LocalWorkflowError) as e:
+    except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e
     if json:
@@ -893,7 +838,7 @@ def sync(
                 reason=reason,
             )
         )
-    except (WorkflowError, LocalWorkflowError) as e:
+    except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e
     if json:
@@ -946,7 +891,7 @@ def validate(
                 stream_to_stderr=json,
             )
         )
-    except (WorkflowError, LocalWorkflowError) as e:
+    except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e
     if json:
@@ -994,7 +939,7 @@ def capture(
                 stream_to_stderr=json,
             )
         )
-    except (WorkflowError, LocalWorkflowError) as e:
+    except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e
     if json:
@@ -1050,7 +995,7 @@ def review_add(
                 disposition=disposition,
             )
         )
-    except (WorkflowError, LocalWorkflowError) as e:
+    except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e
     if json:
@@ -1071,7 +1016,7 @@ def review_prompt_command(
     """Print a fresh-context reviewer prompt for the active work."""
     try:
         result = lifecycle_app.review_prompt(TargetRequest(target, no_local_files))
-    except (WorkflowError, LocalWorkflowError) as e:
+    except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e
     if json:
@@ -1112,7 +1057,7 @@ def evidence_list(
         state = resolve_local_state(target, no_local_files=no_local_files)
         work_dir = active_work_dir(state)
         records = read_evidence(work_dir) if work_dir is not None else []
-    except (WorkflowError, LocalWorkflowError) as e:
+    except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e
     rows = [record.__dict__ for record in records]
@@ -1134,7 +1079,7 @@ def ready_command(
     """Check lifecycle handoff readiness."""
     try:
         result = lifecycle_app.ready(TargetRequest(target, no_local_files))
-    except (WorkflowError, LocalWorkflowError) as e:
+    except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e
     if json:
@@ -1175,7 +1120,7 @@ def ready_dangerously_skip(
                 reason=reason,
             )
         )
-    except (WorkflowError, LocalWorkflowError) as e:
+    except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e
     if json:
@@ -1197,7 +1142,7 @@ def export_command(
     _ = format
     try:
         result = lifecycle_app.materialize(TargetRequest(target, no_local_files))
-    except (WorkflowError, LocalWorkflowError) as e:
+    except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e
     if json:
@@ -1229,7 +1174,7 @@ def handoff(
                 target=target, no_local_files=no_local_files, output_path=write
             )
         )
-    except (WorkflowError, LocalWorkflowError) as e:
+    except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e
     if json or format == "json":
@@ -1250,7 +1195,7 @@ def spec_init(
     _ = local
     try:
         result = lifecycle_app.spec_init(TargetRequest(target, no_local_files))
-    except (WorkflowError, LocalWorkflowError) as e:
+    except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e
     if json:
@@ -1269,7 +1214,7 @@ def spec_status(
     """Show the active committed or local SPEC source."""
     try:
         result = lifecycle_app.spec_status(TargetRequest(target, no_local_files))
-    except (WorkflowError, LocalWorkflowError) as e:
+    except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e
     if json:
@@ -1288,7 +1233,7 @@ def spec_outline(
     """Print headings from the active committed or local SPEC."""
     try:
         result = lifecycle_app.spec_outline(TargetRequest(target, no_local_files))
-    except (WorkflowError, LocalWorkflowError) as e:
+    except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e
     if json:
@@ -1314,37 +1259,9 @@ def spec_promote(
             lifecycle_app.spec_promote_dry_run(TargetRequest(target, no_local_files)),
             end="",
         )
-    except (WorkflowError, LocalWorkflowError) as e:
+    except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e
-
-
-@app.command(
-    help_epilogue=(
-        "Examples:\n"
-        "  hk attach --target /work/repo --mode external --json\n"
-        "  hk attach --target /work/repo --mode overlay\n"
-        "  hk attach --target /work/repo --dry-run --json"
-    )
-)
-def attach(
-    *,
-    target: Path = Path("."),
-    mode: WorkflowMode = "external",
-    state_root: Path | None = None,
-    json: bool = False,
-    dry_run: bool = False,
-) -> None:
-    """Prepare portable workflow state for a target repo."""
-    try:
-        if dry_run:
-            result = preview_attach(target, mode=mode, state_root=state_root)
-        else:
-            result = attach_workflow(target, mode=mode, state_root=state_root)
-    except WorkflowError as e:
-        print_error(f"{e}\nTry: hk attach --target <repo> --mode external --json")
-        raise SystemExit(1) from e
-    emit(result, json=json)
 
 
 @app.command(
@@ -1353,7 +1270,6 @@ def attach(
         "  hk plan 'Implement lifecycle-first ready checks'\n"
         "  hk plan --from-file /tmp/adopted-plan.md --json\n"
         "  hk start my-slice --plan 'Initial implementation intent'\n"
-        "  hk legacy plan investigate-cache-bug --target /work/repo --json\n"
         "\n"
         "Use `hk plan` to record/refine the lifecycle plan for active HK2 work. Use `hk start --plan` to seed the first plan while starting work."
     )
@@ -1386,10 +1302,8 @@ def plan(
                 target=target, no_local_files=no_local_files, kind="plan", text=text
             )
         )
-    except (WorkflowError, LocalWorkflowError) as e:
-        print_error(
-            f"{e}\nFor legacy plan artifacts, use: hk legacy plan <slug> --target <repo> --json"
-        )
+    except LocalWorkflowError as e:
+        print_error(str(e))
         raise SystemExit(1) from e
     if json:
         print(json_dump_dataclass(result))
@@ -1407,27 +1321,13 @@ def plan(
 def status(
     *,
     target: Path = Path("."),
-    mode: WorkflowMode = "external",
-    profile: ProfileName = "generic",
-    profiles_dir: Path | None = None,
-    state_root: Path | None = None,
     no_local_files: bool = False,
     json: bool = False,
 ) -> None:
     """Show lifecycle work status and next-action guidance for a target repo."""
-    if state_root is not None or mode != "external" or profiles_dir is not None:
-        try:
-            catalog = resolve_catalog(profiles_dir)
-            catalog.get(profile)
-            result = workflow_status(target, mode=mode, state_root=state_root)
-        except (WorkflowError, KeyError, ProfileError) as e:
-            print_error(f"{e}\nTry: hk status --target <repo> --json")
-            raise SystemExit(1) from e
-        emit(result, json=json)
-        return
     try:
         result = lifecycle_app.status(TargetRequest(target, no_local_files))
-    except (WorkflowError, LocalWorkflowError) as e:
+    except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e
     if json:
@@ -1447,58 +1347,6 @@ def status(
     print("next actions:")
     for action in result.next_actions:
         print(f"- {action}")
-
-
-@legacy_app.command(name="plan")
-def legacy_plan(
-    slug: str,
-    *,
-    target: Path = Path("."),
-    mode: WorkflowMode = "external",
-    profile: ProfileName = "generic",
-    profiles_dir: Path | None = None,
-    state_root: Path | None = None,
-    json: bool = False,
-) -> None:
-    """Deprecated: create a legacy plan-artifact workflow plan."""
-    try:
-        catalog = resolve_catalog(profiles_dir)
-        catalog.get(profile)
-        result = create_plan(target, slug, mode=mode, state_root=state_root)
-    except (WorkflowError, KeyError, ProfileError) as e:
-        print_error(f"{e}\nTry: hk legacy plan my-slice --target <repo> --json")
-        raise SystemExit(1) from e
-    emit(result, json=json)
-
-
-@legacy_app.command(
-    name="sync-check",
-    help_epilogue=(
-        "Examples:\n"
-        "  hk legacy sync-check --target /work/repo\n"
-        "  hk legacy sync-check --target /work/repo --json"
-    ),
-)
-def sync_check_command(
-    *,
-    target: Path = Path("."),
-    mode: WorkflowMode = "external",
-    profile: ProfileName = "generic",
-    profiles_dir: Path | None = None,
-    state_root: Path | None = None,
-    json: bool = False,
-) -> None:
-    """Deprecated: run legacy plan-artifact handoff checks for compatibility."""
-    try:
-        catalog = resolve_catalog(profiles_dir)
-        catalog.get(profile)
-        result = sync_check(target, mode=mode, state_root=state_root)
-    except (WorkflowError, KeyError, ProfileError) as e:
-        print_error(
-            f"{e}\nTry: hk legacy plan my-slice --target <repo> --json, or use hk ready for HK 2 lifecycle readiness"
-        )
-        raise SystemExit(1) from e
-    emit(result, json=json)
 
 
 def main() -> None:

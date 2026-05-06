@@ -67,35 +67,23 @@ identifies the workflow/check contract to follow.
 
 ## Which workflow should I use?
 
-Harness Kit currently exposes two related workflows during the 2.0 migration.
-
-Use the HK 2.0 local assistant loop for new agent work that needs local memory,
-exact command evidence, and a generated handoff without committing ceremony:
+Harness Kit now exposes the HK2 lifecycle for agent work that needs local
+memory, exact command evidence, review records, readiness checks, and a generated
+handoff without committing ceremony:
 
 ```bash
 hk brief --target . --json
-hk init --target . --json
-hk work start <slug> --target . --json
-hk note --kind plan "..." --target .
-hk note --kind background|learning|decision|gap|spec-impact "..." --target .
-hk capture --kind test --target . -- <native validation command>
-hk sync --target .
+hk start <slug> --plan 'Adopted implementation intent' --target . --json
+hk validate --why 'What this proves' --target . -- <native validation command>
+hk status --target . --json
+hk ready --target . --json
 hk handoff --target . --format markdown
 ```
 
-Use the plan-artifact workflow when a repo or user needs the existing durable
-plan package and handoff-readiness contract:
-
-```bash
-hk legacy plan <slug> --target . --profile <profile> --json
-hk checks --target . --profile <profile> --json
-hk legacy sync-check --target . --profile <profile> --json
-```
-
-The plan-artifact workflow is not deprecated yet. It remains the compatibility
-path for deterministic readiness checks over TODO, decisions/spec impact,
-validation evidence, review records, and artifact manifests. HK 2.0 should close
-those readiness gaps before the plan-artifact workflow is demoted.
+The old HK1 plan-artifact commands were removed from `hk`: there is no `hk
+attach`, `hk legacy plan`, or `hk legacy sync-check`. Scaffolded repos still keep
+the durable plan-package workflow through `mise run plan` and `mise run
+sync-check`, backed by the separate slice-workflow CLI.
 
 Conceptually, the intended agent/human lifecycle is:
 
@@ -179,51 +167,23 @@ unless the user explicitly asks to adopt harness-scaffold in this repository.
 Standard loop:
 
 ```bash
-hk profile list --target . --json
-# choose the closest profile yourself and tell the user once why you chose it
-hk status --target . --json
-hk legacy plan <slug> --target . --profile <profile> --json
-# update the returned plan files as work progresses
-hk checks --target . --profile <profile> --json
-hk legacy sync-check --target . --profile <profile> --json
+hk start <slug> --plan 'Adopted implementation intent' --target .
+hk checks --target . --json
+hk validate --why 'What this proves' --target . -- <native command>
+hk status --target .
+hk ready --target .
+hk handoff --target .
 ```
 
-For monorepos, pass `--target` as the subdirectory that should own the workflow
-state. Use `--mode overlay` only when you need workflow files visible inside the
-checkout; overlay state lives under `.ai-local/harness-kit/` and is ignored
-through `.git/info/exclude`.
+For monorepos, pass `--target` as the subdirectory that owns the lifecycle state.
+HK stores local state under `.harness-local/`, ignored via `.git/info/exclude`.
 ````
 
-## Modes
+## Local state
 
-### External state
-
-External mode stores workflow state outside the target repository:
-
-```bash
-hk legacy plan add-cache-layer --target /path/to/repo --state-root ~/.local/share/harness-toolkit/workflows --json
-hk status --target /path/to/repo --json
-hk legacy sync-check --target /path/to/repo --json
-```
-
-The target repository stays clean because plans, templates, and workflow metadata
-live under the external state root. Set `HARNESS_KIT_WORKFLOW_HOME` to change the
-default external root; `--state-root` remains the explicit per-command override.
-
-### Overlay state
-
-Overlay mode stores workflow state inside the target checkout under
-`.ai-local/harness-kit/`, then adds a local-only ignore rule to the checkout's
-Git exclude file:
-
-```bash
-hk attach --target /path/to/repo --mode overlay --json
-hk legacy plan add-cache-layer --target /path/to/repo --mode overlay --json
-```
-
-This makes files visible to editors and agents while avoiding committed
-`.gitignore` changes. The implementation uses `git rev-parse --git-path
-info/exclude`, so linked worktrees and `.git` file checkouts are handled.
+HK2 state is local to the target checkout by default. It lives under
+`.harness-local/` and HK adds a local-only ignore rule to `.git/info/exclude`.
+There is no external/overlay HK1 plan-artifact mode in `hk` anymore.
 
 ## Agent journey
 
@@ -310,7 +270,7 @@ persistent sync ignore config are deferred.
 | Command | Purpose |
 |---|---|
 | `hk brief` | Print a read-only repo brief without choosing validation commands |
-| `hk init` | Initialize ignored local or external Harness Kit 2 state |
+| `hk init` | Initialize ignored local Harness Kit 2 state |
 | `hk start <slug> --plan <text>` | Start a lifecycle work item and optionally seed context/plan records |
 | `hk work start` | Advanced compatibility surface for ledger-backed local work units |
 | `hk note` | Advanced: append typed plan, background, learning, decision, gap, or spec-impact notes |
@@ -326,15 +286,11 @@ persistent sync ignore config are deferred.
 | `hk profile show <name>` | Show one profile's instructions, checks, and review guidance |
 | `hk profile create <name>` | Create an editable custom profile TOML template |
 | `hk checks [--profile <name>]` | Show named verification loops and review guidance without executing them; resolves user config when `--profile` is omitted |
-| `hk attach` | Prepare external or overlay workflow state for a target repo |
 | `hk plan <text>` | Record or refine the lifecycle implementation plan for active HK2 work |
-| `hk legacy plan <slug>` | Deprecated compatibility: create a legacy plan directory in the workflow state |
 | `hk dangerously-skip sync --reason <text>` | Explicitly mark sync freshness as dangerously skipped for the current snapshot |
-| `hk legacy sync-check` | Deprecated compatibility: run legacy plan-artifact handoff checks without requiring tracked artifacts |
 
-Legacy plan-artifact commands are fully deprecated for new HK work. They remain
-available only so existing scaffold/task-contract plan packages can be maintained
-while HK2 ledger workflows finish the migration.
+HK1 plan-artifact commands have been removed from `hk`. Use scaffold `mise run
+plan` and `mise run sync-check` for committed plan packages.
 
 Profiles are small workflow contracts for agentic engineering checks. They
 describe the checks that exist for an environment; they do **not** run those
@@ -407,30 +363,21 @@ that agents can load when no exact profile exists. It guides agents to mine CI,
 hooks, task runners, and repo docs, then propose TOML for user approval before
 writing a custom profile.
 
-Legacy portable workflow stateful commands (`attach`, `plan`, `status`, and
-`sync-check`) accept:
+HK2 lifecycle commands accept:
 
 - `--target PATH` — target repo or scoped path, defaulting to the current directory
-- `--mode external|overlay` — state placement strategy
-- `--state-root PATH` — external state root override
-- `--json` — machine-readable output
+- `--json` — machine-readable output where useful
+- `--no-local-files` — use external state instead of checkout-local ignored files
+  for commands that write lifecycle state
 
-2.0 local-assistant commands (`init`, `work`, `note`, `sync`, `capture`,
-`handoff`, and `spec`) use local overlay state by default and accept
-`--no-local-files` when the user wants external state instead of checkout-local
-ignored files.
-
-Discovery commands that take `--target` (`profile list` and `checks`) also
-accept `--mode` and `--state-root` for legacy command-shape consistency, but
-they do not read or write workflow state. Commands that need custom profiles
-accept `--profiles-dir`; this keeps profile catalogs explicit and avoids hidden
-repo-local adoption.
+Commands that need custom profiles accept `--profiles-dir`; this keeps profile
+catalogs explicit and avoids hidden repo-local adoption.
 
 Agent-friendly properties in the current spike:
 
 - non-interactive by default; every input is an argument or flag
-- idempotent `attach`; re-running preserves the same local exclude rule
-- `attach --dry-run` previews state paths without writing files
+- local state is ignored through `.git/info/exclude`
+- profile/check discovery does not execute commands
 - JSON output for every command agents need to compose
 - actionable errors with a suggested retry command
 - focused per-subcommand help with examples

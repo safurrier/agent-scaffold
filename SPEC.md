@@ -90,20 +90,20 @@ harness-scaffold init [OPTIONS]
   --no-examples         Remove example code after init
 ```
 
-**Portable workflow CLI:**
+**Harness Kit CLI:**
 
-Current portable workflow commands:
+Current `hk` commands are lifecycle-first. The old portable plan-artifact
+commands (`hk attach`, `hk legacy plan`, and `hk legacy sync-check`) are removed;
+scaffold plan artifacts use `mise run plan` and `mise run sync-check` through the
+slice-workflow CLI instead.
 
 ```
 hk profile list --target <repo-or-module> --json
 hk profile resolve --target <repo-or-module> --json
-hk legacy plan <slug> --target <repo-or-module> --profile <profile> --json       # deprecated compatibility
 hk checks --target <repo-or-module> [--profile <profile>] --json
-hk legacy sync-check --target <repo-or-module> --profile <profile> --json        # deprecated compatibility
 ```
 
-Ledger-backed 2.0 commands may coexist during migration. The target public
-shape is lifecycle-first rather than generic-note-first:
+The public shape is lifecycle-first rather than generic-note-first:
 
 ```
 hk brief --target <repo-or-module> --json

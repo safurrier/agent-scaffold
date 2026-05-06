@@ -66,8 +66,9 @@ hk handoff
 ```
 
 `hk plan "..."` remains the refinement command when an already-active work item
-needs an updated lifecycle plan. Legacy plan-artifact creation belongs under
-`hk legacy plan <slug>`.
+needs an updated lifecycle plan. Legacy HK1 plan-artifact creation is no longer
+part of `hk`; scaffolded repos use `mise run plan` from the slice-workflow task
+contract.
 
 The ledger remains useful, but it should be an implementation detail behind
 clear lifecycle verbs. Users should not have to think in terms of generic note
@@ -154,10 +155,11 @@ or inconsistent declarations, not assign scores or infer quality.
    - `hk review add` for external-enough review records.
    - `hk ready` for lifecycle readiness.
 3. Make `hk handoff` render lifecycle-oriented sections, not generic note dumps.
-4. Keep old plan-artifact commands until `hk ready` reaches parity with
-   `mise run sync-check`.
-5. Only then consider deprecating or demoting remaining compatibility behavior,
-   keeping legacy plan artifacts under `hk legacy plan` / `hk legacy sync-check`.
+4. Once `hk ready` reaches parity for existing-repo HK2 lifecycle work, remove
+   HK1 plan-artifact compatibility from `hk` rather than keeping a second public
+   workflow.
+5. Keep scaffold/task-contract plan packages on `mise run plan` and `mise run
+   sync-check`, backed by the separate slice-workflow CLI.
 
 ## Alternatives considered
 

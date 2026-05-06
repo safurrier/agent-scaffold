@@ -139,9 +139,6 @@ prompt_file = {str(prompt)!r}
     assert payload["reviews"][0]["prompt_file_text"] == "Review prompt from file.\n"
 
 
-@pytest.mark.xfail(
-    reason="Chunk 8 deletes legacy surfaces after baseline parity is in place"
-)
 def test_removed_legacy_surfaces_are_not_in_root_help() -> None:
     root = run_hk("--help")
     assert root.returncode == 0
@@ -149,7 +146,6 @@ def test_removed_legacy_surfaces_are_not_in_root_help() -> None:
     assert "attach" not in root.stdout.lower()
 
 
-@pytest.mark.xfail(reason="Chunk 8 deletes legacy status fallback flags")
 def test_status_mode_is_not_a_legacy_entrypoint(tmp_path: Path) -> None:
     target = git_init(tmp_path / "repo")
 

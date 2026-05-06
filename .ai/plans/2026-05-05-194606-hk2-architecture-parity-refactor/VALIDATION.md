@@ -141,6 +141,23 @@ mise run check
 
 Result: `797 passed, 2 xfailed`.
 
+### 2026-05-05 — Chunk 8 legacy HK1 command removal
+
+```bash
+uv run ruff check --fix src/harness_toolkit/kit/cli.py tests/unit/test_portable_workflow.py tests/e2e/test_harness_kit_rollout.py tests/unit/test_harness_kit_2.py tests/unit/test_repo_state_resolution.py tests/e2e/test_hk2_cli_parity.py README.md SPEC.md docs/portable-workflow.md docs/harness-kit-2-design.md docs/decisions/0009-hk-2-lifecycle-first-cli.md templates/.agent/skills/harness-kit-profile-authoring/references
+uv run ruff format src/harness_toolkit/kit/cli.py tests/unit/test_portable_workflow.py tests/e2e/test_harness_kit_rollout.py tests/unit/test_harness_kit_2.py tests/unit/test_repo_state_resolution.py tests/e2e/test_hk2_cli_parity.py
+uv run ty check src/harness_toolkit/kit/cli.py tests/unit/test_portable_workflow.py tests/e2e/test_harness_kit_rollout.py tests/unit/test_harness_kit_2.py tests/unit/test_repo_state_resolution.py tests/e2e/test_hk2_cli_parity.py
+uv run pytest tests/e2e/test_harness_kit_rollout.py tests/unit/test_portable_workflow.py tests/e2e/test_hk2_cli_parity.py tests/unit/test_harness_kit_2.py -q
+```
+
+Result: `60 passed`.
+
+```bash
+uv run pytest tests/e2e/test_harness_kit_rollout.py tests/unit/test_portable_workflow.py tests/e2e/test_hk2_cli_parity.py tests/unit/test_harness_kit_2.py tests/unit/test_repo_state_resolution.py -q
+```
+
+Result: `62 passed`.
+
 ## Planned final gates
 
 ```bash

@@ -68,16 +68,16 @@ description: >
 - [x] Move materialized view generation out of lifecycle state code.
 - [x] Add/refresh normalized rendering parity tests.
 - [x] Run focused parity gate plus `mise run check`.
-- [ ] Commit chunk 7.
+- [x] Commit chunk 7.
 
 ## Chunk 8: Delete Legacy HK1 Plan-Artifact Commands
 
-- [ ] Delete `hk legacy` command group.
-- [ ] Delete root `hk attach`.
-- [ ] Delete legacy-only top-level `hk status` fallback flags.
-- [ ] Delete or fully detach `src/harness_toolkit/kit/workflow.py` after shared repo helpers move elsewhere.
-- [ ] Verify `mise run sync-check` remains unaffected through the slice-workflow CLI.
-- [ ] Run focused parity gate.
+- [x] Delete `hk legacy` command group.
+- [x] Delete root `hk attach`.
+- [x] Delete legacy-only top-level `hk status` fallback flags.
+- [x] Delete or fully detach `src/harness_toolkit/kit/workflow.py` after shared repo helpers move elsewhere.
+- [x] Verify focused HK2/removed-legacy tests pass; final `mise run sync-check` remains in final gates.
+- [x] Run focused parity gate.
 - [ ] Commit chunk 8.
 
 ## Chunk 9: Profile Guidance Module Boundaries

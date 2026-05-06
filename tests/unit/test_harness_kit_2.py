@@ -370,14 +370,17 @@ def test_cli_evidence_bare_command_gives_list_hint() -> None:
     assert "hk evidence list --target <repo> --json" in result.stderr
 
 
-def test_cli_root_help_hides_legacy_sync_check() -> None:
+def test_cli_root_help_removes_legacy_commands() -> None:
     root = _run_hk("--help")
     legacy = _run_hk("legacy", "sync-check", "--help")
+    attach = _run_hk("attach", "--help")
 
     assert root.returncode == 0
-    assert legacy.returncode == 0
-    assert "sync-check" not in root.stdout
-    assert "hk legacy sync-check" in legacy.stdout
+    assert "legacy" not in root.stdout.lower()
+    assert "attach" not in root.stdout.lower()
+    assert "legacy" not in legacy.stdout.lower()
+    assert "sync-check" not in legacy.stdout.lower()
+    assert "attach" not in attach.stdout.lower()
 
 
 def test_cli_review_help_warns_self_review_does_not_count() -> None:
@@ -842,9 +845,7 @@ def test_cli_start_plan_and_context_seed_lifecycle_notes(tmp_path: Path) -> None
     assert not any(action.startswith("plan:") for action in payload["next_actions"])
 
 
-def test_cli_plan_without_active_work_points_to_start_or_legacy_plan(
-    tmp_path: Path,
-) -> None:
+def test_cli_plan_without_active_work_points_to_start(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
 
@@ -852,7 +853,7 @@ def test_cli_plan_without_active_work_points_to_start_or_legacy_plan(
 
     assert result.returncode != 0
     assert "No active work. Run `hk start <slug>` first." in result.stderr
-    assert "hk legacy plan <slug>" in result.stderr
+    assert "hk legacy" not in result.stderr
 
 
 def test_cli_context_from_file_avoids_shell_fragile_text(tmp_path: Path) -> None:

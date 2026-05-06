@@ -116,16 +116,13 @@ scary explicit bypass. Agents should not memorize a long command checklist.
 User-level `harness.toml` can bind known repo/module paths to inline profiles so
 agents do not need validation/review conventions re-explained every session.
 
-During the Harness Kit 2.0 migration, `hk` supports two related workflows:
-
-- **Lifecycle-first local assistant** — local agent memory, compact adopted
-  plans, exact command evidence with rationale, review records, readiness checks,
-  and generated handoffs without committed ceremony. Use `hk start --plan`,
-  `hk validate`, `hk status`, and then follow the next actions.
-- **Deprecated legacy plan-artifact workflow** — `hk legacy plan` and
-  `hk legacy sync-check` remain as compatibility shims for existing scaffold/plan
-  artifacts. Do not teach new agents to start here; use HK2 lifecycle commands
-  unless you are maintaining an existing durable plan package.
+`hk` now exposes the HK2 lifecycle only: local agent memory, compact adopted
+plans, exact command evidence with rationale, review records, readiness checks,
+and generated handoffs without committed ceremony. Use `hk start --plan`,
+`hk validate`, `hk status`, and then follow the next actions. The old HK1
+plan-artifact commands (`hk attach`, `hk legacy plan`, and `hk legacy
+sync-check`) have been removed. Scaffolded repos still use `mise run plan` and
+`mise run sync-check` through the separate slice-workflow CLI.
 
 Planning can happen outside HK; agents translate the agreed intent into compact
 HK context/plan/decision records rather than asking HK to infer it. `hk start

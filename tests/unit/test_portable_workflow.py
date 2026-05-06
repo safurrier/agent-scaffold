@@ -61,16 +61,6 @@ def _git_init(path: Path) -> None:
     )
 
 
-def _active_plan(state_dir: Path) -> Path:
-    plans = sorted(
-        path
-        for path in (state_dir / ".ai" / "plans").iterdir()
-        if path.is_dir() and path.name.startswith("20")
-    )
-    assert len(plans) == 1
-    return plans[0]
-
-
 def _git_status(path: Path) -> str:
     return subprocess.run(
         ["git", "status", "--porcelain"],
@@ -88,7 +78,8 @@ def test_workflow_help_includes_agent_copyable_examples() -> None:
     assert result.returncode == 0, result.stderr
     assert "Examples:" in result.stdout
     assert "hk plan" in result.stdout
-    assert "hk legacy plan investigate-cache-bug" in result.stdout
+    assert "hk start my-slice --plan" in result.stdout
+    assert "hk legacy" not in result.stdout
 
 
 def test_harness_kit_long_command_is_available() -> None:
@@ -247,14 +238,11 @@ def test_workflow_profiles_and_checks_are_discoverable_without_execution(
     target.mkdir()
     _git_init(target)
 
-    state_root = tmp_path / "state"
     profiles = _run_workflow(
         "profile",
         "list",
         "--target",
         str(target),
-        "--state-root",
-        str(state_root),
         "--json",
     )
     checks = _run_workflow(
@@ -263,8 +251,6 @@ def test_workflow_profiles_and_checks_are_discoverable_without_execution(
         "python",
         "--target",
         str(target),
-        "--state-root",
-        str(state_root),
         "--json",
     )
 
@@ -441,289 +427,6 @@ def test_workflow_profile_create_stdout_and_rust_mise_preset(tmp_path: Path) -> 
     assert _git_status(target) == ""
 
 
-def test_workflow_plan_validates_custom_profile_without_profile_scoped_state(
-    tmp_path: Path,
-) -> None:
-    target = tmp_path / "target"
-    target.mkdir()
-    _git_init(target)
-    profiles_dir = tmp_path / "profiles"
-    state_root = tmp_path / "state"
-    create_profile = _run_workflow(
-        "profile",
-        "create",
-        "my-project-api",
-        "--target",
-        "my_project/api",
-        "--preset",
-        "python",
-        "--profiles-dir",
-        str(profiles_dir),
-    )
-    assert create_profile.returncode == 0, create_profile.stderr
-
-    result = _run_workflow(
-        "legacy",
-        "plan",
-        "custom-profile-plan",
-        "--target",
-        str(target),
-        "--profile",
-        "my-project-api",
-        "--profiles-dir",
-        str(profiles_dir),
-        "--state-root",
-        str(state_root),
-        "--json",
-    )
-
-    assert result.returncode == 0, result.stderr
-    payload = json.loads(result.stdout)
-    state_dir = Path(payload["state_dir"])
-    assert state_dir.name == "root"
-    assert "my-project-api" not in str(state_dir.relative_to(state_root))
-    assert _active_plan(state_dir).name.endswith("-custom-profile-plan")
-    assert _git_status(target) == ""
-
-
-def test_workflow_external_plan_keeps_target_repo_clean(tmp_path: Path) -> None:
-    target = tmp_path / "target"
-    target.mkdir()
-    _git_init(target)
-    state_root = tmp_path / "state"
-
-    result = _run_workflow(
-        "legacy",
-        "plan",
-        "portable-demo",
-        "--target",
-        str(target),
-        "--state-root",
-        str(state_root),
-        "--profile",
-        "python",
-        "--json",
-    )
-
-    assert result.returncode == 0, result.stderr
-    payload = json.loads(result.stdout)
-    state_dir = Path(payload["state_dir"])
-    assert state_dir.is_relative_to(state_root)
-    assert (state_dir / ".ai" / "plans" / "_templates").is_dir()
-    assert _active_plan(state_dir).name.endswith("-portable-demo")
-    assert _git_status(target) == ""
-
-
-def test_workflow_target_subdirectory_defines_scope(tmp_path: Path) -> None:
-    target = tmp_path / "target"
-    target.mkdir()
-    _git_init(target)
-    scoped = target / "packages" / "api"
-    scoped.mkdir(parents=True)
-    state_root = tmp_path / "state"
-
-    result = _run_workflow(
-        "attach",
-        "--target",
-        str(scoped),
-        "--state-root",
-        str(state_root),
-        "--json",
-    )
-
-    assert result.returncode == 0, result.stderr
-    payload = json.loads(result.stdout)
-    assert payload["target_root"] == str(target.resolve())
-    assert payload["target_scope"] == str(scoped.resolve())
-    assert payload["scope"] == "packages-api"
-    state_dir = Path(payload["state_dir"])
-    assert state_dir.name == "packages-api"
-    assert state_dir.parent.parent == state_root
-    assert _git_status(target) == ""
-
-
-def test_workflow_overlay_attach_updates_local_exclude_only(tmp_path: Path) -> None:
-    target = tmp_path / "target"
-    target.mkdir()
-    _git_init(target)
-
-    result = _run_workflow(
-        "attach",
-        "--target",
-        str(target),
-        "--mode",
-        "overlay",
-        "--json",
-    )
-
-    assert result.returncode == 0, result.stderr
-    payload = json.loads(result.stdout)
-    assert payload["ignored_by_local_git"] is True
-    state_dir = Path(payload["state_dir"])
-    assert state_dir == target / ".ai-local" / "harness-kit" / "root"
-    assert (
-        "/.ai-local/harness-kit/" in (target / ".git" / "info" / "exclude").read_text()
-    )
-    assert _git_status(target) == ""
-
-
-def test_workflow_overlay_attach_works_with_linked_worktree(tmp_path: Path) -> None:
-    main_repo = tmp_path / "main"
-    main_repo.mkdir()
-    _git_init(main_repo)
-    worktree = tmp_path / "linked-worktree"
-    subprocess.run(
-        ["git", "worktree", "add", "-b", "feat/worktree", str(worktree)],
-        cwd=main_repo,
-        check=True,
-        capture_output=True,
-        env=_git_env(),
-    )
-
-    result = _run_workflow(
-        "attach",
-        "--target",
-        str(worktree),
-        "--mode",
-        "overlay",
-        "--json",
-    )
-
-    assert result.returncode == 0, result.stderr
-    payload = json.loads(result.stdout)
-    assert payload["ignored_by_local_git"] is True
-    exclude_path = subprocess.run(
-        ["git", "rev-parse", "--git-path", "info/exclude"],
-        cwd=worktree,
-        check=True,
-        capture_output=True,
-        text=True,
-        env=_git_env(),
-    ).stdout.strip()
-    assert "/.ai-local/harness-kit/" in Path(exclude_path).read_text()
-    assert _git_status(worktree) == ""
-
-
-def test_workflow_sync_check_validates_local_plan_without_tracked_artifacts(
-    tmp_path: Path,
-) -> None:
-    target = tmp_path / "target"
-    target.mkdir()
-    _git_init(target)
-    state_root = tmp_path / "state"
-
-    create = _run_workflow(
-        "legacy",
-        "plan",
-        "local-check",
-        "--target",
-        str(target),
-        "--state-root",
-        str(state_root),
-        "--json",
-    )
-    assert create.returncode == 0, create.stderr
-    state_dir = Path(json.loads(create.stdout)["state_dir"])
-    plan = _active_plan(state_dir)
-    (plan / "TODO.md").write_text("# TODO\n\n- [x] Prove portable workflow\n")
-    (plan / "DECISIONS.md").write_text(
-        "# Decisions\n\n## What Changed\n\n- Added portable workflow state.\n\n## Why\n\n- Shared repos should stay clean.\n"
-    )
-    (plan / "VALIDATION.md").write_text(
-        "# Validation\n\n```bash\ngit status --porcelain\n```\n"
-    )
-    (plan / "REVIEW.md").write_text(
-        "# Review\n\n- External reviewer found no blockers.\n"
-    )
-
-    result = _run_workflow(
-        "legacy",
-        "sync-check",
-        "--target",
-        str(target),
-        "--state-root",
-        str(state_root),
-        "--json",
-    )
-
-    assert result.returncode == 0, result.stderr
-    payload = json.loads(result.stdout)
-    assert payload["plan_dir"] == str(plan)
-    assert payload["checks"] == ["plan", "decisions", "validation", "review"]
-
-
-def test_workflow_plan_allows_slug_suffixes_without_false_duplicates(
-    tmp_path: Path,
-) -> None:
-    target = tmp_path / "target"
-    target.mkdir()
-    _git_init(target)
-    state_root = tmp_path / "state"
-
-    first = _run_workflow(
-        "legacy",
-        "plan",
-        "foo-bar",
-        "--target",
-        str(target),
-        "--state-root",
-        str(state_root),
-        "--json",
-    )
-    second = _run_workflow(
-        "legacy",
-        "plan",
-        "bar",
-        "--target",
-        str(target),
-        "--state-root",
-        str(state_root),
-        "--json",
-    )
-
-    assert first.returncode == 0, first.stderr
-    assert second.returncode == 0, second.stderr
-
-
-def test_workflow_sync_check_rejects_prose_only_validation_command(
-    tmp_path: Path,
-) -> None:
-    target = tmp_path / "target"
-    target.mkdir()
-    _git_init(target)
-    state_root = tmp_path / "state"
-    create = _run_workflow(
-        "legacy",
-        "plan",
-        "prose-validation",
-        "--target",
-        str(target),
-        "--state-root",
-        str(state_root),
-        "--json",
-    )
-    assert create.returncode == 0, create.stderr
-    plan = _active_plan(Path(json.loads(create.stdout)["state_dir"]))
-    (plan / "TODO.md").write_text("# TODO\n\n- [x] Prove portable workflow\n")
-    (plan / "DECISIONS.md").write_text("# Decisions\n\n- Added portable workflow.\n")
-    (plan / "VALIDATION.md").write_text(
-        "# Validation\n\nRemember to run mise run check before handoff.\n"
-    )
-    (plan / "REVIEW.md").write_text("# Review\n\n- External review complete.\n")
-
-    result = _run_workflow(
-        "legacy",
-        "sync-check",
-        "--target",
-        str(target),
-        "--state-root",
-        str(state_root),
-    )
-
-    assert result.returncode == 1
-    assert "VALIDATION.md must contain real validation commands" in result.stderr
-
-
 def test_workflow_status_reports_missing_target_without_traceback(
     tmp_path: Path,
 ) -> None:
@@ -743,98 +446,3 @@ def test_workflow_status_reports_file_target_without_traceback(tmp_path: Path) -
     assert result.returncode == 1
     assert "target is not a directory" in result.stderr
     assert "Traceback" not in result.stderr
-
-
-def test_workflow_sync_check_rejects_required_review_placeholder(
-    tmp_path: Path,
-) -> None:
-    target = tmp_path / "target"
-    target.mkdir()
-    _git_init(target)
-    state_root = tmp_path / "state"
-    create = _run_workflow(
-        "legacy",
-        "plan",
-        "missing-review",
-        "--target",
-        str(target),
-        "--state-root",
-        str(state_root),
-        "--json",
-    )
-    assert create.returncode == 0, create.stderr
-    plan = _active_plan(Path(json.loads(create.stdout)["state_dir"]))
-    (plan / "TODO.md").write_text("# TODO\n\n- [x] Prove portable workflow\n")
-    (plan / "DECISIONS.md").write_text("# Decisions\n\n- Added portable workflow.\n")
-    (plan / "VALIDATION.md").write_text("# Validation\n\n- `mise run check`\n")
-
-    result = _run_workflow(
-        "legacy",
-        "sync-check",
-        "--target",
-        str(target),
-        "--state-root",
-        str(state_root),
-    )
-
-    assert result.returncode == 1
-    assert "REVIEW.md must contain external review notes" in result.stderr
-
-
-def test_workflow_sync_check_rejects_placeholder_plan_even_with_validation_command(
-    tmp_path: Path,
-) -> None:
-    target = tmp_path / "target"
-    target.mkdir()
-    _git_init(target)
-    state_root = tmp_path / "state"
-    create = _run_workflow(
-        "legacy",
-        "plan",
-        "placeholder-check",
-        "--target",
-        str(target),
-        "--state-root",
-        str(state_root),
-        "--json",
-    )
-    assert create.returncode == 0, create.stderr
-    plan = _active_plan(Path(json.loads(create.stdout)["state_dir"]))
-    (plan / "VALIDATION.md").write_text(
-        "# Validation\n\n```bash\ngit status --porcelain\n```\n"
-    )
-
-    result = _run_workflow(
-        "legacy",
-        "sync-check",
-        "--target",
-        str(target),
-        "--state-root",
-        str(state_root),
-    )
-
-    assert result.returncode == 1
-    assert "TODO.md must contain meaningful checklist items" in result.stderr
-
-
-def test_workflow_attach_dry_run_does_not_write_state(tmp_path: Path) -> None:
-    target = tmp_path / "target"
-    target.mkdir()
-    _git_init(target)
-    state_root = tmp_path / "state"
-
-    result = _run_workflow(
-        "attach",
-        "--target",
-        str(target),
-        "--state-root",
-        str(state_root),
-        "--dry-run",
-        "--json",
-    )
-
-    assert result.returncode == 0, result.stderr
-    payload = json.loads(result.stdout)
-    assert Path(payload["state_dir"]).is_relative_to(state_root)
-    assert not Path(payload["state_dir"]).exists()
-    assert _git_status(target) == ""

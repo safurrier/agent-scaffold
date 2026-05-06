@@ -25,13 +25,6 @@ hk sync --target <repo-or-module> --json
 hk ready --target <repo-or-module> --json
 ```
 
-For the legacy plan-artifact workflow only, use:
-
-```bash
-hk legacy plan <slug> --target <repo-or-module> --profile <profile> --profiles-dir ~/.config/harness-toolkit/profiles --json
-hk legacy sync-check --target <repo-or-module> --profile <profile> --profiles-dir ~/.config/harness-toolkit/profiles --json
-```
-
 Omit `--profiles-dir` only when intentionally using built-in profiles only.
 
 ## Rules
@@ -40,10 +33,9 @@ Omit `--profiles-dir` only when intentionally using built-in profiles only.
 - Run profile-suggested validation commands directly in the shell.
 - Record exact command/result evidence in `VALIDATION.md`.
 - Use the same `--target`, `--profile`, and `--profiles-dir` consistently for
-  profile/check commands. Lifecycle status/ready state is target-scoped; legacy
-  plan artifacts use `hk legacy plan` and `hk legacy sync-check`.
-- For shared repos, prefer portable external state. Do not commit `.ai/`,
-  `.agent/`, `.mise/`, or `.gitignore` workflow files unless explicitly asked.
+  profile/check commands. Lifecycle status/ready state is target-scoped.
+- Do not commit `.ai/`, `.agent/`, `.mise/`, or `.gitignore` workflow files
+  unless explicitly asked. HK2 local state lives under `.harness-local/`.
 - For repos that already have committed scaffold/task-contract infrastructure
   and repo-local plans are expected, native committed workflow is okay.
 
