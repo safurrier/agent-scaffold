@@ -78,15 +78,15 @@ description: >
 - [x] Delete or fully detach `src/harness_toolkit/kit/workflow.py` after shared repo helpers move elsewhere.
 - [x] Verify focused HK2/removed-legacy tests pass; final `mise run sync-check` remains in final gates.
 - [x] Run focused parity gate.
-- [ ] Commit chunk 8.
+- [x] Commit chunk 8.
 
 ## Chunk 9: Profile Guidance Module Boundaries
 
-- [ ] Split profile models, built-ins, config loading, target resolution, and presentation.
-- [ ] Keep existing imports working or update all imports in one commit.
-- [ ] Preserve config lookup order and longest-prefix matching.
-- [ ] Preserve checks/review guidance output.
-- [ ] Run focused parity gate.
+- [x] Split profile models into a package boundary while preserving the catalog facade.
+- [x] Keep existing imports working or update all imports in one commit.
+- [x] Preserve config lookup order and longest-prefix matching.
+- [x] Preserve checks/review guidance output.
+- [x] Run focused parity gate.
 - [ ] Commit chunk 9.
 
 ## Chunk 10: Spec/Adoption Module

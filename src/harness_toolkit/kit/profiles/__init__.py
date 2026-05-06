@@ -13,100 +13,24 @@ import re
 import tomllib
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Literal, cast
+from typing import cast
 
-from harness_toolkit.names import KIT_COMMAND
-
-ProfileName = str
-ProfileSource = Literal["built-in", "file", "user-config"]
-RunFrom = Literal["target", "repo-root", "current-directory", "external-ui"]
-VALID_RUN_FROM: tuple[RunFrom, ...] = (
-    "target",
-    "repo-root",
-    "current-directory",
-    "external-ui",
+from harness_toolkit.kit.profiles.models import (
+    BUILTIN_PRESETS,
+    VALID_RUN_FROM,
+    CheckDefinition,
+    HarnessConfig,
+    LoadedProfile,
+    ProfileCheckView,
+    ProfileError,
+    ProfileName,
+    ProfileResolution,
+    ReviewDefinition,
+    RunFrom,
+    TargetBinding,
+    WorkflowProfile,
 )
-BUILTIN_PRESETS = ("generic", "python", "go", "rust", "rust-mise")
-
-
-@dataclass(frozen=True)
-class CheckDefinition:
-    name: str
-    purpose: str
-    command_template: str
-    run_from: RunFrom
-    required_inputs: tuple[str, ...] = ()
-    notes: tuple[str, ...] = ()
-    agent_should_run_directly: bool = True
-
-
-@dataclass(frozen=True)
-class ReviewDefinition:
-    name: str
-    purpose: str
-    backend: str
-    rubric: str
-    dispatch_hint: str = ""
-    prompt: str = ""
-    prompt_file: str | None = None
-    prompt_file_text: str = ""
-
-
-@dataclass(frozen=True)
-class WorkflowProfile:
-    name: ProfileName
-    title: str
-    summary: str
-    target_hint: str
-    instructions: str
-    checks: tuple[CheckDefinition, ...]
-    reviews: tuple[ReviewDefinition, ...] = ()
-
-
-@dataclass(frozen=True)
-class LoadedProfile:
-    profile: WorkflowProfile
-    source: ProfileSource
-    path: str | None = None
-
-
-@dataclass(frozen=True)
-class TargetBinding:
-    name: str
-    path: str
-    profile: ProfileName
-
-
-@dataclass(frozen=True)
-class HarnessConfig:
-    path: str
-    default_profile: ProfileName
-    targets: tuple[TargetBinding, ...]
-
-
-@dataclass(frozen=True)
-class ProfileResolution:
-    profile: ProfileName
-    source: str
-    reason: str
-    target: str
-    matched_target: str | None = None
-    matched_name: str | None = None
-    config_path: str | None = None
-
-
-@dataclass(frozen=True)
-class ProfileCheckView:
-    profile: ProfileName
-    target: str
-    repo_root: str
-    checks: tuple[CheckDefinition, ...]
-    reviews: tuple[ReviewDefinition, ...]
-    reminder: str
-
-
-class ProfileError(ValueError):
-    """Raised when profile loading or validation fails."""
+from harness_toolkit.names import KIT_COMMAND
 
 
 @dataclass(frozen=True)
