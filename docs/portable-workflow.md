@@ -287,7 +287,7 @@ persistent sync ignore config are deferred.
 | `hk profile create <name>` | Create an editable custom profile TOML template |
 | `hk checks [--profile <name>]` | Show named verification loops and review guidance without executing them; resolves user config when `--profile` is omitted |
 | `hk plan <text>` | Record or refine the lifecycle implementation plan for active HK2 work |
-| `hk dangerously-skip sync --reason <text>` | Explicitly mark sync freshness as dangerously skipped for the current snapshot |
+| `hk dangerously-skip review\|validation\|sync --reason <text>` | Explicitly record an auditable dangerous skip when a lifecycle guarantee cannot be satisfied; skips render in handoff and PR handoff |
 
 HK1 plan-artifact commands have been removed from `hk`. Use scaffold `mise run
 plan` and `mise run sync-check` for committed plan packages.

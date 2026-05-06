@@ -192,12 +192,11 @@ removed.
 The target 2.0 split is:
 
 - `hk sync --check`: answers "has work changed since the last checkpoint?"
-- future `hk ready --check`: answers "is this work ready to hand off?"
+- `hk ready`: answers "is this work ready to hand off?"
 
-`hk ready --check` should validate explicit ledger declarations, not infer
-semantic quality. Agents choose plans, commands, and review rubrics; HK records
-and checks that required declarations are present, internally consistent, and
-renderable.
+`hk ready` validates explicit ledger declarations, not inferred semantic quality.
+Agents choose plans, commands, and review rubrics; HK records and checks that
+required declarations are present, internally consistent, and renderable.
 
 ### Agent work lifecycle
 
@@ -252,11 +251,9 @@ The current scaffold artifacts map to those phases as follows:
 | Handoff gate | `mise run sync-check` | `hk ready` plus `hk sync --check` |
 
 This keeps HK 2.0 shell-first while making the old plan package an optional
-materialized view of the ledger rather than the canonical source of truth. If
-`hk ready` is future work, the implementation is not yet the HK 2.0 replacement;
-it is the ledger/capture foundation for it. PR #12 should therefore be reshaped
-before merge so the lifecycle commands exist in that branch, rather than landing
-the ledger-first UX as the public 2.0 shape.
+exported view of the ledger rather than the canonical source of truth. HK2 is
+only complete once the lifecycle commands exist together: start, plan/context,
+validate, review, sync, ready, and handoff.
 
 ### Profiles and dumb scripts guide validation; they do not run it
 
@@ -320,9 +317,9 @@ hk validate --why "Full repo quality gate." -- mise run check
 hk validate --why "Focused regression coverage." -- uv run pytest tests/unit/test_harness_kit_2.py -q
 ```
 
-A future `hk ready` may use profile guidance to explain missing evidence kinds,
-but it should check explicit captured evidence rather than silently choosing or
-running commands.
+`hk ready` may use profile guidance to explain missing evidence kinds, but it
+checks explicit captured evidence rather than silently choosing or running
+commands.
 
 ### Specs can be local/external before committed
 
