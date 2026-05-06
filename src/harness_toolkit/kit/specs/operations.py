@@ -84,6 +84,6 @@ def spec_promote_dry_run_for_state(state: SpecState) -> str:
     current = spec_status_for_state(state)
     if current.source == "committed":
         return f"Committed SPEC already exists: {current.spec_path}\n"
-    target_path = state.target_root / "SPEC.md"
+    target_path = state.target_scope / "SPEC.md"
     content = Path(current.spec_path).read_text()
     return f"Would write local spec to {target_path}\n\n--- SPEC.md ---\n{content}"

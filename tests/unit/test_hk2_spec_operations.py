@@ -37,6 +37,19 @@ def test_spec_operations_create_status_outline_and_promote_preview(
     assert "Would write local spec" in preview
 
 
+def test_spec_promote_preview_targets_scope_path(tmp_path: Path) -> None:
+    repo = git_init(tmp_path / "repo")
+    module = repo / "packages" / "api"
+    module.mkdir(parents=True)
+    init_state(module)
+    state = resolve_local_state(module)
+    init_spec_for_state(state)
+
+    preview = spec_promote_dry_run_for_state(state)
+
+    assert f"Would write local spec to {module / 'SPEC.md'}" in preview
+
+
 def test_committed_spec_wins_over_local_draft(tmp_path: Path) -> None:
     target = git_init(tmp_path / "repo")
     init_state(target)

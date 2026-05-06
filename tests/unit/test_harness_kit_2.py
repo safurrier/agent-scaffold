@@ -260,7 +260,29 @@ def test_git_diff_hash_streams_untracked_file_content(
     assert second != first
 
 
-@pytest.mark.parametrize("bad_row", ("{not-json}\n", "{}\n", "[]\n", '{"seq": 1}\n'))
+@pytest.mark.parametrize(
+    "bad_row",
+    (
+        "{not-json}\n",
+        "{}\n",
+        "[]\n",
+        '{"seq": 1}\n',
+        json.dumps(
+            {
+                "schema_version": 1,
+                "seq": 2,
+                "type": "sync_checkpoint",
+                "at": "2026-01-01T00:00:00+00:00",
+                "data": {
+                    "event_seq": "not-an-int",
+                    "diff_hash": "sha256:abc",
+                    "excluded_paths": [],
+                },
+            }
+        )
+        + "\n",
+    ),
+)
 def test_malformed_ledger_jsonl_fails_loudly(tmp_path: Path, bad_row: str) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -313,6 +335,16 @@ def test_malformed_evidence_jsonl_fails_loudly(tmp_path: Path, bad_row: str) -> 
 
     with pytest.raises(LocalWorkflowError, match="Malformed evidence JSONL"):
         read_evidence(Path(work.work_dir))
+
+
+def test_capture_rejects_shell_and_argv_together(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "capture-conflict")
+
+    with pytest.raises(LocalWorkflowError, match="either --shell TEXT or argv"):
+        capture_command(target, ("python3", "-V"), shell_command="echo nope")
 
 
 def test_capture_records_redacted_success_and_failed_command(tmp_path: Path) -> None:
@@ -703,6 +735,41 @@ def test_sync_exclude_rejects_source_directory_with_tracked_descendants(
             target,
             exclude_paths=("src",),
             reason="Source directories must not be excluded.",
+        )
+
+
+def test_sync_exclude_rejects_agent_local_path_with_tracked_descendants(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    (target / ".pi").mkdir()
+    (target / ".pi" / "tracked.txt").write_text("v1\n")
+    subprocess.run(
+        ["git", "add", ".pi/tracked.txt"], cwd=target, check=True, env=_git_env()
+    )
+    subprocess.run(
+        ["git", "commit", "--no-verify", "-m", "track pi file"],
+        cwd=target,
+        check=True,
+        capture_output=True,
+        env=_git_env()
+        | {
+            "GIT_AUTHOR_NAME": "Test",
+            "GIT_AUTHOR_EMAIL": "test@example.com",
+            "GIT_COMMITTER_NAME": "Test",
+            "GIT_COMMITTER_EMAIL": "test@example.com",
+        },
+    )
+    init_state(target)
+    create_work(target, "exclude-tracked-agent-local")
+    (target / ".pi" / "session.json").write_text("{}\n")
+
+    with pytest.raises(LocalWorkflowError, match="tracked descendants"):
+        sync_checkpoint(
+            target,
+            exclude_paths=(".pi",),
+            reason="Agent-local state with tracked descendants is unsafe.",
         )
 
 

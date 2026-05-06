@@ -83,12 +83,135 @@ def _required_str_list(
     return [str(item) for item in cast("list[str]", value)]
 
 
+def _optional_str_list(
+    data: dict[str, object], key: str, *, path: Path, line_number: int, kind: str
+) -> list[str]:
+    if key not in data:
+        return []
+    return _required_str_list(data, key, path=path, line_number=line_number, kind=kind)
+
+
+def _optional_list(
+    data: dict[str, object], key: str, *, path: Path, line_number: int, kind: str
+) -> list[object]:
+    if key not in data:
+        return []
+    value = data.get(key)
+    if not isinstance(value, list):
+        raise _shape_error(path, line_number, kind)
+    return cast("list[object]", value)
+
+
+def _validate_event_payload(
+    event_type: str, event_data: dict[str, object], *, path: Path, line_number: int
+) -> dict[str, object]:
+    kind = "ledger"
+    if event_type == "work_started":
+        _required_str(event_data, "slug", path=path, line_number=line_number, kind=kind)
+        _required_str(
+            event_data, "target_root", path=path, line_number=line_number, kind=kind
+        )
+        _required_str(
+            event_data, "target_scope", path=path, line_number=line_number, kind=kind
+        )
+        _required_str(
+            event_data, "branch", path=path, line_number=line_number, kind=kind
+        )
+        _required_str(
+            event_data, "git_sha", path=path, line_number=line_number, kind=kind
+        )
+    elif event_type == "note_added":
+        _required_str(event_data, "kind", path=path, line_number=line_number, kind=kind)
+        _required_str(event_data, "text", path=path, line_number=line_number, kind=kind)
+    elif event_type == "command_captured":
+        _required_str(
+            event_data, "evidence_id", path=path, line_number=line_number, kind=kind
+        )
+        _required_int(
+            event_data, "exit_code", path=path, line_number=line_number, kind=kind
+        )
+        _required_str(
+            event_data, "status", path=path, line_number=line_number, kind=kind
+        )
+        _optional_str(event_data, "why", path=path, line_number=line_number, kind=kind)
+    elif event_type == "sync_checkpoint":
+        _required_str(
+            event_data, "git_sha", path=path, line_number=line_number, kind=kind
+        )
+        _required_str(
+            event_data, "diff_hash", path=path, line_number=line_number, kind=kind
+        )
+        _required_int(
+            event_data, "event_seq", path=path, line_number=line_number, kind=kind
+        )
+        _required_int(
+            event_data, "evidence_count", path=path, line_number=line_number, kind=kind
+        )
+        _required_int(
+            event_data, "note_count", path=path, line_number=line_number, kind=kind
+        )
+        _optional_str_list(
+            event_data, "excluded_paths", path=path, line_number=line_number, kind=kind
+        )
+        _optional_str(
+            event_data, "exclude_reason", path=path, line_number=line_number, kind=kind
+        )
+        _optional_list(
+            event_data, "excluded", path=path, line_number=line_number, kind=kind
+        )
+    elif event_type == "review_added":
+        _required_str(
+            event_data, "backend", path=path, line_number=line_number, kind=kind
+        )
+        _required_str(
+            event_data, "reviewer", path=path, line_number=line_number, kind=kind
+        )
+        _required_str_list(
+            event_data, "rubrics", path=path, line_number=line_number, kind=kind
+        )
+        _required_str(
+            event_data, "summary", path=path, line_number=line_number, kind=kind
+        )
+        _required_str(
+            event_data, "disposition", path=path, line_number=line_number, kind=kind
+        )
+    elif event_type == "dangerous_skip_added":
+        _required_str(
+            event_data, "check", path=path, line_number=line_number, kind=kind
+        )
+        _required_str(
+            event_data, "reason", path=path, line_number=line_number, kind=kind
+        )
+        if "event_seq" in event_data:
+            _required_int(
+                event_data, "event_seq", path=path, line_number=line_number, kind=kind
+            )
+        if "diff_hash" in event_data:
+            _required_str(
+                event_data, "diff_hash", path=path, line_number=line_number, kind=kind
+            )
+        if "git_sha" in event_data:
+            _required_str(
+                event_data, "git_sha", path=path, line_number=line_number, kind=kind
+            )
+    return event_data
+
+
 def parse_event_row(
     data: dict[str, object], *, path: Path, line_number: int
 ) -> EventRecord:
     event_data = data.get("data")
     if not isinstance(event_data, dict):
         raise _shape_error(path, line_number, "ledger")
+    event_type = _required_str(
+        data, "type", path=path, line_number=line_number, kind="ledger"
+    )
+    typed_event_data = _validate_event_payload(
+        event_type,
+        cast("dict[str, object]", event_data),
+        path=path,
+        line_number=line_number,
+    )
     return EventRecord(
         schema_version=_required_int(
             data, "schema_version", path=path, line_number=line_number, kind="ledger"
@@ -96,11 +219,9 @@ def parse_event_row(
         seq=_required_int(
             data, "seq", path=path, line_number=line_number, kind="ledger"
         ),
-        type=_required_str(
-            data, "type", path=path, line_number=line_number, kind="ledger"
-        ),
+        type=event_type,
         at=_required_str(data, "at", path=path, line_number=line_number, kind="ledger"),
-        data=cast("dict[str, object]", event_data),
+        data=typed_event_data,
     )
 
 

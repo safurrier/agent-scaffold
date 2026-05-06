@@ -36,7 +36,7 @@ from harness_toolkit.kit.ledger.store import (
 from harness_toolkit.kit.ledger.store import (
     read_evidence as ledger_read_evidence,
 )
-from harness_toolkit.kit.profiles import profile_names
+from harness_toolkit.kit.profiles import ProfileError, profile_names
 from harness_toolkit.kit.readiness.diagnostics import ReadyCheck, ReadyResult
 from harness_toolkit.kit.readiness.policy import (
     SELF_REVIEW_GUIDANCE,
@@ -325,6 +325,19 @@ def is_allowed_sync_exclude_path(candidate: str) -> bool:
         candidate == allowed or candidate.startswith(f"{allowed}/")
         for allowed in AGENT_LOCAL_STATE_PATHS
     )
+
+
+def git_tracked_paths_for_path(path: Path, candidate: str) -> list[str]:
+    result = subprocess.run(
+        ["git", "ls-files", "--", candidate],
+        cwd=path,
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+    if result.returncode != 0:
+        return []
+    return [line for line in result.stdout.splitlines() if line.strip()]
 
 
 def git_status_for_path(path: Path, candidate: str) -> str:
@@ -690,6 +703,12 @@ def sync_checkpoint(
                 "sync --exclude only supports known agent-local state paths "
                 f"({allowed}); refusing: {candidate}"
             )
+        tracked = git_tracked_paths_for_path(state.target_root, candidate)
+        if tracked:
+            raise LocalWorkflowError(
+                "sync --exclude only supports untracked local-only paths; "
+                f"refusing tracked descendants under {candidate}: {', '.join(tracked[:3])}"
+            )
         status = git_status_for_path(state.target_root, candidate).strip()
         if not status:
             raise LocalWorkflowError(
@@ -791,6 +810,10 @@ def capture_command(
 ) -> CaptureResult:
     if not command and not shell_command:
         raise LocalWorkflowError("capture requires a command after -- or --shell TEXT")
+    if command and shell_command:
+        raise LocalWorkflowError(
+            "capture accepts either --shell TEXT or argv after --, not both"
+        )
     if kind not in VALID_EVIDENCE_KINDS:
         valid = ", ".join(VALID_EVIDENCE_KINDS)
         raise LocalWorkflowError(f"invalid evidence kind '{kind}'. Valid: {valid}")
@@ -954,7 +977,10 @@ def unique_paths(paths: list[Path]) -> list[str]:
 def brief(target: Path, *, no_local_files: bool = False) -> Brief:
     state = resolve_local_state(target, no_local_files=no_local_files)
     active = active_work_dir(state) if state.state_dir.exists() else None
-    profiles = list(profile_names())
+    try:
+        profiles = list(profile_names())
+    except ProfileError as e:
+        raise LocalWorkflowError(str(e)) from e
     spec_sources = (
         find_specs(state)
         if state.state_dir.exists()
