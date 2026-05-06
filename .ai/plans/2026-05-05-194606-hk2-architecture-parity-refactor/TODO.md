@@ -103,7 +103,7 @@ description: >
 - [x] Update docs for final module layout and legacy deprecation stance.
 - [x] Run `mise run check`.
 - [x] Run plan `sync-check`.
-- [ ] Commit final cleanup/docs.
+- [x] Commit final cleanup/docs.
 
 ## Subagent Rollout
 
