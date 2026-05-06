@@ -738,6 +738,34 @@ def test_sync_exclude_rejects_source_directory_with_tracked_descendants(
         )
 
 
+def test_sync_check_revalidates_stored_excludes_for_tracked_descendants(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "exclude-later-tracked-agent-local")
+    (target / ".pi").mkdir()
+    (target / ".pi" / "session.json").write_text("{}\n")
+    sync_checkpoint(
+        target,
+        exclude_paths=(".pi",),
+        reason="Only local agent state.",
+    )
+    (target / ".pi" / "tracked_source.py").write_text("print(1)\n")
+    subprocess.run(
+        ["git", "add", ".pi/tracked_source.py"],
+        cwd=target,
+        check=True,
+        env=_git_env(),
+    )
+
+    checked = sync_checkpoint(target, check=True)
+
+    assert checked.synced is False
+    assert "excluded path changed" in checked.message
+
+
 def test_sync_exclude_rejects_agent_local_path_with_tracked_descendants(
     tmp_path: Path,
 ) -> None:

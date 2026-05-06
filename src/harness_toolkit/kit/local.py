@@ -340,6 +340,30 @@ def git_tracked_paths_for_path(path: Path, candidate: str) -> list[str]:
     return [line for line in result.stdout.splitlines() if line.strip()]
 
 
+def sync_exclude_safety_error(path: Path, candidate: str) -> str:
+    if not is_allowed_sync_exclude_path(candidate):
+        allowed = ", ".join(AGENT_LOCAL_STATE_PATHS)
+        return (
+            "sync --exclude only supports known agent-local state paths "
+            f"({allowed}); refusing: {candidate}"
+        )
+    tracked = git_tracked_paths_for_path(path, candidate)
+    if tracked:
+        return (
+            "sync --exclude only supports untracked local-only paths; "
+            f"refusing tracked descendants under {candidate}: {', '.join(tracked[:3])}"
+        )
+    status = git_status_for_path(path, candidate).strip()
+    if not status:
+        return f"sync --exclude path is not present in git status: {candidate}"
+    if any(not line.startswith("?? ") for line in status.splitlines()):
+        return (
+            "sync --exclude only supports untracked local-only paths; "
+            f"refusing tracked or staged path: {candidate}"
+        )
+    return ""
+
+
 def git_status_for_path(path: Path, candidate: str) -> str:
     result = subprocess.run(
         ["git", "status", "--porcelain", "--", candidate],
@@ -697,28 +721,8 @@ def sync_checkpoint(
     if normalized_excludes and not reason.strip():
         raise LocalWorkflowError("sync --exclude requires --reason")
     for candidate in normalized_excludes:
-        if not is_allowed_sync_exclude_path(candidate):
-            allowed = ", ".join(AGENT_LOCAL_STATE_PATHS)
-            raise LocalWorkflowError(
-                "sync --exclude only supports known agent-local state paths "
-                f"({allowed}); refusing: {candidate}"
-            )
-        tracked = git_tracked_paths_for_path(state.target_root, candidate)
-        if tracked:
-            raise LocalWorkflowError(
-                "sync --exclude only supports untracked local-only paths; "
-                f"refusing tracked descendants under {candidate}: {', '.join(tracked[:3])}"
-            )
-        status = git_status_for_path(state.target_root, candidate).strip()
-        if not status:
-            raise LocalWorkflowError(
-                f"sync --exclude path is not present in git status: {candidate}"
-            )
-        if any(not line.startswith("?? ") for line in status.splitlines()):
-            raise LocalWorkflowError(
-                "sync --exclude only supports untracked local-only paths; "
-                f"refusing tracked or staged path: {candidate}"
-            )
+        if error := sync_exclude_safety_error(state.target_root, candidate):
+            raise LocalWorkflowError(error)
     current_hash = git_diff_hash(state.target_root, normalized_excludes)
     if not current_hash:
         raise LocalWorkflowError("could not compute git diff hash for sync checkpoint")
@@ -745,6 +749,14 @@ def sync_checkpoint(
         checkpoint_excludes = normalize_exclude_paths(
             string_list_from_event_data(latest_sync.data, "excluded_paths")
         )
+        for candidate in checkpoint_excludes:
+            if sync_exclude_safety_error(state.target_root, candidate):
+                return SyncResult(
+                    work_id=work_dir.name,
+                    synced=False,
+                    message="needs sync: excluded path changed or is no longer local-only",
+                    guidance=guidance,
+                )
         synced_hash = str(latest_sync.data.get("diff_hash", ""))
         current_hash = git_diff_hash(state.target_root, checkpoint_excludes)
         if not current_hash:
@@ -953,6 +965,11 @@ def sync_status_for(state: LocalState) -> str:
         checkpoint_excludes = normalize_exclude_paths(
             string_list_from_event_data(latest_sync.data, "excluded_paths")
         )
+        if any(
+            sync_exclude_safety_error(state.target_root, candidate)
+            for candidate in checkpoint_excludes
+        ):
+            return "needs-sync"
         if synced_seq >= latest_sync_relevant_seq(events) and str(
             latest_sync.data.get("diff_hash", "")
         ) == git_diff_hash(state.target_root, checkpoint_excludes):
