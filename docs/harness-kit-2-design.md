@@ -355,7 +355,7 @@ hk sync [--exclude PATH]... [--reason TEXT] [--target PATH] [--json]
 hk sync --check [--target PATH] [--json]
 hk dangerously-skip sync --reason TEXT [--target PATH] [--json]
 hk ready [--target PATH] [--json]
-hk handoff [--target PATH] [--format markdown|pr|json] [--write PATH]
+hk handoff [--target PATH] [--format markdown|pr] [--write PATH] [--json]
 hk spec init|status|outline|promote
 hk profile list|show|create
 ```

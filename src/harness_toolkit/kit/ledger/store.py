@@ -32,9 +32,16 @@ def next_seq(events_path: Path) -> int:
             raise LedgerStoreError(
                 f"Malformed ledger JSONL in {events_path} at line {line_number}: {e.msg}"
             ) from e
+        if not isinstance(row, dict):
+            raise LedgerStoreError(
+                f"Malformed ledger JSONL in {events_path} at line {line_number}: row must be an object"
+            )
         value = row.get("seq")
-        if isinstance(value, int):
-            seq = max(seq, value)
+        if not isinstance(value, int):
+            raise LedgerStoreError(
+                f"Malformed ledger JSONL in {events_path} at line {line_number}: invalid event shape"
+            )
+        seq = max(seq, value)
     return seq + 1
 
 
@@ -74,15 +81,20 @@ def read_events(work_dir: Path) -> list[EventRecord]:
             raise LedgerStoreError(
                 f"Malformed ledger JSONL in {path} at line {line_number}: {e.msg}"
             ) from e
-        events.append(
-            EventRecord(
-                schema_version=int(data["schema_version"]),
-                seq=int(data["seq"]),
-                type=str(data["type"]),
-                at=str(data["at"]),
-                data=dict(data.get("data", {})),
+        try:
+            events.append(
+                EventRecord(
+                    schema_version=int(data["schema_version"]),
+                    seq=int(data["seq"]),
+                    type=str(data["type"]),
+                    at=str(data["at"]),
+                    data=dict(data.get("data", {})),
+                )
             )
-        )
+        except (KeyError, TypeError, ValueError) as e:
+            raise LedgerStoreError(
+                f"Malformed ledger JSONL in {path} at line {line_number}: invalid event shape"
+            ) from e
     return events
 
 
@@ -143,5 +155,10 @@ def read_evidence(work_dir: Path) -> list[EvidenceRecord]:
             raise LedgerStoreError(
                 f"Malformed evidence JSONL in {path} at line {line_number}: {e.msg}"
             ) from e
-        records.append(parse_evidence(data))
+        try:
+            records.append(parse_evidence(data))
+        except (KeyError, TypeError, ValueError) as e:
+            raise LedgerStoreError(
+                f"Malformed evidence JSONL in {path} at line {line_number}: invalid evidence shape"
+            ) from e
     return records

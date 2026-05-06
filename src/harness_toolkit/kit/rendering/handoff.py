@@ -51,6 +51,11 @@ def render_handoff_pr_markdown(
             )
     else:
         lines.append("- No validation evidence recorded in HK.")
+    skips = [event.data for event in events if event.type == "dangerous_skip_added"]
+    if skips:
+        lines.extend(["", "## Dangerous skips"])
+        for skip in skips:
+            lines.append(f"- {skip.get('check')}: {skip.get('reason')}")
     if not readiness.ready:
         lines.extend(["", "## Open readiness checks"])
         for check in readiness.checks:

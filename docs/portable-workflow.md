@@ -23,10 +23,10 @@ is meant for shared codebases where committing `.ai/`, `.agent/`, `.mise/`,
 `.harness/`, or `.gitignore` changes is not appropriate. The readable command is
 `harness-kit`; the daily short command is `hk`.
 
-Harness Kit 2.0 is migrating `hk` toward a ledger-first local assistant: read-only
-repo briefs, ignored/external work ledgers, typed learning/decision/gap notes,
-sync checkpoints, captured command evidence, generated handoffs, and optional
-local specs. See [Harness Kit 2.0 Design](harness-kit-2-design.md).
+Harness Kit 2.0 is a lifecycle-first local assistant backed by ledger state:
+read-only repo briefs, ignored/external work ledgers, typed learning/decision/gap
+notes, sync checkpoints, captured command evidence, generated handoffs, and
+optional local specs. See [Harness Kit 2.0 Design](harness-kit-2-design.md).
 
 The CLI uses Cyclopts so command signatures carry Python type information (for
 example `Literal["external", "overlay"]` for mode choices) while still producing
@@ -96,7 +96,7 @@ stable enough to implement, agents should translate the agreed intent into a
 compact HK plan note, for example:
 
 ```bash
-hk note --kind plan --from-file /tmp/adopted-plan.md --target .
+hk plan --from-file /tmp/adopted-plan.md --target .
 ```
 
 HK records the explicit plan; it does not parse conversations or infer plans.

@@ -59,7 +59,7 @@ harness-scaffold --version
 
 See [Release and Installation](docs/release.md) for release tags, upgrade commands,
 and the current no-PyPI-yet policy. See [Harness Kit 2.0 Design](docs/harness-kit-2-design.md)
-for the ledger-first local assistant migration direction.
+for the lifecycle-first local assistant direction backed by ledger state.
 
 To make Harness Kit the default workflow for your AI tools, add a compact
 instruction block to your user-level `AGENTS.md` and point agents at a fuller

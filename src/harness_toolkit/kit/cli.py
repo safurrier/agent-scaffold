@@ -747,7 +747,7 @@ def note(
 def decide(
     text: str,
     *,
-    spec_impact: str = "",
+    spec_impact: Literal["none", "updated", "not-needed"] | None = None,
     spec_ref: tuple[Path, ...] = (),
     no_spec_impact: bool = False,
     target: Path = Path("."),
@@ -758,11 +758,11 @@ def decide(
     try:
         if not text.strip():
             raise LocalWorkflowError("decide requires TEXT")
-        if spec_impact and no_spec_impact:
+        if spec_impact is not None and no_spec_impact:
             raise LocalWorkflowError(
                 "Use either --spec-impact or --no-spec-impact, not both."
             )
-        if not spec_impact and not no_spec_impact:
+        if spec_impact is None and not no_spec_impact:
             raise LocalWorkflowError(
                 "decide requires --spec-impact none|updated|not-needed or --no-spec-impact"
             )
@@ -778,16 +778,14 @@ def decide(
         if no_spec_impact:
             impact_mode = "none"
             impact_detail = "No spec impact declared."
-        elif spec_impact in {"none", "updated", "not-needed"}:
+        else:
+            assert spec_impact is not None
             impact_mode = spec_impact
             impact_detail = {
                 "none": "No spec impact declared.",
                 "updated": "Spec/docs updated or verified.",
                 "not-needed": "Spec/docs update not needed.",
             }[spec_impact]
-        else:
-            impact_mode = "updated"
-            impact_detail = spec_impact
         ref_text = f"; refs: {', '.join(refs)}" if refs else ""
         impact_text = f"{impact_mode}: {impact_detail}{ref_text}"
         lifecycle_app.note(
@@ -969,7 +967,7 @@ def review_add(
     *,
     backend: str,
     reviewer: str,
-    rubric: tuple[str, ...] = (),
+    rubric: tuple[str, ...],
     summary: str,
     disposition: str = "accepted",
     target: Path = Path("."),
@@ -1161,7 +1159,7 @@ def export_command(
 def handoff(
     *,
     target: Path = Path("."),
-    format: Literal["markdown", "pr", "json"] = "markdown",
+    format: Literal["markdown", "pr"] = "markdown",
     write: Path | None = None,
     no_local_files: bool = False,
     json: bool = False,
@@ -1179,7 +1177,7 @@ def handoff(
     except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e
-    if json or format == "json":
+    if json:
         print(json_dump_dataclass(result))
         return
     print(result.content, end="")

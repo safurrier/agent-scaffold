@@ -12,6 +12,7 @@ import json
 import os
 import re
 import shlex
+import stat
 import subprocess
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
@@ -35,6 +36,7 @@ from harness_toolkit.kit.ledger.store import (
 from harness_toolkit.kit.ledger.store import (
     read_evidence as ledger_read_evidence,
 )
+from harness_toolkit.kit.profiles import profile_names
 from harness_toolkit.kit.readiness.diagnostics import ReadyCheck, ReadyResult
 from harness_toolkit.kit.readiness.policy import (
     SELF_REVIEW_GUIDANCE,
@@ -95,7 +97,7 @@ NoteKind = Literal[
     "context", "plan", "background", "learning", "decision", "gap", "spec-impact"
 ]
 EvidenceKind = Literal["test", "lint", "typecheck", "build", "check", "e2e", "other"]
-HandoffFormat = Literal["markdown", "pr", "json"]
+HandoffFormat = Literal["markdown", "pr"]
 
 
 class LocalWorkflowError(RuntimeError):
@@ -369,7 +371,22 @@ def git_diff_hash(path: Path, exclude_paths: tuple[str, ...] = ()) -> str:
         hasher.update(b"untracked\0")
         hasher.update(raw_name)
         hasher.update(b"\0")
-        if full_path.is_file():
+        try:
+            stat_result = full_path.lstat()
+        except OSError:
+            hasher.update(b"<missing>")
+            hasher.update(b"\0")
+            continue
+        hasher.update(str(stat_result.st_mode).encode("ascii"))
+        hasher.update(b"\0")
+        if stat.S_ISLNK(stat_result.st_mode):
+            hasher.update(b"symlink\0")
+            try:
+                hasher.update(os.readlink(full_path).encode("utf-8", "surrogateescape"))
+            except OSError:
+                hasher.update(b"<unreadable-symlink>")
+        elif stat.S_ISREG(stat_result.st_mode):
+            hasher.update(b"file\0")
             try:
                 with full_path.open("rb") as file_obj:
                     for chunk in iter(lambda: file_obj.read(1024 * 1024), b""):
@@ -924,7 +941,7 @@ def unique_paths(paths: list[Path]) -> list[str]:
 def brief(target: Path, *, no_local_files: bool = False) -> Brief:
     state = resolve_local_state(target, no_local_files=no_local_files)
     active = active_work_dir(state) if state.state_dir.exists() else None
-    profiles = ["generic", "python", "go", "rust", "rust-mise"]
+    profiles = list(profile_names())
     spec_sources = (
         find_specs(state)
         if state.state_dir.exists()

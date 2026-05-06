@@ -20,6 +20,7 @@ from harness_toolkit.kit.local import (
     init_spec,
     init_state,
     materialize_work,
+    read_evidence,
     ready,
     spec_outline,
     spec_promote_dry_run,
@@ -218,6 +219,26 @@ def test_sync_checkpoint_tracks_untracked_content_changes(tmp_path: Path) -> Non
     assert stale.synced is False
 
 
+def test_git_diff_hash_tracks_untracked_symlink_identity(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    first_target = tmp_path / "outside-a.txt"
+    second_target = tmp_path / "outside-b.txt"
+    first_target.write_text("same bytes\n")
+    second_target.write_text("same bytes\n")
+    link = target / "external-link"
+    link.symlink_to(first_target)
+    first = git_diff_hash(target)
+
+    link.unlink()
+    link.symlink_to(second_target)
+    second = git_diff_hash(target)
+
+    assert first.startswith("sha256:")
+    assert second.startswith("sha256:")
+    assert second != first
+
+
 def test_git_diff_hash_streams_untracked_file_content(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -239,15 +260,27 @@ def test_git_diff_hash_streams_untracked_file_content(
     assert second != first
 
 
-def test_malformed_ledger_jsonl_fails_loudly(tmp_path: Path) -> None:
+@pytest.mark.parametrize("bad_row", ("{not-json}\n", "{}\n", "[]\n"))
+def test_malformed_ledger_jsonl_fails_loudly(tmp_path: Path, bad_row: str) -> None:
     target = tmp_path / "repo"
     _git_init(target)
     init_state(target)
     work = create_work(target, "bad-ledger")
-    Path(work.work_dir, "events.jsonl").write_text("{not-json}\n")
+    Path(work.work_dir, "events.jsonl").write_text(bad_row)
 
     with pytest.raises(LocalWorkflowError, match="Malformed ledger JSONL"):
         add_note(target, kind="learning", text="This should not append.")
+
+
+def test_malformed_evidence_jsonl_fails_loudly(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    work = create_work(target, "bad-evidence")
+    Path(work.work_dir, "evidence.jsonl").write_text("{}\n")
+
+    with pytest.raises(LocalWorkflowError, match="Malformed evidence JSONL"):
+        read_evidence(Path(work.work_dir))
 
 
 def test_capture_records_redacted_success_and_failed_command(tmp_path: Path) -> None:
@@ -809,6 +842,49 @@ def test_cli_handoff_pr_format_renders_pr_body(tmp_path: Path) -> None:
     assert "# Handoff" not in result.stdout
 
 
+def test_cli_handoff_pr_format_discloses_dangerous_skips(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    assert (
+        _run_hk(
+            "start", "handoff-pr-skip", "--target", str(target), "--plan", "Ship it"
+        ).returncode
+        == 0
+    )
+    assert (
+        _run_hk(
+            "dangerously-skip",
+            "review",
+            "--reason",
+            "No independent reviewer before handoff.",
+            "--target",
+            str(target),
+        ).returncode
+        == 0
+    )
+
+    result = _run_hk("handoff", "--target", str(target), "--format", "pr")
+
+    assert result.returncode == 0, result.stderr
+    assert "## Dangerous skips" in result.stdout
+    assert "No independent reviewer before handoff." in result.stdout
+
+
+def test_cli_handoff_format_json_is_not_a_file_format(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    assert (
+        _run_hk(
+            "start", "handoff-json", "--target", str(target), "--plan", "Ship it"
+        ).returncode
+        == 0
+    )
+
+    result = _run_hk("handoff", "--target", str(target), "--format", "json")
+
+    assert result.returncode != 0
+
+
 def test_cli_note_from_file_records_plan_note(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -963,6 +1039,28 @@ def test_cli_context_from_file_avoids_shell_fragile_text(tmp_path: Path) -> None
     assert "uv sync --extra dev" in handoff_result.stdout
 
 
+def test_cli_decide_rejects_unknown_spec_impact(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    assert (
+        _run_hk(
+            "start", "bad-spec-impact", "--target", str(target), "--plan", "Plan."
+        ).returncode
+        == 0
+    )
+
+    result = _run_hk(
+        "decide",
+        "Freeform impact should be rejected.",
+        "--spec-impact",
+        "freeform",
+        "--target",
+        str(target),
+    )
+
+    assert result.returncode != 0
+
+
 def test_cli_decide_records_structured_spec_impact_refs(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1038,7 +1136,7 @@ def test_cli_lifecycle_commands_record_handoff_and_ready(tmp_path: Path) -> None
         "decide",
         "Keep lifecycle commands primary.",
         "--spec-impact",
-        "SPEC updated.",
+        "updated",
         "--target",
         str(target),
         "--json",

@@ -71,7 +71,7 @@ class DangerousSkipRequest(TargetRequest):
 @dataclass(frozen=True)
 class HandoffRequest(TargetRequest):
     output_path: Path | None = None
-    format: Literal["markdown", "pr", "json"] = "markdown"
+    format: Literal["markdown", "pr"] = "markdown"
 
 
 class LifecycleApp:
