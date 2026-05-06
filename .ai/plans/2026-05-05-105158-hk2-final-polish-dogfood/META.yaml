@@ -2,7 +2,7 @@ slug: hk2-final-polish-dogfood
 branch: feat/harness-kit-2-ledger-assistant
 created: 2026-05-05
 pr:
-status: planned
+status: complete
 source: user questionnaire after hk2-agent-ergonomics-coach rollout
 contract_change: implementation_only
 decision_record: adr
