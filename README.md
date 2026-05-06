@@ -83,12 +83,17 @@ mise run init
 mise run init -- --non-interactive --name my-project --shape single --stack python
 ```
 
-## Harness Kit Workflow Modes
+## Harness Kit Agent Workflow
 
-Harness Kit 2.0 documentation follows a teaching journey: first explain what the
-tool is for, then give agents a small path that works, then let `hk status` reveal
-the deeper lifecycle only when needed. `hk` is mostly an **agent-facing** CLI, not
-a human task manager. The usual adoption story is:
+Harness Kit 2.0 is primarily an **agent-facing lifecycle**. Humans do not need to
+run it as a task manager. The usual adoption story is that a human shapes the
+work in normal conversation, issues, or scratch docs, then asks an implementation
+agent to use `hk` so the agent leaves behind plan, evidence, review, and handoff
+state.
+
+The docs follow that journey: first explain what the tool is for, then give
+agents a small path that works, then let `hk status` reveal the deeper lifecycle
+only when needed.
 
 1. Add a small Harness Kit directive to repo or user `AGENTS.md`.
 2. Research and shape the idea in chat, issues, or scratch docs with normal
@@ -115,6 +120,29 @@ a decision/spec reflection, dispatch review, reconcile sync state, or use a
 scary explicit bypass. Agents should not memorize a long command checklist.
 User-level `harness.toml` can bind known repo/module paths to inline profiles so
 agents do not need validation/review conventions re-explained every session.
+
+### Agent command index
+
+Most agents should start with the short loop above and follow `hk status`. These
+are the common commands to reach for when the coach asks for something specific:
+
+| Need | Command |
+|---|---|
+| Read repo shape without mutating state | `hk brief --target . --json` |
+| Start or inspect active work | `hk start <slug> --plan "..."`, `hk status`, `hk work status` |
+| Record useful framing | `hk context "..."` |
+| Record or refine the adopted plan | `hk plan "..."` / `hk plan --from-file FILE` |
+| Record decisions and spec impact | `hk decide "..." --spec-impact none\|updated\|not-needed` |
+| See configured guidance without running it | `hk profile ...`, `hk checks --target . --json` |
+| Capture validation evidence | `hk validate --why "..." -- <native command>` |
+| Record external-enough review | `hk review prompt`, `hk review add --backend ... --reviewer ... --rubric ... --summary ...` |
+| Attach real tool/harness files | `hk artifact attach --path FILE --kind KIND` |
+| Reconcile local changes before handoff | `hk sync`, `hk sync --exclude PATH --reason "..."` |
+| Check or render handoff | `hk ready`, `hk handoff`, `hk export` |
+| Make an explicit exception | `hk dangerously-skip review\|validation\|sync --reason "..."` |
+
+Lower-level commands such as `hk note`, `hk evidence`, `hk capture`, and `hk spec`
+are inspection/escape hatches, not the promoted path.
 
 `hk` now exposes the HK2 lifecycle only: local agent memory, compact adopted
 plans, exact command evidence with rationale, review records, readiness checks,

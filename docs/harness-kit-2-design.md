@@ -85,6 +85,23 @@ or tracker polling now.
 - Do not require heavy planning ceremony for small changes.
 - Do not implement Web/TypeScript scaffold in the core `hk` 2.0 migration.
 - Do not implement future orchestration in 2.0.
+- Do not spend product surface on an HK1 migration guide. HK1 was a prototype;
+  HK2 can reset around the agent lifecycle.
+
+## Follow-up backlog
+
+These are intentionally not part of the HK2 launch slice:
+
+- add a few concrete `hk review add` examples once review dogfood settles;
+- decide whether `.agent/skills/hk-session-artifacts` should remain repo-local or
+  ship with generated templates;
+- consider `hk artifact candidates` only if the skill helper proves too hidden or
+  too manual;
+- revisit repo-level `.harness/harness.toml` after user-local profiles get real
+  use;
+- add review dispatch/backfill helpers only when the shell-first prompt workflow
+  is too slow or ambiguous; HK should still record externally produced review
+  evidence rather than own reviewer execution.
 
 ## Design decisions
 

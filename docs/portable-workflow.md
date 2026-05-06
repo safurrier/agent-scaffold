@@ -187,9 +187,10 @@ There is no external/overlay HK1 plan-artifact mode in `hk` anymore.
 
 ## Agent journey
 
-`hk` is mostly an agent-facing lifecycle CLI. Humans usually add a small
-`AGENTS.md` directive, shape the work in chat/issues/scratch docs, then hand the
-agreed intent to an implementation agent and tell it to use `hk`.
+`hk` is an agent-facing lifecycle CLI. It is not trying to be a human task
+manager. Humans usually add a small `AGENTS.md` directive, shape the work in
+chat/issues/scratch docs, then hand the agreed intent to an implementation agent
+and tell it to use `hk`.
 
 The minimal path is:
 

@@ -1,0 +1,114 @@
+Usage: hk COMMAND
+
+Use the Harness Kit 2 lifecycle in any repo without committing scaffold files.
+
+╭─ Commands ───────────────────────────────────────────────────────────────────╮
+│ artifact          Attach external files to active HK2 work.                  │
+│ brief             Print a read-only repo brief without selecting validation  │
+│                   commands.                                                  │
+│ capture           Advanced: run a native command and record exact evidence.  │
+│ checks            Show named verification checks for a profile without       │
+│                   executing them.                                            │
+│ context           Record durable context that prevents rediscovery.          │
+│ dangerously-skip  Record an explicit dangerous skip for a readiness check.   │
+│ decide            Record a lifecycle decision and its spec reflection.       │
+│ evidence          Inspect captured evidence; use list.                       │
+│ export            Export generated lifecycle views from the active ledger.   │
+│ handoff           Render a conservative handoff from the active work ledger. │
+│ init              Initialize local or external Harness Kit 2 state for a     │
+│                   target.                                                    │
+│ instructions      Print the minimal AGENTS.md snippet for harness-wide use.  │
+│ note              Append an advanced typed lifecycle note/event.             │
+│ plan              Record or refine the agreed lifecycle implementation plan. │
+│ profile           List, show, and create workflow profiles.                  │
+│ ready             Check lifecycle handoff readiness.                         │
+│ review            Record external-enough review evidence.                    │
+│ spec              Manage optional local/external specs.                      │
+│ start             Start a lifecycle work item backed by the local ledger.    │
+│ status            Show lifecycle work status and next-action guidance for a  │
+│                   target repo.                                               │
+│ sync              Record or check a sync checkpoint for the active work      │
+│                   snapshot.                                                  │
+│ validate          Run a native command and record validation evidence with   │
+│                   rationale.                                                 │
+│ work              Advanced: manage ledger-backed local work units.           │
+│ --help (-h)       Display this message and exit.                             │
+│ --version         Display application version.                               │
+╰──────────────────────────────────────────────────────────────────────────────╯
+Usage: hk work status [OPTIONS]
+
+Show active local work status.
+
+╭─ Parameters ─────────────────────────────────────────────────────────────────╮
+│ --target               [default: .]                                          │
+│ --no-local-files       [default: False]                                      │
+│   --no-no-local-files                                                        │
+│ --json --no-json       [default: False]                                      │
+╰──────────────────────────────────────────────────────────────────────────────╯
+Usage: hk dangerously-skip --reason STR [OPTIONS] CHECK
+
+Record an explicit dangerous skip for a readiness check.
+
+╭─ Parameters ─────────────────────────────────────────────────────────────────╮
+│ *  CHECK --check          [choices: review, validation, sync] [required]     │
+│ *  --reason               [required]                                         │
+│    --target               [default: .]                                       │
+│    --no-local-files       [default: False]                                   │
+│      --no-no-local-files                                                     │
+│    --json --no-json       [default: False]                                   │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+Examples: hk dangerously-skip review --reason 'docs-only change; no independent 
+reviewer available' --target . --json hk dangerously-skip sync --reason 'Only   
+.pi agent-local state changed after the last checkpoint' --target . --json      
+
+Sync skips are tied to the current diff snapshot; run them as one of the final  
+freshness actions.
+Usage: hk review add --backend STR --reviewer STR --rubric TUPLE[STR, ELLIPSIS] 
+--summary STR [OPTIONS]
+
+Record external-enough review evidence for readiness.                           
+
+Do not record your own implementation self-review. Review is required by        
+default. Preferred review is an independent AI/tool reviewer, ideally a         
+different model/runtime/context; a fresh-context subagent is the minimum        
+acceptable fallback. Otherwise use hk dangerously-skip review --reason ....
+
+╭─ Parameters ─────────────────────────────────────────────────────────────────╮
+│ *  --backend                [required]                                       │
+│ *  --reviewer               [required]                                       │
+│ *  --rubric --empty-rubric  [required]                                       │
+│ *  --summary                [required]                                       │
+│    --disposition            [default: accepted]                              │
+│    --target                 [default: .]                                     │
+│    --no-local-files         [default: False]                                 │
+│      --no-no-local-files                                                     │
+│    --json --no-json         [default: False]                                 │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+Examples: hk review add --backend subagent --reviewer reviewer-fresh-context    
+--rubric core-quality --summary 'No blocking findings' --target . --json hk     
+review add --backend codex --reviewer codex-bug-hunter --rubric bug-hunt        
+--summary 'No blocking findings' --target . --json                              
+
+Review is required by default. Preferred: independent AI/tool reviewer, ideally 
+different model/runtime/context. Minimum fallback: fresh-context subagent.      
+Implementation-agent self-review does not satisfy readiness. Generate a reviewer
+prompt with: hk review prompt --target . If available, dispatch that prompt via 
+your harness: Pi subagent tool, Claude Code Agent/Task tool, or Codex Shell tool
+running codex review --uncommitted. Then record with hk review add and re-run hk
+status because review tools may create agent-local state. If no independent     
+AI/tool or fresh-context review is possible, record the risk explicitly: hk     
+dangerously-skip review --reason 'no independent/fresh-context reviewer         
+available before handoff' --target . --json
+Usage: hk export [OPTIONS]
+
+Export generated lifecycle views from the active ledger.
+
+╭─ Parameters ─────────────────────────────────────────────────────────────────╮
+│ --target               [default: .]                                          │
+│ --format               [choices: handoff] [default: handoff]                 │
+│ --no-local-files       [default: False]                                      │
+│   --no-no-local-files                                                        │
+│ --json --no-json       [default: False]                                      │
+╰──────────────────────────────────────────────────────────────────────────────╯

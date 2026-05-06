@@ -82,6 +82,12 @@ use it only in a copied scaffold or throwaway init target.
   explicit plan, spec/decision reflection, validation evidence, external-enough
   review, readiness gate, and handoff artifact.
 
+- **DO** frame HK 2.0 primarily as an agent-facing lifecycle and handoff tool.
+  **NOT** optimize docs around a human task-manager workflow or spend product
+  energy on an HK1 migration guide. **BECAUSE** HK1 was a prototype with little
+  external usage; HK2 can reset the surface around agents doing work and leaving
+  evidence for humans.
+
 - **DO** consider `context` a plausible HK 2.0 product verb because it connects
   to context engineering: capturing framing, constraints, relevant files, and
   discovered repo facts for the next human/agent. **NOT** assume `background` is
