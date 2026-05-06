@@ -1,4 +1,4 @@
-"""Spec result models for optional HK2 spec support."""
+"""Spec result models for optional Harness Kit spec support."""
 
 from __future__ import annotations
 

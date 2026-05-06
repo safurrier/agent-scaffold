@@ -32,7 +32,7 @@ description: >
 - `README.md`
 - `SPEC.md`
 - `docs/portable-workflow.md`
-- `docs/harness-kit-2-design.md`
+- `docs/harness-kit-lifecycle-design.md`
 - `AGENTS.md`
 
 ## Promotion

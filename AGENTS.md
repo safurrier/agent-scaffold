@@ -76,29 +76,27 @@ use it only in a copied scaffold or throwaway init target.
   signatures, Literal choices, and generated help make the CLI safer for agents
   to call.
 
-- **DO** treat HK 2.0 as a cleaner, simpler version of the HK 1.0
-  handoff-safety lifecycle. **NOT** as a generic local note ledger or unrelated
+- **DO** treat Harness Kit as a cleaner, simpler handoff-safety lifecycle. **NOT** as a generic local note ledger or unrelated
   agent-memory product. **BECAUSE** the core product promise to preserve is:
   explicit plan, spec/decision reflection, validation evidence, external-enough
   review, readiness gate, and handoff artifact.
 
-- **DO** frame HK 2.0 primarily as an agent-facing lifecycle and handoff tool.
+- **DO** frame Harness Kit primarily as an agent-facing lifecycle and handoff tool.
   **NOT** optimize docs around a human task-manager workflow or spend product
-  energy on an HK1 migration guide. **BECAUSE** HK1 was a prototype with little
-  external usage; HK2 can reset the surface around agents doing work and leaving
-  evidence for humans.
+  energy on version-transition docs for the short-lived prototype. **BECAUSE** Harness Kit can reset
+  the surface around agents doing work and leaving evidence for humans.
 
-- **DO** consider `context` a plausible HK 2.0 product verb because it connects
+- **DO** consider `context` a plausible Harness Kit product verb because it connects
   to context engineering: capturing framing, constraints, relevant files, and
   discovered repo facts for the next human/agent. **NOT** assume `background` is
   always the better public word just because generic LLM context is overloaded.
   **BECAUSE** a clear `hk context ...` command may express the user-facing job
   better than exposing lower-level note kinds.
 
-- **DO** keep HK 2.0 lifecycle commands opinionated and singular. **NOT** expose
+- **DO** keep Harness Kit lifecycle commands opinionated and singular. **NOT** expose
   multiple equally promoted ways to do the same thing. **BECAUSE** the desired
   product is a clean agent/human handoff workflow, not a compatibility maze;
-  lower-level commands should be advanced/deprecated only when they are truly
+  lower-level commands should be advanced/internal only when they are truly
   needed.
 
 - **DO** make `hk context` agent-guided rather than magically detected. **NOT**
@@ -116,7 +114,7 @@ use it only in a copied scaffold or throwaway init target.
   skipped review/validation behind bland waiver language. **BECAUSE** skipping a
   lifecycle guarantee should read like a conscious YOLO-style exception.
 
-- **DO** make HK 2.0 review UX plainly require an independent AI/tool or a
+- **DO** make Harness Kit review UX plainly require an independent AI/tool or a
   fresh-context subagent review. **NOT** rely only on regex-style self-review
   detection or let agents record their own review as external. **BECAUSE** the
   point of the review gate is to prevent same-context self-approval; heuristics
@@ -129,7 +127,7 @@ use it only in a copied scaffold or throwaway init target.
   exclusions plus tracked/staged/pathspec/root/source-change checks, not a tiny
   allowlist.
 
-- **DO** prefer a generic HK2 `artifact attach` concept for programmatically
+- **DO** prefer a generic Harness Kit `artifact attach` concept for programmatically
   attaching harness-produced files such as agent session transcripts, Codex review
   transcripts, HAR files, or validation outputs. **NOT** make this a special
   `transcript attach` command first or have agents write their own session prose
@@ -144,7 +142,7 @@ use it only in a copied scaffold or throwaway init target.
 
 - **DO** treat profiles and dumb repo scripts as validation guidance and stable
   command surfaces that feed `hk validate -- <native command>`. **NOT** turn HK
-  into a task runner that chooses and executes checks itself. **BECAUSE** HK 2.0
+  into a task runner that chooses and executes checks itself. **BECAUSE** Harness Kit
   should preserve shell-first evidence while still helping agents find the right
   repo-owned commands.
 

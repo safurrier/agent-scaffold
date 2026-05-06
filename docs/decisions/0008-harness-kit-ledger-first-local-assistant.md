@@ -1,24 +1,24 @@
 ---
 id: harness-toolkit-adr-0008
-title: ADR 0008 — Harness Kit 2.0 Ledger-First Local Assistant
+title: ADR 0008 — Harness Kit Ledger-First Local Assistant
 description: >
-  Defines Harness Kit 2.0 as a shell-first, ledger-backed local assistant with
+  Defines Harness Kit as a shell-first, ledger-backed local assistant with
   evidence capture, sync checkpoints, optional local specs, and explicit
   promotion boundaries.
 index:
   - id: decision
     keywords: [hk, ledger, local-assistant, evidence, sync, spec]
   - id: consequences
-    keywords: [migration, breaking, profiles, scaffold, orchestration]
+    keywords: [rollout, breaking, profiles, scaffold, orchestration]
 ---
 
-# ADR 0008: Harness Kit 2.0 Ledger-First Local Assistant
+# ADR 0008: Harness Kit Ledger-First Local Assistant
 
 **Status**: Accepted
 **Date**: 2026-05-03
 **Deciders**: Alex Furrier
-**Generated from**: Harness Kit 2.0 product/design discussion
-**Plan**: `.ai/plans/2026-05-03-131749-harness-kit-2-ledger-assistant/`
+**Generated from**: Harness Kit product/design discussion
+**Plan**: ledger-first local assistant planning artifact
 
 ---
 
@@ -34,7 +34,7 @@ The current portable workflow proved useful, but its primary concepts are still
 profiles, plans, checks, and sync-check. That can pull agents toward a tool-shaped
 workflow instead of normal shell work.
 
-The desired 2.0 direction is:
+The desired current direction is:
 
 > Do not make agents use a worse shell. Give them a better repo map, better
 > validation evidence, and better handoff artifacts.
@@ -48,11 +48,11 @@ The design discussion refined that further:
 - specs are useful even in arbitrary repos, but should be local/external until
   explicitly promoted;
 - profiles should remain guidance, not heuristic auto-detection;
-- future orchestration should be designed for, not shipped in 2.0.
+- future orchestration should be designed for, not shipped in the lifecycle launch.
 
 ## Decision
 
-Define Harness Kit 2.0 as a shell-first local repo assistant.
+Define Harness Kit as a shell-first local repo assistant.
 
 ### Ledger-first work units
 
@@ -129,15 +129,15 @@ state is acceptable; committed config requires explicit adoption, using
 
 ### Negative / Trade-offs
 
-- This is a breaking product migration from the current `hk plan/status/checks`
+- This is a breaking product change from the current `hk plan/status/checks`
   model.
 - The event/evidence ledger adds new schemas that must be versioned and tested.
 - Capture redaction is non-trivial and needs a pluggable design.
 - Markdown views become generated artifacts, so users who prefer direct editing
   need a materialization workflow.
-- Scaffold task-contract migration is deferred rather than solved immediately.
+- Scaffold task-contract changes are deferred rather than solved immediately.
 
-### Migration impact
+### Rollout impact
 
 Implementation should be staged. Compatibility does not need to be preserved as a
 public product promise, but each phase should have fixture/parity-style tests
@@ -147,7 +147,7 @@ before replacing current behavior.
 
 ### Keep current profile/plan/sync-check model
 
-Rejected as the 2.0 target because it keeps plan ceremony too central and does
+Rejected as the target because it keeps plan ceremony too central and does
 not provide exact command evidence.
 
 ### Full Markdown work bundle by default
@@ -173,5 +173,5 @@ provide a path to spec-shaped context without forcing commits.
 
 ### Build future orchestration now
 
-Rejected as scope creep. 2.0 should make orchestration possible later through
+Rejected as scope creep. Harness Kit should make orchestration possible later through
 clean state/evidence contracts, not ship a daemon or issue-tracker control plane.

@@ -24,7 +24,7 @@ description: >
 
 ## Where Reflected
 
-- `docs/harness-kit-2-design.md`
+- `docs/harness-kit-lifecycle-design.md`
 - `docs/portable-workflow.md`
 - `README.md`
 - `SPEC.md`

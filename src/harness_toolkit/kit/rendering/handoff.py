@@ -1,4 +1,4 @@
-"""Handoff markdown rendering for HK2 lifecycle state."""
+"""Handoff markdown rendering for Harness Kit lifecycle state."""
 
 from __future__ import annotations
 

@@ -39,7 +39,7 @@ description: >
 
 - [x] Update `README.md` happy path.
 - [x] Update `SPEC.md` requirements.
-- [x] Update `docs/harness-kit-2-design.md`.
+- [x] Update `docs/harness-kit-lifecycle-design.md`.
 - [x] Update `docs/portable-workflow.md` if root/legacy examples are affected.
 - [x] Update `.agent/skills/hk-pr-sized-dogfood/SKILL.md` for targeted rerun instructions.
 

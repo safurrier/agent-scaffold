@@ -20,7 +20,7 @@ readiness layer.
 1. Inspect `.mise/tasks/sync-check` and the slice workflow CLI checks.
 2. Summarize the actual contract enforced by `plan-check`, `spec-check`,
    `evidence-check`, and `review-check`.
-3. Update `docs/harness-kit-2-design.md` with:
+3. Update `docs/harness-kit-lifecycle-design.md` with:
    - sync freshness versus readiness;
    - the phase lifecycle;
    - the current artifact to future ledger mapping;

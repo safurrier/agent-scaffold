@@ -1,4 +1,4 @@
-"""JSONL-backed ledger store for HK2 lifecycle events and evidence."""
+"""JSONL-backed ledger store for Harness Kit lifecycle events and evidence."""
 
 from __future__ import annotations
 

@@ -1,6 +1,6 @@
-"""Harness Kit 2.0 local assistant primitives.
+"""Harness Kit local assistant primitives.
 
-This module intentionally keeps the first 2.0 implementation small: repo brief,
+This module intentionally keeps the first lifecycle implementation small: repo brief,
 local/external state, ledger-backed work units, sync checkpoints, command
 capture, generated handoff/materialized views, and local specs.
 """

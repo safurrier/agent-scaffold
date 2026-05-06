@@ -13,10 +13,10 @@ then reshapes PR #12 with the first lifecycle CLI implementation.
 Changed/added docs:
 
 - `AGENTS.md` — records the product correction as repo-specific tribal knowledge.
-- `docs/decisions/0009-hk-2-lifecycle-first-cli.md` — ADR for lifecycle-first HK
+- `docs/decisions/0009-harness-kit-lifecycle-first-cli.md` — ADR for lifecycle-first HK
   2.0.
 - `docs/AGENTS.md` — routes the new ADR.
-- `docs/harness-kit-2-design.md` — amends thesis and CLI target.
+- `docs/harness-kit-lifecycle-design.md` — amends thesis and CLI target.
 - `SPEC.md` — adds lifecycle-first HK 2.0 invariant and target interface.
 - `artifacts/product-postmortem.md` — captures the product correction.
 - `artifacts/lifecycle-implementation-plan.md` — task-by-task implementation

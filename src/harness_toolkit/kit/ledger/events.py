@@ -1,4 +1,4 @@
-"""Typed lifecycle event constructors for HK2."""
+"""Typed lifecycle event constructors for Harness Kit."""
 
 from __future__ import annotations
 

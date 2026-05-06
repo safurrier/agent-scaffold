@@ -1,4 +1,4 @@
-"""Binary HK2 lifecycle readiness policy."""
+"""Binary Harness Kit lifecycle readiness policy."""
 
 from __future__ import annotations
 

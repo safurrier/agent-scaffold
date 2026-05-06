@@ -47,5 +47,5 @@ description: >
 ## Disposition
 
 - Accepted. Captured in `AGENTS.md`, `SPEC.md`,
-  `docs/harness-kit-2-design.md`, ADR 0009, and
+  `docs/harness-kit-lifecycle-design.md`, ADR 0009, and
   `artifacts/lifecycle-implementation-plan.md`.

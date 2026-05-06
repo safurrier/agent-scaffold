@@ -58,7 +58,7 @@ harness-scaffold --version
 ```
 
 See [Release and Installation](docs/release.md) for release tags, upgrade commands,
-and the current no-PyPI-yet policy. See [Harness Kit 2.0 Design](docs/harness-kit-2-design.md)
+and the current no-PyPI-yet policy. See [Harness Kit Design](docs/harness-kit-lifecycle-design.md)
 for the lifecycle-first local assistant direction backed by ledger state.
 
 To make Harness Kit the default workflow for your AI tools, add a compact
@@ -85,7 +85,7 @@ mise run init -- --non-interactive --name my-project --shape single --stack pyth
 
 ## Harness Kit Agent Workflow
 
-Harness Kit 2.0 is primarily an **agent-facing lifecycle**. Humans do not need to
+Harness Kit is primarily an **agent-facing lifecycle**. Humans do not need to
 run it as a task manager. The usual adoption story is that a human shapes the
 work in normal conversation, issues, or scratch docs, then asks an implementation
 agent to use `hk` so the agent leaves behind plan, evidence, review, and handoff
@@ -144,13 +144,12 @@ are the common commands to reach for when the coach asks for something specific:
 Lower-level commands such as `hk note`, `hk evidence`, `hk capture`, and `hk spec`
 are inspection/escape hatches, not the promoted path.
 
-`hk` now exposes the HK2 lifecycle only: local agent memory, compact adopted
+`hk` now exposes the Harness Kit lifecycle only: local agent memory, compact adopted
 plans, exact command evidence with rationale, review records, readiness checks,
 and generated handoffs without committed ceremony. Use `hk start --plan`,
-`hk validate`, `hk status`, and then follow the next actions. The old HK1
-plan-artifact commands (`hk attach`, `hk legacy plan`, and `hk legacy
-sync-check`) have been removed. Scaffolded repos still use `mise run plan` and
-`mise run sync-check` through the separate slice-workflow CLI.
+`hk validate`, `hk status`, and then follow the next actions. Removed portable plan-artifact commands (`hk attach`, `hk legacy plan`, and
+`hk legacy sync-check`) are no longer part of `hk`. Scaffolded repos still use
+`mise run plan` and `mise run sync-check` through the separate slice-workflow CLI.
 
 Planning can happen outside HK; agents translate the agreed intent into compact
 HK context/plan/decision records rather than asking HK to infer it. `hk start
@@ -170,8 +169,7 @@ record an explicit dangerous review skip. Explicit untracked local-only state ca
 be handled with recorded one-shot sync exclusions rather than silent ignores;
 `hk sync --exclude` is not limited to a hardcoded `.pi`/`.claude` allowlist, but
 it still rejects root, pathspec, tracked, staged, or missing paths. Today,
-scaffolded plan artifacts represent that lifecycle as Markdown/YAML files. The HK
-2.0 direction is to make the ledger canonical and export durable handoff views
+scaffolded plan artifacts represent that lifecycle as Markdown/YAML files. The current direction is to make the ledger canonical and export durable handoff views
 only when needed.
 
 ## Task Contract

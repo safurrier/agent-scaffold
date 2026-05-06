@@ -1,15 +1,15 @@
 ---
 name: hk-session-artifacts
-description: This skill finds and attaches Pi, Claude Code, and Codex session or review transcripts to active Harness Kit 2 work using `hk artifact attach`. Use when the user asks to capture agent sessions, attach transcripts, preserve Codex/Claude/Pi review evidence, or inspect HK lifecycle artifacts.
+description: This skill finds and attaches Pi, Claude Code, and Codex session or review transcripts to active Harness Kit work using `hk artifact attach`. Use when the user asks to capture agent sessions, attach transcripts, preserve Codex/Claude/Pi review evidence, or inspect HK lifecycle artifacts.
 ---
 
 # HK Session Artifacts
 
-Attach real harness/tool transcript files to active HK2 work. Do not write a prose transcript manually. Prefer exact paths produced by the harness or command invocation.
+Attach real harness/tool transcript files to active Harness Kit work. Do not write a prose transcript manually. Prefer exact paths produced by the harness or command invocation.
 
 ## Workflow
 
-1. Confirm active HK2 work exists:
+1. Confirm active Harness Kit work exists:
 
    ```bash
    hk status --target . --json

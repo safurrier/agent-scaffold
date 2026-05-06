@@ -32,4 +32,4 @@ description: >
 
 ## Promotion
 
-- No durable ADR yet. If implementation changes public deprecation behavior beyond runtime warnings/help hiding, update `docs/decisions/0009-hk-2-lifecycle-first-cli.md` or add a new ADR before merge.
+- No durable ADR yet. If implementation changes public deprecation behavior beyond runtime warnings/help hiding, update `docs/decisions/0009-harness-kit-lifecycle-first-cli.md` or add a new ADR before merge.

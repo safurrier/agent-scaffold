@@ -23,10 +23,10 @@ is meant for shared codebases where committing `.ai/`, `.agent/`, `.mise/`,
 `.harness/`, or `.gitignore` changes is not appropriate. The readable command is
 `harness-kit`; the daily short command is `hk`.
 
-Harness Kit 2.0 is a lifecycle-first local assistant backed by ledger state:
+Harness Kit is a lifecycle-first local assistant backed by ledger state:
 read-only repo briefs, ignored/external work ledgers, typed learning/decision/gap
 notes, sync checkpoints, captured command evidence, generated handoffs, and
-optional local specs. See [Harness Kit 2.0 Design](harness-kit-2-design.md).
+optional local specs. See [Harness Kit Design](harness-kit-lifecycle-design.md).
 
 The CLI uses Cyclopts so command signatures carry Python type information (for
 example `Literal["external", "overlay"]` for mode choices) while still producing
@@ -67,9 +67,9 @@ identifies the workflow/check contract to follow.
 
 ## Which workflow should I use?
 
-Harness Kit now exposes the HK2 lifecycle for agent work that needs local
-memory, exact command evidence, review records, readiness checks, and a generated
-handoff without committing ceremony:
+Harness Kit exposes a lifecycle for agent work that needs local memory, exact
+command evidence, review records, readiness checks, and a generated handoff
+without committing ceremony:
 
 ```bash
 hk brief --target . --json
@@ -80,7 +80,7 @@ hk ready --target . --json
 hk handoff --target . --format markdown
 ```
 
-The old HK1 plan-artifact commands were removed from `hk`: there is no `hk
+Portable plan-artifact commands were removed from `hk`: there is no `hk
 attach`, `hk legacy plan`, or `hk legacy sync-check`. Scaffolded repos still keep
 the durable plan-package workflow through `mise run plan` and `mise run
 sync-check`, backed by the separate slice-workflow CLI.
@@ -100,7 +100,7 @@ hk plan --from-file /tmp/adopted-plan.md --target .
 ```
 
 HK records the explicit plan; it does not parse conversations or infer plans.
-Today, plan artifacts represent that lifecycle as Markdown/YAML files. HK 2.0's
+Today, plan artifacts represent that lifecycle as Markdown/YAML files. Harness Kit's
 target is to represent it as ledger events and generate the Markdown/YAML views
 when needed.
 
@@ -181,9 +181,9 @@ HK stores local state under `.harness-local/`, ignored via `.git/info/exclude`.
 
 ## Local state
 
-HK2 state is local to the target checkout by default. It lives under
+Harness Kit state is local to the target checkout by default. It lives under
 `.harness-local/` and HK adds a local-only ignore rule to `.git/info/exclude`.
-There is no external/overlay HK1 plan-artifact mode in `hk` anymore.
+There is no external/overlay plan-artifact mode in `hk` anymore.
 
 ## Agent journey
 
@@ -271,7 +271,7 @@ persistent sync ignore config are deferred.
 | Command | Purpose |
 |---|---|
 | `hk brief` | Print a read-only repo brief without choosing validation commands |
-| `hk init` | Initialize ignored local Harness Kit 2 state |
+| `hk init` | Initialize ignored local Harness Kit state |
 | `hk start <slug> --plan <text>` | Start a lifecycle work item and optionally seed context/plan records |
 | `hk work start` | Advanced compatibility surface for ledger-backed local work units |
 | `hk note` | Advanced: append typed plan, background, learning, decision, gap, or spec-impact notes |
@@ -288,17 +288,17 @@ persistent sync ignore config are deferred.
 | `hk profile show <name>` | Show one profile's instructions, checks, and review guidance |
 | `hk profile create <name>` | Create an editable custom profile TOML template |
 | `hk checks [--profile <name>]` | Show named verification loops and review guidance without executing them; resolves user config when `--profile` is omitted |
-| `hk plan <text>` | Record or refine the lifecycle implementation plan for active HK2 work |
+| `hk plan <text>` | Record or refine the lifecycle implementation plan for active Harness Kit work |
 | `hk dangerously-skip review\|validation\|sync --reason <text>` | Explicitly record an auditable dangerous skip when a lifecycle guarantee cannot be satisfied; skips render in handoff and PR handoff |
 
-HK1 plan-artifact commands have been removed from `hk`. Use scaffold `mise run
+Portable plan-artifact commands have been removed from `hk`. Use scaffold `mise run
 plan` and `mise run sync-check` for committed plan packages.
 
 Profiles are small workflow contracts for agentic engineering checks. They
 describe the checks that exist for an environment; they do **not** run those
 checks. Agents should run the suggested validation command directly so the raw
 output stays visible in the normal shell loop, then record the exact
-command/result with `hk validate --why` for HK2 lifecycle work.
+command/result with `hk validate --why` for Harness Kit lifecycle work.
 
 Initial built-in profiles:
 
@@ -364,7 +364,7 @@ that agents can load when no exact profile exists. It guides agents to mine CI,
 hooks, task runners, and repo docs, then propose TOML for user approval before
 writing a custom profile.
 
-HK2 lifecycle commands accept:
+Harness Kit lifecycle commands accept:
 
 - `--target PATH` — target repo or scoped path, defaulting to the current directory
 - `--json` — machine-readable output where useful

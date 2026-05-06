@@ -35,7 +35,7 @@ Omit `--profiles-dir` only when intentionally using built-in profiles only.
 - Use the same `--target`, `--profile`, and `--profiles-dir` consistently for
   profile/check commands. Lifecycle status/ready state is target-scoped.
 - Do not commit `.ai/`, `.agent/`, `.mise/`, or `.gitignore` workflow files
-  unless explicitly asked. HK2 local state lives under `.harness-local/`.
+  unless explicitly asked. Harness Kit local state lives under `.harness-local/`.
 - For repos that already have committed scaffold/task-contract infrastructure
   and repo-local plans are expected, native committed workflow is okay.
 

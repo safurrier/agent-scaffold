@@ -51,14 +51,16 @@ from harness_toolkit.names import KIT_COMMAND, SCAFFOLD_COMMAND
 # operations behind a deeper kit module.
 app = App(
     name=Path(sys.argv[0]).name,
-    help="Use the Harness Kit 2 lifecycle in any repo without committing scaffold files.",
+    help="Use the Harness Kit lifecycle in any repo without committing scaffold files.",
 )
 profile_app = App(name="profile", help="List, show, and create workflow profiles.")
 work_app = App(name="work", help="Advanced: manage ledger-backed local work units.")
 evidence_app = App(name="evidence", help="Inspect captured evidence; use `list`.")
 spec_app = App(name="spec", help="Manage optional local/external specs.")
 review_app = App(name="review", help="Record external-enough review evidence.")
-artifact_app = App(name="artifact", help="Attach external files to active HK2 work.")
+artifact_app = App(
+    name="artifact", help="Attach external files to active Harness Kit work."
+)
 app.command(profile_app, name="profile")
 app.command(work_app, name="work")
 app.command(evidence_app, name="evidence")
@@ -506,7 +508,7 @@ def init_command(
     no_local_files: bool = False,
     json: bool = False,
 ) -> None:
-    """Initialize local or external Harness Kit 2 state for a target."""
+    """Initialize local or external Harness Kit state for a target."""
     try:
         result = lifecycle_app.init(TargetRequest(target, no_local_files))
     except LocalWorkflowError as e:
@@ -743,7 +745,7 @@ def note(
     help_epilogue=(
         "Examples:\n"
         "  hk decide 'Kept API behavior unchanged' --spec-impact none\n"
-        "  hk decide 'Updated lifecycle command shape' --spec-impact updated --spec-ref SPEC.md --spec-ref docs/harness-kit-2-design.md\n"
+        "  hk decide 'Updated lifecycle command shape' --spec-impact updated --spec-ref SPEC.md --spec-ref docs/harness-kit-lifecycle-design.md\n"
         "  hk decide 'Internal refactor only' --spec-impact not-needed"
     ),
 )
@@ -973,7 +975,7 @@ def artifact_attach(
     no_local_files: bool = False,
     json: bool = False,
 ) -> None:
-    """Attach a harness/tool-produced file to the active HK2 work ledger."""
+    """Attach a harness/tool-produced file to the active Harness Kit work ledger."""
     try:
         result = lifecycle_app.attach_artifact(
             ArtifactAttachRequest(
@@ -1322,7 +1324,7 @@ def spec_promote(
         "  hk plan --from-file /tmp/adopted-plan.md --json\n"
         "  hk start my-slice --plan 'Initial implementation intent'\n"
         "\n"
-        "Use `hk plan` to record/refine the lifecycle plan for active HK2 work. Use `hk start --plan` to seed the first plan while starting work."
+        "Use `hk plan` to record/refine the lifecycle plan for active Harness Kit work. Use `hk start --plan` to seed the first plan while starting work."
     )
 )
 def plan(

@@ -25,7 +25,7 @@ description: >
 
 - `AGENTS.md` now records the product rule: review UX should require independent
   or fresh-context review; heuristic detection is not the guarantee.
-- `SPEC.md`, `README.md`, and `docs/harness-kit-2-design.md` now describe review
+- `SPEC.md`, `README.md`, and `docs/harness-kit-lifecycle-design.md` now describe review
   as independent/fresh-context, not a generic self-entered note.
 
 ## Deferred

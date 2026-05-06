@@ -563,7 +563,9 @@ def test_lifecycle_ready_requires_plan_decision_validation_review_and_sync(
 
     add_note(target, kind="plan", text="Implement the lifecycle facade.")
     add_note(target, kind="decision", text="Use validate as the primary evidence verb.")
-    add_note(target, kind="spec-impact", text="SPEC documents lifecycle-first HK2.")
+    add_note(
+        target, kind="spec-impact", text="SPEC documents lifecycle-first Harness Kit."
+    )
     capture_command(
         target,
         ("python3", "-c", "print('ok')"),
@@ -1262,7 +1264,9 @@ def test_ready_rejects_failed_validation_and_rejected_review(tmp_path: Path) -> 
     create_work(target, "not-ready-work")
     add_note(target, kind="plan", text="Implement the lifecycle facade.")
     add_note(target, kind="decision", text="Use validate as the primary evidence verb.")
-    add_note(target, kind="spec-impact", text="SPEC documents lifecycle-first HK2.")
+    add_note(
+        target, kind="spec-impact", text="SPEC documents lifecycle-first Harness Kit."
+    )
     capture_command(
         target,
         ("python3", "-c", "raise SystemExit(9)"),
@@ -1392,7 +1396,7 @@ def test_cli_decide_records_structured_spec_impact_refs(tmp_path: Path) -> None:
         "--spec-ref",
         "SPEC.md",
         "--spec-ref",
-        "docs/harness-kit-2-design.md",
+        "docs/harness-kit-lifecycle-design.md",
         "--target",
         str(target),
         "--json",
@@ -1402,7 +1406,7 @@ def test_cli_decide_records_structured_spec_impact_refs(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stderr
     assert "updated: Spec/docs updated or verified." in handoff_result.stdout
     assert "SPEC.md" in handoff_result.stdout
-    assert "docs/harness-kit-2-design.md" in handoff_result.stdout
+    assert "docs/harness-kit-lifecycle-design.md" in handoff_result.stdout
 
 
 def test_cli_review_prompt_prints_fresh_context_prompt(tmp_path: Path) -> None:

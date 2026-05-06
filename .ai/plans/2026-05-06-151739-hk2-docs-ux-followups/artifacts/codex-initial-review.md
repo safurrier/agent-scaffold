@@ -8,7 +8,7 @@
 
 - [README.md:126](/Users/alex.furrier/git_repositories/harness-toolkit/README.md:126) says the table is “the rest of the surface,” but it is not exhaustive (`hk instructions`, `hk init`, and subcommands are omitted). Consider wording it as “the common surface” or “the promoted/advanced surface” to avoid implying full command coverage.
 
-- [docs/harness-kit-2-design.md:102](/Users/alex.furrier/git_repositories/harness-toolkit/docs/harness-kit-2-design.md:102) says “add review backend adapters.” That could be read as HK eventually running or dispatching reviews itself. Given the current HK2 model is shell-first and records externally run review evidence, I’d clarify this as “tool-callable review dispatch helpers” or “review prompt/backfill adapters,” preserving that HK records results rather than owning reviewer execution.
+- [docs/harness-kit-lifecycle-design.md:102](/Users/alex.furrier/git_repositories/harness-toolkit/docs/harness-kit-lifecycle-design.md:102) says “add review backend adapters.” That could be read as HK eventually running or dispatching reviews itself. Given the current HK2 model is shell-first and records externally run review evidence, I’d clarify this as “tool-callable review dispatch helpers” or “review prompt/backfill adapters,” preserving that HK records results rather than owning reviewer execution.
 
 - [README.md:86](/Users/alex.furrier/git_repositories/harness-toolkit/README.md:86) still uses the heading “Workflow Modes,” but the new section is really about the agent-facing lifecycle mental model. A heading like “Harness Kit Agent Workflow” would fit the new framing better.
 

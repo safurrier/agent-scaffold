@@ -1,7 +1,7 @@
 ---
 name: hk-pr-sized-dogfood
 description: >
-  Run PR-sized Harness Kit 2.0 dogfood replay trials in temporary repos. Use when
+  Run PR-sized Harness Kit dogfood replay trials in temporary repos. Use when
   validating HK lifecycle UX with real implementation tasks, especially to see
   how agents naturally discover and misuse HK with minimal prompting.
 allowed-tools: Read, Write, Edit, Bash, Subagent
@@ -9,7 +9,7 @@ allowed-tools: Read, Write, Edit, Bash, Subagent
 
 # HK PR-Sized Dogfood
 
-Use this skill to test HK 2.0 on realistic implementation work without touching
+Use this skill to test Harness Kit on realistic implementation work without touching
 source repos. The goal is not primarily code quality; it is to observe the
 agent's actual path through HK: where it used HK, skipped it, guessed wrong, or
 hit unclear readiness/sync behavior.
@@ -55,7 +55,7 @@ For the current final-polish rollout, the behavior under test is natural discove
 Create a clean trial root:
 
 ```bash
-ROOT=/tmp/hk2-pr-sized-trials
+ROOT=/tmp/hk-pr-sized-trials
 rm -rf "$ROOT"
 mkdir -p "$ROOT/bin" "$ROOT/reports"
 ```
@@ -67,7 +67,7 @@ preserving cwd:
 cat > "$ROOT/bin/hk" <<'EOF'
 #!/usr/bin/env bash
 set +e
-LOG="${HK_DOGFOOD_LOG:-/tmp/hk2-pr-sized-trials/hk-commands.jsonl}"
+LOG="${HK_DOGFOOD_LOG:-/tmp/hk-pr-sized-trials/hk-commands.jsonl}"
 START_NS=$(date +%s%N)
 python3 - "$LOG" "$PWD" "$START_NS" "$@" <<'PY'
 import json, sys, time
@@ -104,7 +104,7 @@ Example:
 mkdir -p "$ROOT/foreman"
 git -C "$ROOT/foreman" init
 git -C "$ROOT/foreman" fetch --depth=1 /path/to/original/repo <parent-sha>
-git -C "$ROOT/foreman" checkout -b hk2-dogfood-foreman FETCH_HEAD
+git -C "$ROOT/foreman" checkout -b hk-dogfood-foreman FETCH_HEAD
 git -C "$ROOT/foreman" remote remove origin 2>/dev/null || true
 ```
 
@@ -117,12 +117,12 @@ Keep HK guidance intentionally small:
 
 ```text
 Use the HK CLI for this workflow; begin by exploring the CLI to onboard to it.
-For this trial, the HK CLI binary is /tmp/hk2-pr-sized-trials/bin/hk.
+For this trial, the HK CLI binary is /tmp/hk-pr-sized-trials/bin/hk.
 Do not force a fixed command sequence; this rollout is testing natural discovery.
 
 Task: <PR-sized implementation directive>.
 
-At the end, write /tmp/hk2-pr-sized-trials/reports/<name>-worker-report.md with
+At the end, write /tmp/hk-pr-sized-trials/reports/<name>-worker-report.md with
 what you changed, validations run, and every HK command you tried including
 mistakes or places you chose not to use HK.
 ```
@@ -135,8 +135,8 @@ After workers finish, collect:
 
 ```bash
 for d in <trial-names>; do
-  /tmp/hk2-pr-sized-trials/bin/hk ready --target "$ROOT/$d" --json || true
-  /tmp/hk2-pr-sized-trials/bin/hk handoff --target "$ROOT/$d" \
+  /tmp/hk-pr-sized-trials/bin/hk ready --target "$ROOT/$d" --json || true
+  /tmp/hk-pr-sized-trials/bin/hk handoff --target "$ROOT/$d" \
     --write "$ROOT/reports/$d-handoff.md" || true
   git -C "$ROOT/$d" status --short
   git -C "$ROOT/$d" diff --stat -- . ':(exclude).pi'
@@ -148,7 +148,7 @@ Parse the HK log by repo:
 ```bash
 python3 - <<'PY'
 import collections, json
-log='/tmp/hk2-pr-sized-trials/hk-commands.jsonl'
+log='/tmp/hk-pr-sized-trials/hk-commands.jsonl'
 by=collections.defaultdict(list)
 with open(log) as f:
     for line in f:
@@ -194,7 +194,7 @@ Common known sharp edges:
 
 - target confusion from wrappers or stale installed HK;
 - bare command groups such as `hk evidence`;
-- legacy commands attracting agents during HK 2 onboarding;
+- legacy commands attracting agents during onboarding;
 - `decide` discovered only after `ready` failure;
 - missing review because implementation workers cannot self-review and did not dispatch an independent AI/tool or fresh-context subagent reviewer;
 - failed validation wording in handoff;

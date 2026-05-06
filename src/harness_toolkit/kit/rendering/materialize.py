@@ -1,4 +1,4 @@
-"""Materialized Markdown view rendering for HK2 ledgers."""
+"""Materialized Markdown view rendering for Harness Kit ledgers."""
 
 from __future__ import annotations
 

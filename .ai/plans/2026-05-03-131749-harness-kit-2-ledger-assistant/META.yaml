@@ -5,7 +5,7 @@ pr:
 status: complete
 source: Harness Kit 2.0 product/design alignment
 contract_change: contract_changed
-decision_record: adr
+decision_record: none
 review_mode: external_required
 review_backend: codex-4-pass
 review_rubrics:

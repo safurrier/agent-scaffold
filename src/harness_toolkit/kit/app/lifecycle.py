@@ -1,4 +1,4 @@
-"""Application-level HK2 lifecycle operations.
+"""Application-level Harness Kit lifecycle operations.
 
 This module is the deep lifecycle seam used by CLI adapters and future tests.
 The lower-level modules still own storage, capture, rendering, and specs while
@@ -84,7 +84,7 @@ class HandoffRequest(TargetRequest):
 
 
 class LifecycleApp:
-    """Deep HK2 lifecycle Module over local state primitives."""
+    """Deep Harness Kit lifecycle Module over local state primitives."""
 
     def init(self, request: TargetRequest) -> local.InitResult:
         return local.init_state(request.target, no_local_files=request.no_local_files)

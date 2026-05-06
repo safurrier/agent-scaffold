@@ -28,7 +28,7 @@ uv run pytest tests/unit/test_harness_kit_2.py -q
 Result before reviewer-suggested coverage additions: `66 passed`.
 
 ```bash
-uv run ruff check src/harness_toolkit/kit/local.py tests/unit/test_harness_kit_2.py README.md SPEC.md docs/portable-workflow.md docs/harness-kit-2-design.md
+uv run ruff check src/harness_toolkit/kit/local.py tests/unit/test_harness_kit_2.py README.md SPEC.md docs/portable-workflow.md docs/harness-kit-lifecycle-design.md
 uv run ruff format src/harness_toolkit/kit/local.py tests/unit/test_harness_kit_2.py
 uv run ty check src/harness_toolkit/kit/local.py tests/unit/test_harness_kit_2.py
 uv run pytest tests/unit/test_harness_kit_2.py -q

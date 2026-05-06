@@ -50,11 +50,11 @@ title: Decisions
 
 - `AGENTS.md`
 - `SPEC.md`
-- `docs/harness-kit-2-design.md`
+- `docs/harness-kit-lifecycle-design.md`
 - `docs/AGENTS.md`
-- `docs/decisions/0009-hk-2-lifecycle-first-cli.md`
+- `docs/decisions/0009-harness-kit-lifecycle-first-cli.md`
 - `.ai/plans/2026-05-04-144024-hk2-lifecycle-recenter/artifacts/lifecycle-implementation-plan.md`
 
 ## Promotion
 
-- Proposed ADR: `docs/decisions/0009-hk-2-lifecycle-first-cli.md`.
+- Proposed ADR: `docs/decisions/0009-harness-kit-lifecycle-first-cli.md`.

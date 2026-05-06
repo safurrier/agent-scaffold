@@ -328,8 +328,8 @@ tests/unit/test_portable_workflow.py
 README.md
 SPEC.md
 docs/portable-workflow.md
-docs/harness-kit-2-design.md
-docs/decisions/0009-hk-2-lifecycle-first-cli.md
+docs/harness-kit-lifecycle-design.md
+docs/decisions/0009-harness-kit-lifecycle-first-cli.md
 ```
 
 Acceptance:

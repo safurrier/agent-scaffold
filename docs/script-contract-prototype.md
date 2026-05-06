@@ -15,7 +15,7 @@ index:
 
 ## Status
 
-Prototype design for a later Harness Kit 2.0 scaffold migration phase.
+Prototype design for a later Harness Kit scaffold rollout phase.
 
 This document does not replace the current generated mise task contract yet. It
 captures the proposed adapter shape and the validation bar for deciding whether

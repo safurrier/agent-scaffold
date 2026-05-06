@@ -26,7 +26,7 @@ description: >
 - Slice spec: `SPEC.md`.
 - Implementation plan: `IMPLEMENTATION.md`.
 - Questionnaire artifact: `artifacts/design-questionnaire-summary.md`.
-- Durable project docs to update during implementation: `README.md`, root `SPEC.md`, `docs/harness-kit-2-design.md`, and affected workflow docs.
+- Durable project docs to update during implementation: `README.md`, root `SPEC.md`, `docs/harness-kit-lifecycle-design.md`, and affected workflow docs.
 
 ## Promotion
 

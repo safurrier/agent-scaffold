@@ -47,7 +47,7 @@ RUST_MISE_INSTRUCTIONS = f"""Use this profile for Rust projects that expose a mi
 Prefer `mise run check` as the fast local gate and `mise run verify` when the
 change needs heavier confidence. Run commands directly and record exact
 command/result evidence with `hk validate --why`. Do not assume a repo-native `mise run
-sync-check` exists; for HK 2 lifecycle handoff state, use `{KIT_COMMAND} sync`,
+sync-check` exists; for Harness Kit lifecycle handoff state, use `{KIT_COMMAND} sync`,
 `{KIT_COMMAND} ready`, and `{KIT_COMMAND} handoff`.
 """
 

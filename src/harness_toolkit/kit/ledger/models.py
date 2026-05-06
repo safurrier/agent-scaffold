@@ -1,4 +1,4 @@
-"""Typed ledger records for HK2 JSONL state."""
+"""Typed ledger records for Harness Kit JSONL state."""
 
 from __future__ import annotations
 

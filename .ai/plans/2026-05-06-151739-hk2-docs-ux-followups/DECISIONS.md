@@ -11,7 +11,7 @@ description: >
 
 - `AGENTS.md` now records that HK2 should be framed primarily as an agent-facing lifecycle and handoff tool.
 - `README.md` now uses an agent-workflow heading, stronger agent-facing mental model, and a compact common-command index.
-- `docs/harness-kit-2-design.md` now makes the HK1 migration guide a non-goal and records a short follow-up backlog.
+- `docs/harness-kit-lifecycle-design.md` now makes the HK1 migration guide a non-goal and records a short follow-up backlog.
 - `docs/portable-workflow.md` now says `hk` is not trying to be a human task manager.
 
 ## Why
@@ -24,7 +24,7 @@ description: >
 
 - `AGENTS.md`
 - `README.md`
-- `docs/harness-kit-2-design.md`
+- `docs/harness-kit-lifecycle-design.md`
 - `docs/portable-workflow.md`
 
 ## Promotion

@@ -21,8 +21,8 @@
 - `src/harness_toolkit/kit/cli.py`
 - `tests/unit/test_harness_kit_2.py`
 - `tests/unit/test_script_contract_prototype.py`
-- `docs/harness-kit-2-design.md`
-- `docs/decisions/0008-harness-kit-2-ledger-first-local-assistant.md`
+- `docs/harness-kit-lifecycle-design.md`
+- `docs/decisions/0008-harness-kit-ledger-first-local-assistant.md`
 - `docs/script-contract-prototype.md`
 - `docs/portable-workflow.md`
 - `SPEC.md`

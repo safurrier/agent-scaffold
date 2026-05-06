@@ -1,0 +1,21 @@
+$ rg -n "Harness Kit 2|HK2|HK 2|HK1|HK 1|harness-kit-2|hk-2|2\\.0" README.md SPEC.md docs mkdocs.yml src/harness_toolkit/kit .agent/skills/hk-pr-sized-dogfood .agent/skills/hk-session-artifacts templates/.agent/skills/harness-kit-profile-authoring -g "*.md" -g "*.py" -g "*.yml" -g "*.yaml"
+docs/AGENTS.md:50:<!-- generated-by: context-engineering@2.2.0 | last-updated: 2026-04-30 -->
+
+$ uv run mkdocs build --strict --site-dir /tmp/harness-toolkit-docs-review
+
+[31m │ ⚠ WARNING – MkDocs 2.0 is incompatible with Material for MkDocs[0m
+[31m │ [0m
+[31m │ [0m  MkDocs 1.x is unmaintained. We recommend switching to Zensical, our
+[31m │ [0m  new static site generator, as soon as possible. We're providing an
+[31m │ [0m  analysis of the situation in this article:
+[31m │ [0m  
+[31m │ [0m  [4mhttps://squidfunk.github.io/mkdocs-material/blog/2026/02/18/mkdocs-2.0/[0m
+[0m
+INFO    -  Cleaning site directory
+INFO    -  Building documentation to directory: /tmp/harness-toolkit-docs-review
+INFO    -  The following pages exist in the docs directory, but are not included in the "nav" configuration:
+  - AGENTS.md
+INFO    -  Documentation built in 0.52 seconds
+
+$ uv run pytest tests/unit/test_harness_kit_2.py tests/e2e/test_harness_kit_rollout.py tests/e2e/test_hk2_cli_parity.py -q
+78 passed in 80.31s

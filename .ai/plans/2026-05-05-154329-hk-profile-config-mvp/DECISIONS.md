@@ -26,7 +26,7 @@ description: >
 ## Where Reflected
 
 - Product spec: `SPEC.md`.
-- HK2 design doc: `docs/harness-kit-2-design.md`.
+- HK2 design doc: `docs/harness-kit-lifecycle-design.md`.
 - Portable workflow docs: `docs/portable-workflow.md`.
 
 ## Promotion

@@ -1,34 +1,33 @@
 ---
-id: harness-kit-2-design
-title: Harness Kit 2.0 Design
+id: harness-kit-lifecycle-design
+title: Harness Kit Design
 description: >
-  Lifecycle-first Harness Kit 2.0 design, including the ledger-backed state,
-  evidence, readiness, sync checkpoints, optional specs, profiles, and staged migration.
+  Lifecycle-first Harness Kit design, including the ledger-backed state,
+  evidence, readiness, sync checkpoints, optional specs, profiles, and rollout plan.
 index:
   - id: thesis
     keywords: [hk, shell-first, lifecycle, readiness, ledger, evidence]
   - id: cli-contract
     keywords: [start, plan, decide, validate, review, ready, handoff]
-  - id: migration
+  - id: rollout
     keywords: [staged, breaking, parity, fixtures, validation]
 ---
 
-# Harness Kit 2.0 Design
+# Harness Kit Design
 
 ## Status
 
 Draft implementation design, amended by
-`docs/decisions/0009-hk-2-lifecycle-first-cli.md` after product review. This is
-the repo-local companion to the vault note `Harness Kit 2.0 SPEC.md`.
+`docs/decisions/0009-harness-kit-lifecycle-first-cli.md` after product review. This is
+the repo-local companion to the vault note `Harness Kit SPEC.md`.
 
 The current implementation is a useful ledger/capture foundation, but it should
-not be treated as the full HK 2.0 product until the lifecycle-readiness contract
+not be treated as the full Harness Kit product until the lifecycle-readiness contract
 is first-class.
 
 ## Thesis
 
-Harness Kit 2.0 is a cleaner, simpler, more elegant version of HK 1.0's
-handoff-safety lifecycle.
+Harness Kit is a cleaner, simpler handoff-safety lifecycle.
 
 It should not make agents use a worse shell. It should preserve the original
 workflow spine with less ceremony:
@@ -37,8 +36,7 @@ workflow spine with less ceremony:
 plan → spec/decision reflection → validation evidence → external-enough review → readiness gate → handoff artifact
 ```
 
-The ledger is the implementation substrate, not the primary product story. HK
-2.0 should give agents and humans:
+The ledger is the implementation substrate, not the primary product story. Harness Kit should give agents and humans:
 
 - a concise repo map;
 - explicit lifecycle records for context, plan, decision/spec reflection,
@@ -70,7 +68,7 @@ companion to the current generated mise task contract.
 
 ### Future orchestrator
 
-Future orchestration is deferred. 2.0 should produce state and evidence contracts
+Future orchestration is deferred. Harness Kit should produce state and evidence contracts
 that an orchestrator could consume later without implementing daemons, dashboards,
 or tracker polling now.
 
@@ -83,14 +81,12 @@ or tracker polling now.
 - Do not force existing repos to commit `.harness/`, `.agent/`, `.ai/`, scripts,
   or `SPEC.md`.
 - Do not require heavy planning ceremony for small changes.
-- Do not implement Web/TypeScript scaffold in the core `hk` 2.0 migration.
-- Do not implement future orchestration in 2.0.
-- Do not spend product surface on an HK1 migration guide. HK1 was a prototype;
-  HK2 can reset around the agent lifecycle.
+- Do not implement Web/TypeScript scaffold in the core `hk` lifecycle rollout.
+- Do not implement future orchestration in the lifecycle launch.
 
 ## Follow-up backlog
 
-These are intentionally not part of the HK2 launch slice:
+These are intentionally not part of the Harness Kit launch slice:
 
 - add a few concrete `hk review add` examples once review dogfood settles;
 - decide whether `.agent/skills/hk-session-artifacts` should remain repo-local or
@@ -146,7 +142,7 @@ agent-guided: the agent records context when it prevents rediscovery or clarifie
 constraints, relevant files, assumptions, or repo facts. HK should not try to
 infer when context is non-obvious, and it should not force filler records for
 obvious small changes. Lower-level note/event storage may keep `background` as an
-internal or migration alias when needed.
+internal or compatibility alias when needed.
 
 ```bash
 hk start auth-timeout-fix --plan "Update session timeout handling and validate focused auth tests."
@@ -202,11 +198,11 @@ Adopted/scaffolded repos may configure stricter checks later.
 
 The existing scaffold task contract's `mise run sync-check` is a handoff
 readiness gate, not only a freshness check. It aggregates `plan-check`,
-`spec-check`, `evidence-check`, and `review-check` over plan artifacts. HK 2.0
+`spec-check`, `evidence-check`, and `review-check` over plan artifacts. Harness Kit
 should preserve those guarantees before the plan-artifact workflow is demoted or
 removed.
 
-The target 2.0 split is:
+The target split is:
 
 - `hk sync --check`: answers "has work changed since the last checkpoint?"
 - `hk ready`: answers "is this work ready to hand off?"
@@ -217,7 +213,7 @@ required declarations are present, internally consistent, and renderable.
 
 ### Agent work lifecycle
 
-HK 2.0 should teach the workflow as a journey rather than dump every command at
+Harness Kit should teach the workflow as a journey rather than dump every command at
 once. The primary reader is an implementation agent. The human usually sets up a
 small `AGENTS.md` directive, plans the change through normal back-and-forth, then
 hands the agreed intent to an agent and says to use `hk`.
@@ -258,7 +254,7 @@ The underlying lifecycle remains phase-oriented:
 
 The current scaffold artifacts map to those phases as follows:
 
-| Phase | Current plan artifact | HK 2.0 target |
+| Phase | Current plan artifact | Harness Kit target |
 |---|---|---|
 | Context/research | `LEARNING_LOG.md` | `hk context` / learning records |
 | Plan | `TODO.md`, `IMPLEMENTATION.md` | `hk plan` plus optional task/checklist records only when useful |
@@ -267,8 +263,8 @@ The current scaffold artifacts map to those phases as follows:
 | Review | `REVIEW.md` | `hk review add` records with backend/reviewer/rubrics/findings/disposition |
 | Handoff gate | `mise run sync-check` | `hk ready` plus `hk sync --check` |
 
-This keeps HK 2.0 shell-first while making the old plan package an optional
-exported view of the ledger rather than the canonical source of truth. HK2 is
+This keeps Harness Kit shell-first while making the plan package an optional
+exported view of the ledger rather than the canonical source of truth. Harness Kit is
 only complete once the lifecycle commands exist together: start, plan/context,
 validate, review, sync, ready, and handoff.
 
@@ -290,7 +286,7 @@ but HK should not score or infer commands from repo files. `hk brief` may report
 facts such as `.mise.toml`, `scripts/check`, and CI files, but must not claim a
 recommended command or confidence score.
 
-Profiles and dumb repo scripts fit into HK 2.0 as guidance and stable native
+Profiles and dumb repo scripts fit into Harness Kit as guidance and stable native
 command surfaces for `hk validate`, not as a task-runner layer. A user-level
 `harness.toml` can bind known repo/module paths to inline profiles:
 
@@ -351,7 +347,7 @@ remains the durable instruction map. `.agent/skills/` remains the skill root.
 
 ## CLI contract
 
-Target lifecycle-first 2.0 commands:
+Target lifecycle-first commands:
 
 ```bash
 hk brief [--target PATH] [--json|--markdown]
@@ -420,14 +416,14 @@ exists. If a redundant command is only marginally useful, prefer cutting it or
 explicitly marking it advanced.
 
 ```bash
-hk work start|status|materialize        # advanced/legacy work-state surface
+hk work start|status|materialize        # advanced work-state surface
 hk note --kind ...                      # advanced event entry, if retained
 hk capture ... -- <command...>          # lower-level command evidence
 hk evidence list                        # inspection/debugging
 hk export --format handoff [--target PATH]
 ```
 
-HK1 plan-artifact commands have been removed from `hk`. Scaffold/task-contract
+Portable plan-artifact commands have been removed from `hk`. Scaffold/task-contract
 repos still use `mise run plan` and `mise run sync-check` through the separate
 slice-workflow CLI.
 
@@ -491,15 +487,15 @@ notes. If no validation evidence exists, it says so.
 Changed-file summaries, manual evidence labels, review focus, and continuation
 notes are planned follow-ups.
 
-## Migration strategy
+## Rollout strategy
 
-This is a staged breaking migration. Compatibility does not need to be preserved
-as a product promise, but the original plan-artifact workflow should not be
-deprecated until HK 2.0 closes the readiness gaps that `mise run sync-check`
-currently covers.
+This is a staged breaking change. Compatibility does not need to be preserved
+as a product promise, but the ledger workflow should not replace plan artifacts
+until Harness Kit closes the readiness gaps that `mise run sync-check` currently
+covers.
 
-Each phase must include behavior-focused tests and old/new parity or migration
-fixtures where conceptually relevant.
+Each phase must include behavior-focused tests and parity fixtures where
+conceptually relevant.
 
 Each implementation phase must:
 
@@ -541,7 +537,7 @@ Test layers:
   freshness;
 - golden tests for brief, handoff, and exported Markdown;
 - E2E tests for clean worktree, overlay/external state, capture success/failure;
-- migration/parity tests comparing current v1 concepts to v2 behavior where
+- parity tests comparing current concepts to lifecycle behavior where
   applicable.
 
 ## Acceptance criteria

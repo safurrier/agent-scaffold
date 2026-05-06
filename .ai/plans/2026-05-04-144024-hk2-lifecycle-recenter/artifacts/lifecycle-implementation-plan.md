@@ -140,7 +140,7 @@ Initial examples:
 
 ```bash
 hk decide "Use lifecycle-first CLI over generic note-ledger UX." \
-  --spec-impact "SPEC.md and docs/harness-kit-2-design.md updated."
+  --spec-impact "SPEC.md and docs/harness-kit-lifecycle-design.md updated."
 
 hk decide "No product behavior change; internal refactor only." --no-spec-impact
 ```

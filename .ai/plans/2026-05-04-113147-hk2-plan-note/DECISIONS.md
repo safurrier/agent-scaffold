@@ -27,7 +27,7 @@ description: >
 - `src/harness_toolkit/kit/local.py`
 - `src/harness_toolkit/kit/cli.py`
 - `tests/unit/test_harness_kit_2.py`
-- `docs/harness-kit-2-design.md`
+- `docs/harness-kit-lifecycle-design.md`
 - `docs/portable-workflow.md`
 - `README.md`
 - `SPEC.md`

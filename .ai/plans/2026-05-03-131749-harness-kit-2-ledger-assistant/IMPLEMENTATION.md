@@ -31,8 +31,8 @@
 
 ## Docs
 
-- Added `docs/harness-kit-2-design.md`.
-- Added `docs/decisions/0008-harness-kit-2-ledger-first-local-assistant.md`.
+- Added `docs/harness-kit-lifecycle-design.md`.
+- Added `docs/decisions/0008-harness-kit-ledger-first-local-assistant.md`.
 - Added `docs/script-contract-prototype.md`.
 - Updated README, SPEC, portable workflow docs, mkdocs nav, and docs routing index.
 

@@ -36,7 +36,7 @@ description: >
 - `AGENTS.md`
 - `README.md`
 - `SPEC.md`
-- `docs/harness-kit-2-design.md`
+- `docs/harness-kit-lifecycle-design.md`
 - `.ai/plans/2026-05-04-200933-hk2-review-ux-pr-trial/artifacts/pr-sized-dogfood-plan.md`
 
 ## Promotion

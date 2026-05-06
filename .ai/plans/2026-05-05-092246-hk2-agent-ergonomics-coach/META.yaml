@@ -5,7 +5,7 @@ pr:
 status: complete
 source: questionnaire + hk2 dogfood rerun findings
 contract_change: implementation_only
-decision_record: adr
+decision_record: none
 review_mode: external_required
 review_backend: pi subagent
 review_rubrics:

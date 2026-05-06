@@ -10,7 +10,7 @@ description: >
 ## Focused checks
 
 ```bash
-uv run ruff check src/harness_toolkit/kit/local.py src/harness_toolkit/kit/app/lifecycle.py src/harness_toolkit/kit/cli.py src/harness_toolkit/kit/ledger/store.py src/harness_toolkit/kit/rendering/handoff.py tests/unit/test_harness_kit_2.py README.md SPEC.md docs/portable-workflow.md docs/harness-kit-2-design.md AGENTS.md
+uv run ruff check src/harness_toolkit/kit/local.py src/harness_toolkit/kit/app/lifecycle.py src/harness_toolkit/kit/cli.py src/harness_toolkit/kit/ledger/store.py src/harness_toolkit/kit/rendering/handoff.py tests/unit/test_harness_kit_2.py README.md SPEC.md docs/portable-workflow.md docs/harness-kit-lifecycle-design.md AGENTS.md
 ```
 
 Result: passed.

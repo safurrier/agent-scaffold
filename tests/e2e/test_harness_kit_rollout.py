@@ -1,7 +1,7 @@
-"""E2E rollout checks for Harness Kit 2 lifecycle behavior.
+"""E2E rollout checks for Harness Kit lifecycle behavior.
 
 These tests use synthetic repositories instead of cloning a real external project.
-They prove the rollout contract we dogfooded manually: ``hk`` can run the HK2
+They prove the rollout contract we dogfooded manually: ``hk`` can run the Harness Kit
 lifecycle in an existing repo, keep Harness Kit state local/ignored, and produce
 readiness plus handoff output without legacy plan-artifact commands.
 """
@@ -100,7 +100,7 @@ def test_harness_kit_lifecycle_rollout_reaches_ready(tmp_path: Path) -> None:
             "start",
             "rollout-parity",
             "--plan",
-            "Exercise HK2 lifecycle rollout parity.",
+            "Exercise Harness Kit lifecycle rollout parity.",
             "--target",
             str(target),
         ),
