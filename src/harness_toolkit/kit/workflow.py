@@ -7,7 +7,6 @@ committing scaffold files into that repository.
 
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import re
@@ -17,11 +16,17 @@ from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 
+from harness_toolkit.kit.state.repo import (
+    RepoStateError,
+    git_branch,
+    git_root,
+    repo_key,
+    scope_key,
+)
 from harness_toolkit.scaffold.config import SCAFFOLD_ROOT
 
 SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 PLAN_DIR_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-\d{6}-")
-ROOT_SCOPE = "root"
 WORKFLOW_DIRNAME = "harness-kit"
 LOCAL_OVERLAY_DIR = ".ai-local"
 EXCLUDE_MARKER_START = "# harness-kit portable workflow"
@@ -110,45 +115,6 @@ class SyncResult:
     checks: list[str]
 
 
-def git_root(path: Path) -> Path:
-    if not path.exists():
-        raise WorkflowError(f"target does not exist: {path}")
-    if not path.is_dir():
-        raise WorkflowError(f"target is not a directory: {path}")
-    result = subprocess.run(
-        ["git", "rev-parse", "--show-toplevel"],
-        cwd=path,
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    if result.returncode != 0:
-        return path.resolve()
-    return Path(result.stdout.strip()).resolve()
-
-
-def git_branch(path: Path) -> str:
-    result = subprocess.run(
-        ["git", "symbolic-ref", "--quiet", "--short", "HEAD"],
-        cwd=path,
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    return result.stdout.strip() if result.returncode == 0 else ""
-
-
-def git_remote(path: Path) -> str:
-    result = subprocess.run(
-        ["git", "config", "--get", "remote.origin.url"],
-        cwd=path,
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    return result.stdout.strip() if result.returncode == 0 else ""
-
-
 def default_workflow_home() -> Path:
     configured = os.environ.get("HARNESS_KIT_WORKFLOW_HOME") or os.environ.get(
         "AGENT_SCAFFOLD_WORKFLOW_HOME"
@@ -159,28 +125,6 @@ def default_workflow_home() -> Path:
     return data_home / "harness-toolkit" / "workflows"
 
 
-def repo_key(target_root: Path) -> str:
-    identity = git_remote(target_root) or str(target_root.resolve())
-    digest = hashlib.sha1(identity.encode("utf-8")).hexdigest()[:12]
-    safe_name = re.sub(
-        r"[^a-zA-Z0-9_.-]+", "-", Path(identity).stem or target_root.name
-    )
-    return f"{safe_name}-{digest}"
-
-
-def scope_key(target_root: Path, target_scope: Path) -> str:
-    try:
-        relative = target_scope.resolve().relative_to(target_root.resolve())
-    except ValueError:
-        return ROOT_SCOPE
-    if str(relative) == ".":
-        return ROOT_SCOPE
-    raw = str(relative).strip().strip("/")
-    if not raw:
-        return ROOT_SCOPE
-    return re.sub(r"[^a-zA-Z0-9_.-]+", "-", raw)
-
-
 def resolve_state(
     target: Path,
     *,
@@ -188,7 +132,10 @@ def resolve_state(
     state_root: Path | None,
 ) -> WorkflowState:
     target_scope = target.resolve()
-    target_root = git_root(target_scope)
+    try:
+        target_root = git_root(target_scope)
+    except RepoStateError as e:
+        raise WorkflowError(str(e)) from e
     scope = scope_key(target_root, target_scope)
     key = repo_key(target_root)
     if mode == "external":

@@ -26,6 +26,24 @@ uv run pytest tests/unit/test_hk2_lifecycle_parity.py tests/e2e/test_hk2_cli_par
 
 Result: `73 passed, 2 xfailed`.
 
+### 2026-05-05 — Chunk 2 shared repo identity/state resolution
+
+```bash
+uv run ruff check --fix src/harness_toolkit/kit/local.py src/harness_toolkit/kit/workflow.py src/harness_toolkit/kit/state/repo.py tests/unit/test_repo_state_resolution.py
+uv run ruff format src/harness_toolkit/kit/state/repo.py src/harness_toolkit/kit/workflow.py src/harness_toolkit/kit/local.py tests/unit/test_repo_state_resolution.py
+uv run ruff check src/harness_toolkit/kit/state/repo.py src/harness_toolkit/kit/workflow.py src/harness_toolkit/kit/local.py tests/unit/test_repo_state_resolution.py
+uv run ty check src/harness_toolkit/kit/state/repo.py src/harness_toolkit/kit/workflow.py src/harness_toolkit/kit/local.py tests/unit/test_repo_state_resolution.py
+uv run pytest tests/unit/test_repo_state_resolution.py tests/unit/test_harness_kit_2.py tests/e2e/test_harness_kit_rollout.py -q
+```
+
+Result: `46 passed`.
+
+```bash
+uv run pytest tests/unit/test_repo_state_resolution.py tests/unit/test_hk2_lifecycle_parity.py tests/e2e/test_hk2_cli_parity.py tests/unit/test_hk2_rendering_parity.py tests/unit/test_harness_kit_2.py tests/unit/test_portable_workflow.py tests/e2e/test_harness_kit_rollout.py -q
+```
+
+Result: `75 passed, 2 xfailed`.
+
 ## Planned final gates
 
 ```bash

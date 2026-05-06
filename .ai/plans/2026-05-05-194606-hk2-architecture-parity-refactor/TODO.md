@@ -18,15 +18,15 @@ description: >
 - [x] Add reusable HK2 temp repo/test helpers.
 - [x] Add lifecycle parity tests for happy path, missing review, sync exclusions, dangerous skips, profile/config, and legacy removal expectations.
 - [x] Run focused parity gate.
-- [ ] Commit chunk 1.
+- [x] Commit chunk 1.
 
 ## Chunk 2: Shared Repo Identity and State Resolution
 
-- [ ] Extract common repo identity/state path helpers.
-- [ ] Preserve HK2 local state paths.
-- [ ] Preserve legacy external/overlay state paths.
-- [ ] Add/adjust tests for scoped target behavior.
-- [ ] Run focused parity gate.
+- [x] Extract common repo identity/state path helpers.
+- [x] Preserve HK2 local state paths.
+- [x] Preserve legacy external/overlay state paths.
+- [x] Add/adjust tests for scoped target behavior.
+- [x] Run focused parity gate.
 - [ ] Commit chunk 2.
 
 ## Chunk 3: HK2 Lifecycle Application Module

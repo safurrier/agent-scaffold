@@ -20,7 +20,15 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
 
-from harness_toolkit.kit.workflow import git_branch, git_root, repo_key
+from harness_toolkit.kit.state.repo import (
+    RepoStateError,
+    git_branch,
+    git_root,
+    repo_key,
+)
+from harness_toolkit.kit.state.repo import (
+    scope_key as repo_scope_key,
+)
 
 LOCAL_STATE_DIR = ".harness-local"
 KIT_STATE_DIR = "harness-kit"
@@ -279,21 +287,15 @@ def default_state_home() -> Path:
 
 
 def scope_key(target_root: Path, target_scope: Path) -> str:
-    try:
-        relative = target_scope.resolve().relative_to(target_root.resolve())
-    except ValueError:
-        return "root"
-    if str(relative) == ".":
-        return "root"
-    raw = str(relative).strip().strip("/")
-    if not raw:
-        return "root"
-    return re.sub(r"[^a-zA-Z0-9_.-]+", "-", raw)
+    return repo_scope_key(target_root, target_scope)
 
 
 def resolve_local_state(target: Path, *, no_local_files: bool = False) -> LocalState:
     target_scope = target.resolve()
-    target_root = git_root(target_scope)
+    try:
+        target_root = git_root(target_scope)
+    except RepoStateError as e:
+        raise LocalWorkflowError(str(e)) from e
     scope = scope_key(target_root, target_scope)
     key = repo_key(target_root)
     if no_local_files:
