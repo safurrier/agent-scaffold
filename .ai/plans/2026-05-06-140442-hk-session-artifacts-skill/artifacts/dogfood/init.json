@@ -1,0 +1,7 @@
+{
+  "ignored_by_local_git": true,
+  "mode": "local",
+  "state_dir": "/private/tmp/hk-session-artifacts-dogfood/repo/.harness-local/harness-kit/root",
+  "target_root": "/private/tmp/hk-session-artifacts-dogfood/repo",
+  "target_scope": "/private/tmp/hk-session-artifacts-dogfood/repo"
+}

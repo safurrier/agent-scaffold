@@ -1,0 +1,45 @@
+{
+  "candidates": [
+    {
+      "confidence": "low",
+      "mtime": 1778101604.695339,
+      "path": "/Users/alex.furrier/.codex/sessions/2026/05/06/rollout-2026-05-06T14-06-39-019dff1d-3ea2-7291-b901-77994485e335.jsonl",
+      "reason": "Codex persisted session; match by run time or session id before attaching",
+      "size_bytes": 81868
+    },
+    {
+      "confidence": "low",
+      "mtime": 1778093877.001625,
+      "path": "/Users/alex.furrier/.codex/sessions/2026/05/06/rollout-2026-05-06T11-52-25-019dfea2-569b-7921-bd31-47639cb14cd1.jsonl",
+      "reason": "Codex persisted session; match by run time or session id before attaching",
+      "size_bytes": 25020
+    },
+    {
+      "confidence": "low",
+      "mtime": 1778093876.9628043,
+      "path": "/Users/alex.furrier/.codex/sessions/2026/05/06/rollout-2026-05-06T11-52-25-019dfea2-5876-7b11-bea8-42bc14eb2dd1.jsonl",
+      "reason": "Codex persisted session; match by run time or session id before attaching",
+      "size_bytes": 309029
+    },
+    {
+      "confidence": "low",
+      "mtime": 1778093416.8897667,
+      "path": "/Users/alex.furrier/.codex/sessions/2026/05/06/rollout-2026-05-06T11-43-36-019dfe9a-43fe-7f00-9fb4-f7a329065bf9.jsonl",
+      "reason": "Codex persisted session; match by run time or session id before attaching",
+      "size_bytes": 27663
+    },
+    {
+      "confidence": "low",
+      "mtime": 1778093416.7767015,
+      "path": "/Users/alex.furrier/.codex/sessions/2026/05/06/rollout-2026-05-06T11-43-36-019dfe9a-45c8-7fd1-9727-dc26afbe1fdd.jsonl",
+      "reason": "Codex persisted session; match by run time or session id before attaching",
+      "size_bytes": 295078
+    }
+  ],
+  "source": "codex",
+  "target": "/Users/alex.furrier/git_repositories/harness-toolkit",
+  "warnings": [
+    "Discovery is heuristic. Prefer an exact transcript path provided by the harness/tool when available.",
+    "Do not attach global latest sessions without confirming timestamp, repo scope, prompt, or session id."
+  ]
+}

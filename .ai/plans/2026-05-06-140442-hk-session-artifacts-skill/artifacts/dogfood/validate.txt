@@ -1,0 +1,5 @@
+.harness-local/harness-kit/root/work/2026-05-06-140714-session-artifacts/events.jsonl
+evidence_id=ev_20260506_140726_939244
+status=pass
+why=Verify HK ledger includes attached Pi, Codex, and Claude transcript artifact kinds.
+transcript_path=/private/tmp/hk-session-artifacts-dogfood/repo/.harness-local/harness-kit/root/work/2026-05-06-140714-session-artifacts/artifacts/ev_20260506_140726_939244.transcript.log

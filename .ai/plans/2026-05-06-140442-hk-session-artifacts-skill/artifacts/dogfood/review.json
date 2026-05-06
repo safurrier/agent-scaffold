@@ -1,0 +1,11 @@
+{
+  "backend": "dogfood-manual",
+  "disposition": "accepted",
+  "reviewer": "skill-dogfood",
+  "rubrics": [
+    "skill-usability"
+  ],
+  "seq": 10,
+  "summary": "Skill recipes and candidate helper found/attached exact Pi, Codex, and Claude transcript paths without relying on latest-session attachment.",
+  "work_id": "2026-05-06-140714-session-artifacts"
+}

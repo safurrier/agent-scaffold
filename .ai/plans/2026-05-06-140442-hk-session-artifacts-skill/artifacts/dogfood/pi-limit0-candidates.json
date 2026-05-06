@@ -1,0 +1,9 @@
+{
+  "candidates": [],
+  "source": "pi",
+  "target": "/Users/alex.furrier/git_repositories/harness-toolkit",
+  "warnings": [
+    "Discovery is heuristic. Prefer an exact transcript path provided by the harness/tool when available.",
+    "Do not attach global latest sessions without confirming timestamp, repo scope, prompt, or session id."
+  ]
+}

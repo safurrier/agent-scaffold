@@ -1,0 +1,4 @@
+{"type":"thread.started","thread_id":"019dff1d-3ea2-7291-b901-77994485e335"}
+{"type":"turn.started"}
+{"type":"item.completed","item":{"id":"item_0","type":"agent_message","text":"HK_CODEX_SESSION_ARTIFACT_SMOKE"}}
+{"type":"turn.completed","usage":{"input_tokens":23026,"cached_input_tokens":8064,"output_tokens":24,"reasoning_output_tokens":9}}

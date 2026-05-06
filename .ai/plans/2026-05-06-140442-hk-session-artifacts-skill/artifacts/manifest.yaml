@@ -1,0 +1,49 @@
+artifacts:
+  - path: artifacts/dogfood-summary.md
+    type: dogfood
+    description: Summary of the skill dogfood for Pi, Codex, and Claude transcript attachment.
+  - path: artifacts/dogfood/handoff.md
+    type: handoff
+    description: HK handoff from the temp dogfood repo showing all three attached transcript artifacts.
+  - path: artifacts/dogfood/pr-handoff.md
+    type: handoff
+    description: PR-format HK handoff from the temp dogfood repo.
+  - path: artifacts/dogfood/events.jsonl
+    type: evidence
+    description: HK lifecycle event ledger with artifact_attached events for Pi, Codex, and Claude.
+  - path: artifacts/dogfood/evidence.jsonl
+    type: evidence
+    description: HK command evidence ledger from the dogfood repo.
+  - path: artifacts/dogfood/ready.json
+    type: evidence
+    description: Machine-readable ready result from the dogfood repo.
+  - path: artifacts/dogfood/pi-candidates.json
+    type: evidence
+    description: Candidate helper output for Pi sessions.
+  - path: artifacts/dogfood/claude-candidates.json
+    type: evidence
+    description: Candidate helper output for Claude sessions.
+  - path: artifacts/dogfood/codex-candidates.json
+    type: evidence
+    description: Candidate helper output for Codex sessions.
+  - path: artifacts/dogfood/pi-limit0-candidates.json
+    type: evidence
+    description: Zero-result JSON smoke output for Pi candidate helper.
+  - path: artifacts/dogfood/claude-limit0-candidates.json
+    type: evidence
+    description: Zero-result JSON smoke output for Claude candidate helper.
+  - path: artifacts/dogfood/codex-limit0-candidates.json
+    type: evidence
+    description: Zero-result JSON smoke output for Codex candidate helper.
+  - path: artifacts/dogfood/artifact_20260506_140716_491299_pi-session-transcript_pi-session.jsonl
+    type: evidence
+    description: Copied Pi child-session transcript attached by HK.
+  - path: artifacts/dogfood/artifact_20260506_140718_435090_codex-session-transcript_codex-events.jsonl
+    type: evidence
+    description: Copied Codex JSONL transcript attached by HK.
+  - path: artifacts/dogfood/artifact_20260506_140721_040286_claude-session-transcript_claude-stream.jsonl
+    type: evidence
+    description: Copied Claude stream JSONL transcript attached by HK.
+  - path: artifacts/dogfood/ev_20260506_140726_939244.transcript.log
+    type: evidence
+    description: Transcript for the dogfood validation command.
