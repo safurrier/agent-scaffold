@@ -87,14 +87,14 @@ description: >
 - [x] Preserve config lookup order and longest-prefix matching.
 - [x] Preserve checks/review guidance output.
 - [x] Run focused parity gate.
-- [ ] Commit chunk 9.
+- [x] Commit chunk 9.
 
 ## Chunk 10: Spec/Adoption Module
 
-- [ ] Move spec source resolution, draft creation, outline extraction, and promotion dry-run into a spec Module.
-- [ ] Preserve committed `SPEC.md` precedence.
-- [ ] Preserve `hk spec *` CLI behavior.
-- [ ] Run focused parity gate.
+- [x] Move spec source resolution, draft creation, outline extraction, and promotion dry-run into a spec Module.
+- [x] Preserve committed `SPEC.md` precedence.
+- [x] Preserve `hk spec *` CLI behavior.
+- [x] Run focused parity gate.
 - [ ] Commit chunk 10.
 
 ## Chunk 11: Final Integration Cleanup

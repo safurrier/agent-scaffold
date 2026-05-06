@@ -47,6 +47,15 @@ from harness_toolkit.kit.readiness.policy import (
 from harness_toolkit.kit.rendering.handoff import render_handoff_markdown
 from harness_toolkit.kit.rendering.materialize import write_note_views
 from harness_toolkit.kit.rendering.review_prompt import render_review_prompt
+from harness_toolkit.kit.specs.models import SpecOutline, SpecResult
+from harness_toolkit.kit.specs.operations import (
+    SpecWorkflowError,
+    find_specs_for_state,
+    init_spec_for_state,
+    spec_outline_for_state,
+    spec_promote_dry_run_for_state,
+    spec_status_for_state,
+)
 from harness_toolkit.kit.state.repo import (
     RepoStateError,
     git_branch,
@@ -184,20 +193,6 @@ class StatusResult:
 class ReviewPromptResult:
     work_id: str
     prompt: str
-
-
-@dataclass(frozen=True)
-class SpecResult:
-    spec_path: str
-    source: str
-    created: bool = False
-
-
-@dataclass(frozen=True)
-class SpecOutline:
-    spec_path: str
-    source: str
-    headings: list[str]
 
 
 @dataclass(frozen=True)
@@ -829,17 +824,7 @@ def repo_surfaces(root: Path) -> list[str]:
 
 
 def find_specs(state: LocalState) -> list[str]:
-    specs: list[str] = []
-    committed = state.target_scope / "SPEC.md"
-    root_committed = state.target_root / "SPEC.md"
-    local = state.state_dir / "spec" / "SPEC.md"
-    if committed.exists():
-        specs.append(str(committed))
-    elif root_committed.exists():
-        specs.append(str(root_committed))
-    if local.exists():
-        specs.append(str(local) + " (local draft)")
-    return specs
+    return find_specs_for_state(state)
 
 
 def fresh_sync_skip(
@@ -1205,65 +1190,35 @@ def handoff(
 
 
 def init_spec(target: Path, *, no_local_files: bool = False) -> SpecResult:
-    state = resolve_local_state(target, no_local_files=no_local_files)
-    committed = state.target_scope / "SPEC.md"
-    root_committed = state.target_root / "SPEC.md"
-    if committed.exists():
-        return SpecResult(spec_path=str(committed), source="committed", created=False)
-    if root_committed.exists():
-        return SpecResult(
-            spec_path=str(root_committed), source="committed", created=False
-        )
-
     state = ensure_state(target, no_local_files=no_local_files)
-    spec_path = state.state_dir / "spec" / "SPEC.md"
-    created = not spec_path.exists()
-    if created:
-        spec_path.parent.mkdir(parents=True, exist_ok=True)
-        spec_path.write_text(
-            "# Local Project Specification\n\n"
-            "Status: local draft\n\n"
-            "## Summary\n\nTODO\n\n"
-            "## Invariants\n\nTODO\n\n"
-            "## Validation Contract\n\nTODO\n"
-        )
-    return SpecResult(spec_path=str(spec_path), source="local", created=created)
+    try:
+        return init_spec_for_state(state)
+    except SpecWorkflowError as e:
+        raise LocalWorkflowError(str(e)) from e
 
 
 def spec_status(target: Path, *, no_local_files: bool = False) -> SpecResult:
     state = resolve_local_state(target, no_local_files=no_local_files)
-    committed = state.target_scope / "SPEC.md"
-    root_committed = state.target_root / "SPEC.md"
-    local = state.state_dir / "spec" / "SPEC.md"
-    if committed.exists():
-        return SpecResult(spec_path=str(committed), source="committed")
-    if root_committed.exists():
-        return SpecResult(spec_path=str(root_committed), source="committed")
-    if local.exists():
-        return SpecResult(spec_path=str(local), source="local")
-    raise LocalWorkflowError(
-        "No SPEC found. Run `hk spec init --local` to create a local draft."
-    )
+    try:
+        return spec_status_for_state(state)
+    except SpecWorkflowError as e:
+        raise LocalWorkflowError(str(e)) from e
 
 
 def spec_outline(target: Path, *, no_local_files: bool = False) -> SpecOutline:
-    status = spec_status(target, no_local_files=no_local_files)
-    path = Path(status.spec_path)
-    headings = [
-        line.strip() for line in path.read_text().splitlines() if line.startswith("#")
-    ]
-    return SpecOutline(
-        spec_path=status.spec_path, source=status.source, headings=headings
-    )
+    state = resolve_local_state(target, no_local_files=no_local_files)
+    try:
+        return spec_outline_for_state(state)
+    except SpecWorkflowError as e:
+        raise LocalWorkflowError(str(e)) from e
 
 
 def spec_promote_dry_run(target: Path, *, no_local_files: bool = False) -> str:
-    status = spec_status(target, no_local_files=no_local_files)
-    if status.source == "committed":
-        return f"Committed SPEC already exists: {status.spec_path}\n"
-    target_path = git_root(target.resolve()) / "SPEC.md"
-    content = Path(status.spec_path).read_text()
-    return f"Would write local spec to {target_path}\n\n--- SPEC.md ---\n{content}"
+    state = resolve_local_state(target, no_local_files=no_local_files)
+    try:
+        return spec_promote_dry_run_for_state(state)
+    except SpecWorkflowError as e:
+        raise LocalWorkflowError(str(e)) from e
 
 
 def json_dump_dataclass(value: JsonDataclass) -> str:

@@ -175,6 +175,23 @@ uv run pytest tests/unit/test_profile_package_boundaries.py tests/unit/test_port
 
 Result: `61 passed`.
 
+### 2026-05-05 — Chunk 10 spec/adoption Module
+
+```bash
+uv run ruff check --fix src/harness_toolkit/kit/specs src/harness_toolkit/kit/local.py tests/unit/test_hk2_spec_operations.py
+uv run ruff format src/harness_toolkit/kit/specs src/harness_toolkit/kit/local.py tests/unit/test_hk2_spec_operations.py
+uv run ty check src/harness_toolkit/kit/specs src/harness_toolkit/kit/local.py tests/unit/test_hk2_spec_operations.py
+uv run pytest tests/unit/test_hk2_spec_operations.py tests/unit/test_harness_kit_2.py tests/e2e/test_hk2_cli_parity.py -q
+```
+
+Result: `48 passed`.
+
+```bash
+uv run pytest tests/unit/test_hk2_spec_operations.py tests/unit/test_profile_package_boundaries.py tests/unit/test_portable_workflow.py tests/e2e/test_hk2_cli_parity.py tests/e2e/test_harness_kit_rollout.py tests/unit/test_harness_kit_2.py -q
+```
+
+Result: `63 passed`.
+
 ## Planned final gates
 
 ```bash
