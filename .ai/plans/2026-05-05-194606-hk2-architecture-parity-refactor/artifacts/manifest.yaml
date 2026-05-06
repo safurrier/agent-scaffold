@@ -1,0 +1,4 @@
+artifacts:
+  - path: artifacts/parity-rollout-plan.md
+    kind: report
+    description: Parity strategy and subagent rollout matrix for the full HK2 architecture refactor.

@@ -1,0 +1,17 @@
+slug: hk2-architecture-parity-refactor
+branch: feat/harness-kit-2-ledger-assistant
+created: 2026-05-05
+pr:
+status: planned
+source: conversation request to implement all ten architecture deepening opportunities with parity checks before PR
+contract_change: implementation_only
+decision_record: ledger
+review_mode: external_required
+review_backend:
+review_rubrics:
+  - core-quality
+evidence_required:
+  - commands
+  - report
+continues_from: .ai/plans/2026-05-05-154329-hk-profile-config-mvp
+supersedes:
