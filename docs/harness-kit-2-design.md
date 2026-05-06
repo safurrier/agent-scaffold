@@ -348,6 +348,7 @@ hk decide "TEXT" [--spec-impact none|updated|not-needed] [--spec-ref PATH]... [-
 hk validate --why "WHAT THIS VALIDATES" [--kind KIND] [--target PATH] -- <command...>
 hk review add --backend NAME --reviewer INDEPENDENT_OR_FRESH_CONTEXT_REVIEWER --rubric NAME --summary TEXT [--disposition TEXT]
 hk review prompt [--target PATH] [--json]
+hk artifact attach --path FILE --kind KIND [--label TEXT] [--no-copy] [--target PATH] [--json]
 hk sync [--exclude PATH]... [--reason TEXT] [--target PATH] [--json]
 hk sync --check [--target PATH] [--json]
 hk dangerously-skip sync --reason TEXT [--target PATH] [--json]
@@ -376,6 +377,13 @@ paths, revalidates stored exclusions, and passes readiness only while
 non-excluded work remains unchanged. It renders under `## Sync exclusions`, not
 dangerous skips. Use `hk dangerously-skip sync` only when a constrained checkpoint
 is not appropriate.
+
+`hk artifact attach` is the generic way to attach real files produced by harnesses
+or tools: Pi session transcripts, Codex review transcripts, browser HAR files, or
+raw validation artifacts. HK copies or references the source file, records size and
+sha256 metadata in the ledger, and renders attached artifacts in handoff. Agents
+should attach files produced by tools rather than writing their own session prose
+into HK.
 
 `hk review add` is intentionally not a self-review note. Review is required by
 default. Preferred review comes from an independent AI/tool reviewer, ideally a

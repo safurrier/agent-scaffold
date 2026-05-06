@@ -173,7 +173,7 @@ def test_legacy_hk1_command_surfaces_are_removed(tmp_path: Path) -> None:
 
     assert root.returncode == 0
     assert "legacy" not in root.stdout.lower()
-    assert "attach" not in root.stdout.lower()
+    assert "│ attach" not in root.stdout.lower()
     assert legacy.returncode != 0
     assert attach.returncode != 0
     assert status_mode.returncode != 0

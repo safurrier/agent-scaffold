@@ -1,0 +1,13 @@
+{
+  "guidance": [
+    "Plan: did you record the agreed implementation intent?",
+    "Evidence: did you capture or explain validation?",
+    "Learning: did you record anything future agents should know?",
+    "Decisions: did you record non-obvious choices?",
+    "Gaps: did you disclose missing validation or follow-up work?",
+    "Spec/docs: did behavior or product intent change?"
+  ],
+  "message": "recorded sync checkpoint",
+  "synced": true,
+  "work_id": "2026-05-06-115834-artifact-attach"
+}

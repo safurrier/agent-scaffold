@@ -11,6 +11,7 @@ from typing import Literal
 from cyclopts import App
 
 from harness_toolkit.kit.app.lifecycle import (
+    ArtifactAttachRequest,
     CaptureRequest,
     DangerousSkipRequest,
     HandoffRequest,
@@ -57,11 +58,13 @@ work_app = App(name="work", help="Advanced: manage ledger-backed local work unit
 evidence_app = App(name="evidence", help="Inspect captured evidence; use `list`.")
 spec_app = App(name="spec", help="Manage optional local/external specs.")
 review_app = App(name="review", help="Record external-enough review evidence.")
+artifact_app = App(name="artifact", help="Attach external files to active HK2 work.")
 app.command(profile_app, name="profile")
 app.command(work_app, name="work")
 app.command(evidence_app, name="evidence")
 app.command(spec_app, name="spec")
 app.command(review_app, name="review")
+app.command(artifact_app, name="artifact")
 
 lifecycle_app = LifecycleApp()
 
@@ -948,6 +951,50 @@ def capture(
     print(f"transcript_path={result.transcript_path}")
     if result.exit_code != 0:
         raise SystemExit(result.exit_code)
+
+
+@artifact_app.command(
+    name="attach",
+    help_epilogue=(
+        "Examples:\n"
+        "  hk artifact attach --path /tmp/session.jsonl --kind agent-session --target . --json\n"
+        "  hk artifact attach --path /tmp/codex-review.md --kind codex-review --label 'Codex review transcript'\n"
+        "  hk artifact attach --path /tmp/large.har --kind browser-har --no-copy --redaction external\n"
+    ),
+)
+def artifact_attach(
+    *,
+    path: Path,
+    kind: str,
+    label: str = "",
+    redaction: Literal["none", "unknown", "external"] = "unknown",
+    copy: bool = True,
+    target: Path = Path("."),
+    no_local_files: bool = False,
+    json: bool = False,
+) -> None:
+    """Attach a harness/tool-produced file to the active HK2 work ledger."""
+    try:
+        result = lifecycle_app.attach_artifact(
+            ArtifactAttachRequest(
+                target=target,
+                no_local_files=no_local_files,
+                path=path,
+                kind=kind,
+                label=label,
+                redaction=redaction,
+                copy=copy,
+            )
+        )
+    except LocalWorkflowError as e:
+        print_error(str(e))
+        raise SystemExit(1) from e
+    if json:
+        print(json_dump_dataclass(result))
+        return
+    print(f"artifact={result.kind}")
+    print(f"path={result.artifact_path or result.source_path}")
+    print(f"sha256={result.sha256}")
 
 
 @review_app.command(

@@ -277,6 +277,7 @@ persistent sync ignore config are deferred.
 | `hk status` | Show active work, readiness checks, and next-action guidance |
 | `hk sync` | Record or check a freshness checkpoint for the active work snapshot; use `--exclude PATH --reason TEXT` for explicit one-shot untracked local-state exclusions; HK records/revalidates excluded path metadata instead of using a tiny hardcoded allowlist |
 | `hk capture` | Advanced: run a native command and record exact evidence |
+| `hk artifact attach` | Attach a real harness/tool-produced file such as an agent session transcript, Codex review transcript, HAR file, or validation artifact; HK copies/references it, hashes it, and renders metadata in handoff |
 | `hk review prompt` | Print a reviewer prompt to dispatch to an independent AI/tool or fresh-context reviewer, e.g. Pi `subagent`, Claude Code `Agent`/`Task` alias, or Codex via Shell tool running `codex review --uncommitted`; re-run `hk status` after review tools run |
 | `hk handoff` | Render a conservative handoff from the work ledger |
 | `hk spec` | Manage optional local/external spec drafts |

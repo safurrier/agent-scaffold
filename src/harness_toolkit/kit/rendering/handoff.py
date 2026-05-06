@@ -11,6 +11,15 @@ from harness_toolkit.kit.readiness.policy import (
 )
 
 
+def artifact_events(events: list[EventRecord]) -> list[dict[str, object]]:
+    return [event.data for event in events if event.type == "artifact_attached"]
+
+
+def artifact_display_path(artifact: dict[str, object]) -> str:
+    path = str(artifact.get("artifact_path") or artifact.get("source_path") or "")
+    return path or "<unrecorded>"
+
+
 def render_handoff_pr_markdown(
     *,
     work_id: str,
@@ -56,6 +65,15 @@ def render_handoff_pr_markdown(
         lines.extend(["", "## Dangerous skips"])
         for skip in skips:
             lines.append(f"- {skip.get('check')}: {skip.get('reason')}")
+    artifacts = artifact_events(events)
+    if artifacts:
+        lines.extend(["", "## Attached artifacts"])
+        for artifact in artifacts:
+            label = str(artifact.get("label") or "").strip()
+            label_text = f" — {label}" if label else ""
+            lines.append(
+                f"- {artifact.get('kind')}: `{artifact_display_path(artifact)}`{label_text}"
+            )
     if not readiness.ready:
         lines.extend(["", "## Open readiness checks"])
         for check in readiness.checks:
@@ -146,6 +164,16 @@ def render_handoff_markdown(
             )
     else:
         lines.append("- None recorded.")
+    artifacts = artifact_events(events)
+    if artifacts:
+        lines.extend(["", "## Attached artifacts"])
+        for artifact in artifacts:
+            label = str(artifact.get("label") or "").strip()
+            label_text = f" — {label}" if label else ""
+            copied = "copied" if artifact.get("copied") else "referenced"
+            lines.append(
+                f"- {artifact.get('kind')}: `{artifact_display_path(artifact)}` ({copied}, {artifact.get('size_bytes')} bytes, {artifact.get('sha256')}){label_text}"
+            )
     sync_exclusions = [
         event.data
         for event in events

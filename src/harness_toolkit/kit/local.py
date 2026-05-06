@@ -12,6 +12,7 @@ import json
 import os
 import re
 import shlex
+import shutil
 import stat
 import subprocess
 from dataclasses import asdict, dataclass
@@ -210,6 +211,20 @@ class HandoffResult:
     path: str = ""
 
 
+@dataclass(frozen=True)
+class ArtifactResult:
+    work_id: str
+    seq: int
+    kind: str
+    label: str
+    source_path: str
+    artifact_path: str
+    sha256: str
+    size_bytes: int
+    copied: bool
+    redaction: str
+
+
 JsonDataclass = (
     Brief
     | InitResult
@@ -224,6 +239,7 @@ JsonDataclass = (
     | SpecResult
     | SpecOutline
     | HandoffResult
+    | ArtifactResult
 )
 
 
@@ -898,6 +914,87 @@ def capture_command(
         status=status,
         transcript_path=str(transcript if not no_log else ""),
         why=why,
+    )
+
+
+def file_sha256(path: Path) -> str:
+    hasher = hashlib.sha256()
+    with path.open("rb") as file_obj:
+        for chunk in iter(lambda: file_obj.read(1024 * 1024), b""):
+            hasher.update(chunk)
+    return "sha256:" + hasher.hexdigest()
+
+
+def validate_artifact_kind(kind: str) -> str:
+    normalized = kind.strip()
+    if not re.fullmatch(r"[a-z0-9]+(?:[-_.][a-z0-9]+)*", normalized):
+        raise LocalWorkflowError(
+            "invalid artifact kind: use lowercase letters, digits, hyphens, underscores, or dots"
+        )
+    return normalized
+
+
+def artifact_filename(source: Path, *, kind: str) -> str:
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+    stem = re.sub(r"[^a-zA-Z0-9_.-]+", "-", source.name).strip(".-")
+    name = stem or "artifact"
+    return f"artifact_{timestamp}_{kind}_{name}"
+
+
+def attach_artifact(
+    target: Path,
+    *,
+    source_path: Path,
+    kind: str,
+    label: str = "",
+    redaction: str = "unknown",
+    copy: bool = True,
+    no_local_files: bool = False,
+) -> ArtifactResult:
+    clean_kind = validate_artifact_kind(kind)
+    if redaction not in {"none", "unknown", "external"}:
+        raise LocalWorkflowError(
+            "artifact redaction must be one of: none, unknown, external"
+        )
+    state = ensure_state(target, no_local_files=no_local_files)
+    work_dir = require_work(state)
+    source = source_path.expanduser().resolve()
+    if not source.exists():
+        raise LocalWorkflowError(f"artifact path does not exist: {source_path}")
+    if not source.is_file():
+        raise LocalWorkflowError(f"artifact path is not a file: {source_path}")
+    size_bytes = source.stat().st_size
+    digest = file_sha256(source)
+    artifacts_dir = work_dir / "artifacts"
+    artifacts_dir.mkdir(exist_ok=True)
+    if copy:
+        destination = artifacts_dir / artifact_filename(source, kind=clean_kind)
+        shutil.copy2(source, destination)
+        artifact_path = str(destination)
+    else:
+        artifact_path = ""
+    data = {
+        "kind": clean_kind,
+        "label": label.strip(),
+        "source_path": str(source),
+        "artifact_path": artifact_path,
+        "sha256": digest,
+        "size_bytes": size_bytes,
+        "copied": copy,
+        "redaction": redaction,
+    }
+    record = append_event(work_dir, "artifact_attached", data)
+    return ArtifactResult(
+        work_id=work_dir.name,
+        seq=record.seq,
+        kind=clean_kind,
+        label=label.strip(),
+        source_path=str(source),
+        artifact_path=artifact_path,
+        sha256=digest,
+        size_bytes=size_bytes,
+        copied=copy,
+        redaction=redaction,
     )
 
 

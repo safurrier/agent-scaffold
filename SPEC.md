@@ -118,6 +118,7 @@ hk decide "TEXT" --spec-impact none|updated|not-needed --spec-ref <path> --targe
 hk validate --why "WHAT THIS VALIDATES" --target <repo-or-module> -- <command...>
 hk review prompt --target <repo-or-module> --json
 hk review add --backend <independent-tool> --reviewer <independent-reviewer-or-fresh-context-subagent> --rubric <name> --summary "TEXT" --target <repo-or-module> --json
+hk artifact attach --path <file> --kind <kind> --label "TEXT" --target <repo-or-module> --json
 hk sync --exclude <path> --reason "TEXT" --target <repo-or-module> --json
 hk sync --target <repo-or-module> --json
 hk sync --check --target <repo-or-module> --json
@@ -148,6 +149,12 @@ understood untracked local-only state, the agent should prefer a constrained
 rather than limited to a hardcoded `.pi`/`.claude` allowlist, while root,
 pathspec, tracked, staged, and missing paths remain invalid. Whole-sync dangerous
 skips remain an explicit fallback.
+
+`hk artifact attach` records harness/tool-produced files such as agent session
+transcripts, Codex review transcripts, HAR files, or raw validation artifacts by
+copying or referencing the source file, hashing it, and appending metadata to the
+HK2 lifecycle ledger. Agents should attach real files produced by tools rather
+than narrating their own session text into HK.
 
 Profiles and repo-owned scripts are validation guidance and stable native command
 surfaces for `hk validate`, not task-runner commands that HK chooses and runs.

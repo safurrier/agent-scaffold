@@ -143,7 +143,7 @@ def test_removed_legacy_surfaces_are_not_in_root_help() -> None:
     root = run_hk("--help")
     assert root.returncode == 0
     assert "legacy" not in root.stdout.lower()
-    assert "attach" not in root.stdout.lower()
+    assert "│ attach" not in root.stdout.lower()
 
 
 def test_status_mode_is_not_a_legacy_entrypoint(tmp_path: Path) -> None:

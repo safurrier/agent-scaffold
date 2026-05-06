@@ -54,6 +54,15 @@ class CaptureRequest(TargetRequest):
 
 
 @dataclass(frozen=True)
+class ArtifactAttachRequest(TargetRequest):
+    path: Path = Path("")
+    kind: str = ""
+    label: str = ""
+    redaction: str = "unknown"
+    copy: bool = True
+
+
+@dataclass(frozen=True)
 class ReviewRequest(TargetRequest):
     backend: str = ""
     reviewer: str = ""
@@ -130,6 +139,17 @@ class LifecycleApp:
             raw_log=request.raw_log,
             no_local_files=request.no_local_files,
             stream_to_stderr=request.stream_to_stderr,
+        )
+
+    def attach_artifact(self, request: ArtifactAttachRequest) -> local.ArtifactResult:
+        return local.attach_artifact(
+            request.target,
+            source_path=request.path,
+            kind=request.kind,
+            label=request.label,
+            redaction=request.redaction,
+            copy=request.copy,
+            no_local_files=request.no_local_files,
         )
 
     def add_review(self, request: ReviewRequest) -> local.ReviewResult:

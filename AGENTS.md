@@ -123,6 +123,13 @@ use it only in a copied scaffold or throwaway init target.
   exclusions plus tracked/staged/pathspec/root/source-change checks, not a tiny
   allowlist.
 
+- **DO** prefer a generic HK2 `artifact attach` concept for programmatically
+  attaching harness-produced files such as agent session transcripts, Codex review
+  transcripts, HAR files, or validation outputs. **NOT** make this a special
+  `transcript attach` command first or have agents write their own session prose
+  into the ledger. **BECAUSE** HK should copy/hash/record real artifacts produced
+  by tools and render their metadata in handoff.
+
 - **DO** describe harness-specific review options as tool-callable mechanisms.
   **NOT** tell agents to use Codex slash commands like `/review` or `/agent` in
   harness-facing instructions. **BECAUSE** harnesses can call tools, not TUI slash

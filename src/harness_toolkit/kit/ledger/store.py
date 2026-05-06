@@ -175,6 +175,29 @@ def _validate_event_payload(
         _required_str(
             event_data, "disposition", path=path, line_number=line_number, kind=kind
         )
+    elif event_type == "artifact_attached":
+        _required_str(event_data, "kind", path=path, line_number=line_number, kind=kind)
+        _optional_str(
+            event_data, "label", path=path, line_number=line_number, kind=kind
+        )
+        _required_str(
+            event_data, "source_path", path=path, line_number=line_number, kind=kind
+        )
+        _optional_str(
+            event_data, "artifact_path", path=path, line_number=line_number, kind=kind
+        )
+        _required_str(
+            event_data, "sha256", path=path, line_number=line_number, kind=kind
+        )
+        _required_int(
+            event_data, "size_bytes", path=path, line_number=line_number, kind=kind
+        )
+        _required_bool(
+            event_data, "copied", path=path, line_number=line_number, kind=kind
+        )
+        _required_str(
+            event_data, "redaction", path=path, line_number=line_number, kind=kind
+        )
     elif event_type == "dangerous_skip_added":
         _required_str(
             event_data, "check", path=path, line_number=line_number, kind=kind

@@ -12,6 +12,7 @@ from harness_toolkit.kit.local import (
     add_dangerous_skip,
     add_note,
     add_review,
+    attach_artifact,
     brief,
     capture_command,
     create_work,
@@ -148,6 +149,118 @@ def test_init_requires_git_repo(tmp_path: Path) -> None:
 
     with pytest.raises(LocalWorkflowError, match="not inside a git repository"):
         init_state(target)
+
+
+def test_artifact_attach_copies_hashes_and_renders_in_handoff(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "attach-artifact")
+    artifact = tmp_path / "pi-session.jsonl"
+    artifact.write_text('{"event":"message"}\n')
+
+    result = attach_artifact(
+        target,
+        source_path=artifact,
+        kind="agent-session",
+        label="Pi session transcript",
+        redaction="unknown",
+    )
+    rendered = handoff(target)
+
+    copied = Path(result.artifact_path)
+    assert result.kind == "agent-session"
+    assert result.copied is True
+    assert copied.exists()
+    assert copied.read_text() == artifact.read_text()
+    assert result.sha256.startswith("sha256:")
+    assert "## Attached artifacts" in rendered.content
+    assert "agent-session" in rendered.content
+    assert "Pi session transcript" in rendered.content
+
+
+def test_artifact_attach_can_record_without_copying(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "reference-artifact")
+    artifact = tmp_path / "codex-review.md"
+    artifact.write_text("# Review\n")
+
+    result = attach_artifact(
+        target,
+        source_path=artifact,
+        kind="codex-review",
+        label="Codex review transcript",
+        redaction="external",
+        copy=False,
+    )
+    rendered = handoff(target)
+
+    assert result.copied is False
+    assert result.artifact_path == ""
+    assert result.source_path == str(artifact.resolve())
+    assert "referenced" in rendered.content
+    assert str(artifact.resolve()) in rendered.content
+
+
+def test_artifact_attach_requires_active_work_and_valid_file(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+
+    with pytest.raises(LocalWorkflowError, match="No active work"):
+        attach_artifact(
+            target, source_path=tmp_path / "missing.log", kind="agent-session"
+        )
+
+    create_work(target, "attach-errors")
+    with pytest.raises(LocalWorkflowError, match="does not exist"):
+        attach_artifact(
+            target, source_path=tmp_path / "missing.log", kind="agent-session"
+        )
+    with pytest.raises(LocalWorkflowError, match="invalid artifact kind"):
+        attach_artifact(target, source_path=target / "README.md", kind="Agent Session")
+
+
+def test_cli_artifact_attach_json_is_parseable(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    artifact = tmp_path / "session.jsonl"
+    artifact.write_text('{"event":"message"}\n')
+    assert _run_hk("init", "--target", str(target), "--json").returncode == 0
+    assert (
+        _run_hk(
+            "start",
+            "attach-cli",
+            "--target",
+            str(target),
+            "--plan",
+            "Attach artifact.",
+            "--json",
+        ).returncode
+        == 0
+    )
+
+    result = _run_hk(
+        "artifact",
+        "attach",
+        "--path",
+        str(artifact),
+        "--kind",
+        "agent-session",
+        "--label",
+        "Pi session transcript",
+        "--target",
+        str(target),
+        "--json",
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["kind"] == "agent-session"
+    assert payload["copied"] is True
+    assert Path(payload["artifact_path"]).exists()
 
 
 def test_external_state_creates_no_checkout_files(
@@ -493,10 +606,10 @@ def test_cli_root_help_removes_legacy_commands() -> None:
 
     assert root.returncode == 0
     assert "legacy" not in root.stdout.lower()
-    assert "attach" not in root.stdout.lower()
+    assert "│ attach" not in root.stdout.lower()
     assert "legacy" not in legacy.stdout.lower()
     assert "sync-check" not in legacy.stdout.lower()
-    assert "attach" not in attach.stdout.lower()
+    assert "usage: hk attach" not in attach.stdout.lower()
 
 
 def test_cli_review_help_warns_self_review_does_not_count() -> None:

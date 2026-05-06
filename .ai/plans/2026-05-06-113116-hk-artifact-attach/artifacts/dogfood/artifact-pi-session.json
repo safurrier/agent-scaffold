@@ -1,0 +1,12 @@
+{
+  "artifact_path": "",
+  "copied": false,
+  "kind": "pi-session-transcript",
+  "label": "Current Pi session JSONL referenced by path/hash only; not copied",
+  "redaction": "unknown",
+  "seq": 5,
+  "sha256": "sha256:fd6a63819b3521a64be859b56775f85ff65e1af0998ee4e778532616d18da929",
+  "size_bytes": 15622492,
+  "source_path": "/Users/alex.furrier/.pi/agent/sessions/--Users-alex.furrier-git_repositories-harness-toolkit--/2026-05-03T19-41-06-705Z_019def5b-d711-710e-9285-06c785a17f7a.jsonl",
+  "work_id": "2026-05-06-115834-artifact-attach"
+}

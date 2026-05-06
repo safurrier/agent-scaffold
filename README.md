@@ -127,7 +127,9 @@ sync-check`) have been removed. Scaffolded repos still use `mise run plan` and
 Planning can happen outside HK; agents translate the agreed intent into compact
 HK context/plan/decision records rather than asking HK to infer it. `hk start
 --plan` seeds the first lifecycle plan when work starts; `hk plan` refines the
-plan after work is active. Slugs should be short human-readable task names;
+plan after work is active. `hk artifact attach` can attach real harness/tool
+files such as agent session transcripts or Codex review transcripts by copying or
+referencing the file, hashing it, and rendering the metadata in handoff. Slugs should be short human-readable task names;
 HK-generated work IDs provide chronological ordering. Review is required by
 default: prefer an independent AI/tool reviewer (ideally different model,
 runtime, or context) and use a fresh-context subagent as the minimum fallback.
