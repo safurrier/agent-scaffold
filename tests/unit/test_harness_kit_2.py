@@ -604,7 +604,7 @@ def test_dangerously_skip_sync_satisfies_readiness_and_handoff(tmp_path: Path) -
     assert "Only .pi agent-local state changed" in rendered.content
 
 
-def test_sync_exclude_allows_agent_local_state_without_stale_ready(
+def test_sync_exclude_allows_literal_untracked_local_path_without_stale_ready(
     tmp_path: Path,
 ) -> None:
     target = tmp_path / "repo"
@@ -622,13 +622,13 @@ def test_sync_exclude_allows_agent_local_state_without_stale_ready(
         rubrics=("core-quality",),
         summary="No blocking findings.",
     )
-    (target / ".pi").mkdir()
-    (target / ".pi" / "session.json").write_text("{}")
+    (target / "tmp-output").mkdir()
+    (target / "tmp-output" / "session.json").write_text("{}")
 
     synced = sync_checkpoint(
         target,
-        exclude_paths=(".pi",),
-        reason="Only local agent session state changed.",
+        exclude_paths=("tmp-output",),
+        reason="Only explicit local scratch output changed.",
     )
     done = ready(target)
     rendered = handoff(target)
@@ -638,7 +638,7 @@ def test_sync_exclude_allows_agent_local_state_without_stale_ready(
     assert done.status == "ready"
     assert "Sync status: `synced`" in rendered.content
     assert "## Sync exclusions" in rendered.content
-    assert ".pi: Only local agent session state changed." in rendered.content
+    assert "tmp-output: Only explicit local scratch output changed." in rendered.content
     assert "## Dangerous skips" not in rendered.content
 
 
@@ -657,7 +657,9 @@ def test_sync_exclude_rejects_missing_reason_and_absent_path(tmp_path: Path) -> 
         sync_checkpoint(target, exclude_paths=(".pi/missing",), reason="Nope.")
 
 
-@pytest.mark.parametrize("exclude_path", (".", "../outside", ":(glob)*", "*.py"))
+@pytest.mark.parametrize(
+    "exclude_path", (".", "/tmp/outside", "../outside", ":(glob)*", "*.py")
+)
 def test_sync_exclude_rejects_broad_or_pathspec_paths(
     tmp_path: Path, exclude_path: str
 ) -> None:
@@ -681,7 +683,7 @@ def test_sync_exclude_rejects_tracked_source_paths(tmp_path: Path) -> None:
     create_work(target, "exclude-tracked")
     (target / "README.md").write_text("# modified\n")
 
-    with pytest.raises(LocalWorkflowError, match="known agent-local state"):
+    with pytest.raises(LocalWorkflowError, match="tracked paths or descendants"):
         sync_checkpoint(
             target,
             exclude_paths=("README.md",),
@@ -689,20 +691,42 @@ def test_sync_exclude_rejects_tracked_source_paths(tmp_path: Path) -> None:
         )
 
 
-def test_sync_exclude_rejects_untracked_source_paths(tmp_path: Path) -> None:
+def test_sync_exclude_rejects_staged_new_paths(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
     init_state(target)
-    create_work(target, "exclude-untracked-source")
+    create_work(target, "exclude-staged")
+    (target / "generated.txt").write_text("generated\n")
+    subprocess.run(
+        ["git", "add", "generated.txt"], cwd=target, check=True, env=_git_env()
+    )
+
+    with pytest.raises(LocalWorkflowError, match="tracked paths or descendants"):
+        sync_checkpoint(
+            target,
+            exclude_paths=("generated.txt",),
+            reason="Staged paths must not be hidden.",
+        )
+
+
+def test_sync_exclude_allows_untracked_literal_paths_without_allowlist(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "exclude-untracked-literal")
     (target / "src").mkdir()
     (target / "src" / "scratch.py").write_text("print('local')\n")
 
-    with pytest.raises(LocalWorkflowError, match="known agent-local state"):
-        sync_checkpoint(
-            target,
-            exclude_paths=("src/scratch.py",),
-            reason="Source paths must not be excluded.",
-        )
+    synced = sync_checkpoint(
+        target,
+        exclude_paths=("src/scratch.py",),
+        reason="Explicit local scratch file is intentionally excluded.",
+    )
+
+    assert synced.synced is True
+    assert sync_checkpoint(target, check=True).synced is True
 
 
 def test_sync_exclude_rejects_source_directory_with_tracked_descendants(
@@ -730,11 +754,11 @@ def test_sync_exclude_rejects_source_directory_with_tracked_descendants(
     )
     (target / "src" / "tmp.log").write_text("local\n")
 
-    with pytest.raises(LocalWorkflowError, match="known agent-local state"):
+    with pytest.raises(LocalWorkflowError, match="tracked paths or descendants"):
         sync_checkpoint(
             target,
             exclude_paths=("src",),
-            reason="Source directories must not be excluded.",
+            reason="Source directories with tracked descendants must not be excluded.",
         )
 
 
@@ -793,7 +817,7 @@ def test_sync_exclude_rejects_agent_local_path_with_tracked_descendants(
     create_work(target, "exclude-tracked-agent-local")
     (target / ".pi" / "session.json").write_text("{}\n")
 
-    with pytest.raises(LocalWorkflowError, match="tracked descendants"):
+    with pytest.raises(LocalWorkflowError, match="tracked paths or descendants"):
         sync_checkpoint(
             target,
             exclude_paths=(".pi",),

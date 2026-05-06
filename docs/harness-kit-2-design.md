@@ -369,10 +369,13 @@ and `not-needed` means the change does not need spec/docs updates. `--spec-ref`
 links the declaration to specific files without asking HK to infer correctness.
 
 `hk sync --exclude PATH --reason TEXT` records a constrained checkpoint that
-ignores only explicit, currently-dirty paths such as `.pi`. The checkpoint stores
-excluded path metadata and passes readiness only while non-excluded work remains
-unchanged. It renders under `## Sync exclusions`, not dangerous skips. Use
-`hk dangerously-skip sync` only when a constrained checkpoint is not appropriate.
+ignores only explicit untracked local-only paths. Exclusions are not limited to a
+hardcoded `.pi`/`.claude` allowlist; the safety boundary is that HK records
+excluded path metadata, rejects root/pathspec/absolute/tracked/staged/missing
+paths, revalidates stored exclusions, and passes readiness only while
+non-excluded work remains unchanged. It renders under `## Sync exclusions`, not
+dangerous skips. Use `hk dangerously-skip sync` only when a constrained checkpoint
+is not appropriate.
 
 `hk review add` is intentionally not a self-review note. Review is required by
 default. Preferred review comes from an independent AI/tool reviewer, ideally a

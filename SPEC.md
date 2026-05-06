@@ -143,9 +143,11 @@ Code `Agent`/legacy `Task`, and Codex via the Shell tool running
 because review tools may create agent-local state. If no independent AI/tool
 or fresh-context review is available, the
 agent must use an explicit dangerous review skip. If sync freshness is stale only because of
-understood local agent state, the agent should prefer a constrained
-`hk sync --exclude PATH --reason ...`; whole-sync dangerous skips remain an
-explicit fallback.
+understood untracked local-only state, the agent should prefer a constrained
+`hk sync --exclude PATH --reason ...`; exclusions are recorded and revalidated
+rather than limited to a hardcoded `.pi`/`.claude` allowlist, while root,
+pathspec, tracked, staged, and missing paths remain invalid. Whole-sync dangerous
+skips remain an explicit fallback.
 
 Profiles and repo-owned scripts are validation guidance and stable native command
 surfaces for `hk validate`, not task-runner commands that HK chooses and runs.

@@ -91,7 +91,7 @@ VALID_EVIDENCE_KINDS = ("test", "lint", "typecheck", "build", "check", "e2e", "o
 SYNC_IGNORED_EVENT_TYPES = frozenset(
     {"sync_checkpoint", "view_materialized", "handoff_generated"}
 )
-AGENT_LOCAL_STATE_PATHS = (".pi", ".claude/worktrees")
+COMMON_AGENT_LOCAL_STATE_PATHS = (".pi", ".claude/worktrees")
 StateMode = Literal["local", "external"]
 NoteKind = Literal[
     "context", "plan", "background", "learning", "decision", "gap", "spec-impact"
@@ -291,7 +291,7 @@ def git_dirty(path: Path) -> bool:
 def agent_local_state_paths(path: Path) -> list[str]:
     """Return common agent-local paths that are currently part of git status."""
     present: list[str] = []
-    for candidate in AGENT_LOCAL_STATE_PATHS:
+    for candidate in COMMON_AGENT_LOCAL_STATE_PATHS:
         result = subprocess.run(
             ["git", "status", "--porcelain", "--", candidate],
             cwd=path,
@@ -320,13 +320,6 @@ def git_pathspec_excludes(exclude_paths: tuple[str, ...] = ()) -> list[str]:
     return [f":(exclude){path}" for path in exclude_paths]
 
 
-def is_allowed_sync_exclude_path(candidate: str) -> bool:
-    return any(
-        candidate == allowed or candidate.startswith(f"{allowed}/")
-        for allowed in AGENT_LOCAL_STATE_PATHS
-    )
-
-
 def git_tracked_paths_for_path(path: Path, candidate: str) -> list[str]:
     result = subprocess.run(
         ["git", "ls-files", "--", candidate],
@@ -341,17 +334,11 @@ def git_tracked_paths_for_path(path: Path, candidate: str) -> list[str]:
 
 
 def sync_exclude_safety_error(path: Path, candidate: str) -> str:
-    if not is_allowed_sync_exclude_path(candidate):
-        allowed = ", ".join(AGENT_LOCAL_STATE_PATHS)
-        return (
-            "sync --exclude only supports known agent-local state paths "
-            f"({allowed}); refusing: {candidate}"
-        )
     tracked = git_tracked_paths_for_path(path, candidate)
     if tracked:
         return (
             "sync --exclude only supports untracked local-only paths; "
-            f"refusing tracked descendants under {candidate}: {', '.join(tracked[:3])}"
+            f"refusing tracked paths or descendants under {candidate}: {', '.join(tracked[:3])}"
         )
     status = git_status_for_path(path, candidate).strip()
     if not status:

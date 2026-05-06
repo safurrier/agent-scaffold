@@ -116,6 +116,13 @@ use it only in a copied scaffold or throwaway init target.
   point of the review gate is to prevent same-context self-approval; heuristics
   are guardrails, not the guarantee.
 
+- **DO** allow `hk sync --exclude` for explicit literal untracked local paths and
+  record/revalidate the excluded path metadata. **NOT** hardcode exclusions to
+  only `.pi` or `.claude` state. **BECAUSE** real repos can produce many kinds of
+  local-only files; the safety property should come from explicit recorded
+  exclusions plus tracked/staged/pathspec/root/source-change checks, not a tiny
+  allowlist.
+
 - **DO** describe harness-specific review options as tool-callable mechanisms.
   **NOT** tell agents to use Codex slash commands like `/review` or `/agent` in
   harness-facing instructions. **BECAUSE** harnesses can call tools, not TUI slash

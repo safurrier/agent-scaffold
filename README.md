@@ -136,8 +136,10 @@ fresh-context review mechanism, dispatch `hk review prompt` to it before handoff
 Examples include Pi `subagent`, Claude Code `Agent`/legacy `Task`, and Codex via
 the Shell tool running `codex review --uncommitted`. Re-run `hk status` after
 review because review tools may create agent-local state. If review is impossible,
-record an explicit dangerous review skip. Known local-only state can be handled
-with explicit one-shot sync exclusions rather than silent ignores. Today,
+record an explicit dangerous review skip. Explicit untracked local-only state can
+be handled with recorded one-shot sync exclusions rather than silent ignores;
+`hk sync --exclude` is not limited to a hardcoded `.pi`/`.claude` allowlist, but
+it still rejects root, pathspec, tracked, staged, or missing paths. Today,
 scaffolded plan artifacts represent that lifecycle as Markdown/YAML files. The HK
 2.0 direction is to make the ledger canonical and export durable handoff views
 only when needed.

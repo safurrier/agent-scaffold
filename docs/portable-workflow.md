@@ -275,7 +275,7 @@ persistent sync ignore config are deferred.
 | `hk work start` | Advanced compatibility surface for ledger-backed local work units |
 | `hk note` | Advanced: append typed plan, background, learning, decision, gap, or spec-impact notes |
 | `hk status` | Show active work, readiness checks, and next-action guidance |
-| `hk sync` | Record or check a freshness checkpoint for the active work snapshot; use `--exclude PATH --reason TEXT` for explicit one-shot local-state exclusions |
+| `hk sync` | Record or check a freshness checkpoint for the active work snapshot; use `--exclude PATH --reason TEXT` for explicit one-shot untracked local-state exclusions; HK records/revalidates excluded path metadata instead of using a tiny hardcoded allowlist |
 | `hk capture` | Advanced: run a native command and record exact evidence |
 | `hk review prompt` | Print a reviewer prompt to dispatch to an independent AI/tool or fresh-context reviewer, e.g. Pi `subagent`, Claude Code `Agent`/`Task` alias, or Codex via Shell tool running `codex review --uncommitted`; re-run `hk status` after review tools run |
 | `hk handoff` | Render a conservative handoff from the work ledger |
