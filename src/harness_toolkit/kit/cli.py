@@ -10,46 +10,29 @@ from typing import Literal
 
 from cyclopts import App
 
+from harness_toolkit.kit.app.lifecycle import (
+    CaptureRequest,
+    DangerousSkipRequest,
+    HandoffRequest,
+    LifecycleApp,
+    NoteRequest,
+    ReviewRequest,
+    StartRequest,
+    SyncRequest,
+    TargetRequest,
+)
 from harness_toolkit.kit.local import (
     LocalWorkflowError,
     active_work_dir,
-    add_dangerous_skip,
-    add_note,
-    add_review,
     brief_markdown,
-    capture_command,
-    create_work,
-    init_spec,
-    init_state,
     json_dump_dataclass,
     json_dump_object,
-    materialize_work,
     print_capture_and_exit,
     read_evidence,
     resolve_local_state,
-    spec_promote_dry_run,
-    sync_checkpoint,
 )
 from harness_toolkit.kit.local import (
     brief as local_brief,
-)
-from harness_toolkit.kit.local import (
-    handoff as local_handoff,
-)
-from harness_toolkit.kit.local import (
-    ready as local_ready,
-)
-from harness_toolkit.kit.local import (
-    review_prompt as local_review_prompt,
-)
-from harness_toolkit.kit.local import (
-    spec_outline as local_spec_outline,
-)
-from harness_toolkit.kit.local import (
-    spec_status as local_spec_status,
-)
-from harness_toolkit.kit.local import (
-    status as local_status,
 )
 from harness_toolkit.kit.profiles import (
     PROFILE_SELECTION_GUIDANCE,
@@ -99,6 +82,8 @@ app.command(evidence_app, name="evidence")
 app.command(spec_app, name="spec")
 app.command(review_app, name="review")
 app.command(legacy_app, name="legacy")
+
+lifecycle_app = LifecycleApp()
 
 
 def resolve_catalog(profiles_dir: Path | None) -> ProfileCatalog:
@@ -575,7 +560,7 @@ def init_command(
 ) -> None:
     """Initialize local or external Harness Kit 2 state for a target."""
     try:
-        result = init_state(target, no_local_files=no_local_files)
+        result = lifecycle_app.init(TargetRequest(target, no_local_files))
     except (WorkflowError, LocalWorkflowError) as e:
         print_error(str(e))
         raise SystemExit(1) from e
@@ -607,18 +592,15 @@ def start(
 ) -> None:
     """Start a lifecycle work item backed by the local ledger."""
     try:
-        result = create_work(target, slug, no_local_files=no_local_files)
-        if context.strip():
-            add_note(
-                target,
-                kind="context",
-                text=context.strip(),
+        result = lifecycle_app.start(
+            StartRequest(
+                target=target,
                 no_local_files=no_local_files,
+                slug=slug,
+                plan=plan.strip(),
+                context=context.strip(),
             )
-        if plan.strip():
-            add_note(
-                target, kind="plan", text=plan.strip(), no_local_files=no_local_files
-            )
+        )
     except (WorkflowError, LocalWorkflowError) as e:
         print_error(str(e))
         raise SystemExit(1) from e
@@ -678,8 +660,13 @@ def context_command(
                     ) from e
         if not text.strip():
             raise LocalWorkflowError("context requires TEXT or --from-file PATH")
-        result = add_note(
-            target, kind="context", text=text, no_local_files=no_local_files
+        result = lifecycle_app.note(
+            NoteRequest(
+                target=target,
+                no_local_files=no_local_files,
+                kind="context",
+                text=text,
+            )
         )
     except (WorkflowError, LocalWorkflowError) as e:
         print_error(str(e))
@@ -700,7 +687,9 @@ def work_start(
 ) -> None:
     """Start a ledger-backed local work unit."""
     try:
-        result = create_work(target, slug, no_local_files=no_local_files)
+        result = lifecycle_app.start(
+            StartRequest(target=target, no_local_files=no_local_files, slug=slug)
+        )
     except (WorkflowError, LocalWorkflowError) as e:
         print_error(str(e))
         raise SystemExit(1) from e
@@ -742,7 +731,7 @@ def work_materialize(
 ) -> None:
     """Materialize generated Markdown views for the active work ledger."""
     try:
-        result = materialize_work(target, no_local_files=no_local_files)
+        result = lifecycle_app.materialize(TargetRequest(target, no_local_files))
     except (WorkflowError, LocalWorkflowError) as e:
         print_error(str(e))
         raise SystemExit(1) from e
@@ -787,7 +776,11 @@ def note(
                 ) from e
         if not text:
             raise LocalWorkflowError("note requires TEXT or --from-file PATH")
-        result = add_note(target, kind=kind, text=text, no_local_files=no_local_files)
+        result = lifecycle_app.note(
+            NoteRequest(
+                target=target, no_local_files=no_local_files, kind=kind, text=text
+            )
+        )
     except (WorkflowError, LocalWorkflowError) as e:
         print_error(str(e))
         raise SystemExit(1) from e
@@ -828,8 +821,13 @@ def decide(
             raise LocalWorkflowError(
                 "decide requires --spec-impact none|updated|not-needed or --no-spec-impact"
             )
-        result = add_note(
-            target, kind="decision", text=text, no_local_files=no_local_files
+        result = lifecycle_app.note(
+            NoteRequest(
+                target=target,
+                no_local_files=no_local_files,
+                kind="decision",
+                text=text,
+            )
         )
         refs = [str(path) for path in spec_ref]
         if no_spec_impact:
@@ -847,8 +845,13 @@ def decide(
             impact_detail = spec_impact
         ref_text = f"; refs: {', '.join(refs)}" if refs else ""
         impact_text = f"{impact_mode}: {impact_detail}{ref_text}"
-        add_note(
-            target, kind="spec-impact", text=impact_text, no_local_files=no_local_files
+        lifecycle_app.note(
+            NoteRequest(
+                target=target,
+                no_local_files=no_local_files,
+                kind="spec-impact",
+                text=impact_text,
+            )
         )
     except (WorkflowError, LocalWorkflowError) as e:
         print_error(str(e))
@@ -881,12 +884,14 @@ def sync(
 ) -> None:
     """Record or check a sync checkpoint for the active work snapshot."""
     try:
-        result = sync_checkpoint(
-            target,
-            check=check,
-            exclude_paths=exclude,
-            reason=reason,
-            no_local_files=no_local_files,
+        result = lifecycle_app.sync(
+            SyncRequest(
+                target=target,
+                no_local_files=no_local_files,
+                check=check,
+                exclude_paths=exclude,
+                reason=reason,
+            )
         )
     except (WorkflowError, LocalWorkflowError) as e:
         print_error(str(e))
@@ -928,16 +933,18 @@ def validate(
     try:
         if not why.strip():
             raise LocalWorkflowError("validate requires --why TEXT")
-        result = capture_command(
-            target,
-            command,
-            shell_command=shell,
-            kind=kind,
-            why=why.strip(),
-            no_log=no_log,
-            raw_log=raw_log,
-            no_local_files=no_local_files,
-            stream_to_stderr=json,
+        result = lifecycle_app.capture(
+            CaptureRequest(
+                target=target,
+                no_local_files=no_local_files,
+                command=command,
+                shell_command=shell,
+                kind=kind,
+                why=why.strip(),
+                no_log=no_log,
+                raw_log=raw_log,
+                stream_to_stderr=json,
+            )
         )
     except (WorkflowError, LocalWorkflowError) as e:
         print_error(str(e))
@@ -975,15 +982,17 @@ def capture(
 ) -> None:
     """Advanced: run a native command and record exact evidence."""
     try:
-        result = capture_command(
-            target,
-            command,
-            shell_command=shell,
-            kind=kind,
-            no_log=no_log,
-            raw_log=raw_log,
-            no_local_files=no_local_files,
-            stream_to_stderr=json,
+        result = lifecycle_app.capture(
+            CaptureRequest(
+                target=target,
+                no_local_files=no_local_files,
+                command=command,
+                shell_command=shell,
+                kind=kind,
+                no_log=no_log,
+                raw_log=raw_log,
+                stream_to_stderr=json,
+            )
         )
     except (WorkflowError, LocalWorkflowError) as e:
         print_error(str(e))
@@ -1030,14 +1039,16 @@ def review_add(
     acceptable fallback. Otherwise use `hk dangerously-skip review --reason ...`.
     """
     try:
-        result = add_review(
-            target,
-            backend=backend,
-            reviewer=reviewer,
-            rubrics=rubric,
-            summary=summary,
-            disposition=disposition,
-            no_local_files=no_local_files,
+        result = lifecycle_app.add_review(
+            ReviewRequest(
+                target=target,
+                no_local_files=no_local_files,
+                backend=backend,
+                reviewer=reviewer,
+                rubrics=rubric,
+                summary=summary,
+                disposition=disposition,
+            )
         )
     except (WorkflowError, LocalWorkflowError) as e:
         print_error(str(e))
@@ -1059,7 +1070,7 @@ def review_prompt_command(
 ) -> None:
     """Print a fresh-context reviewer prompt for the active work."""
     try:
-        result = local_review_prompt(target, no_local_files=no_local_files)
+        result = lifecycle_app.review_prompt(TargetRequest(target, no_local_files))
     except (WorkflowError, LocalWorkflowError) as e:
         print_error(str(e))
         raise SystemExit(1) from e
@@ -1122,7 +1133,7 @@ def ready_command(
 ) -> None:
     """Check lifecycle handoff readiness."""
     try:
-        result = local_ready(target, no_local_files=no_local_files)
+        result = lifecycle_app.ready(TargetRequest(target, no_local_files))
     except (WorkflowError, LocalWorkflowError) as e:
         print_error(str(e))
         raise SystemExit(1) from e
@@ -1156,8 +1167,13 @@ def ready_dangerously_skip(
 ) -> None:
     """Record an explicit dangerous skip for a readiness check."""
     try:
-        result = add_dangerous_skip(
-            target, check=check, reason=reason, no_local_files=no_local_files
+        result = lifecycle_app.dangerously_skip(
+            DangerousSkipRequest(
+                target=target,
+                no_local_files=no_local_files,
+                check=check,
+                reason=reason,
+            )
         )
     except (WorkflowError, LocalWorkflowError) as e:
         print_error(str(e))
@@ -1180,7 +1196,7 @@ def export_command(
     """Export generated lifecycle views from the active ledger."""
     _ = format
     try:
-        result = materialize_work(target, no_local_files=no_local_files)
+        result = lifecycle_app.materialize(TargetRequest(target, no_local_files))
     except (WorkflowError, LocalWorkflowError) as e:
         print_error(str(e))
         raise SystemExit(1) from e
@@ -1208,7 +1224,11 @@ def handoff(
     """Render a conservative handoff from the active work ledger."""
     _ = format
     try:
-        result = local_handoff(target, output_path=write, no_local_files=no_local_files)
+        result = lifecycle_app.handoff(
+            HandoffRequest(
+                target=target, no_local_files=no_local_files, output_path=write
+            )
+        )
     except (WorkflowError, LocalWorkflowError) as e:
         print_error(str(e))
         raise SystemExit(1) from e
@@ -1229,7 +1249,7 @@ def spec_init(
     """Create a local draft SPEC without committing repo files."""
     _ = local
     try:
-        result = init_spec(target, no_local_files=no_local_files)
+        result = lifecycle_app.spec_init(TargetRequest(target, no_local_files))
     except (WorkflowError, LocalWorkflowError) as e:
         print_error(str(e))
         raise SystemExit(1) from e
@@ -1248,7 +1268,7 @@ def spec_status(
 ) -> None:
     """Show the active committed or local SPEC source."""
     try:
-        result = local_spec_status(target, no_local_files=no_local_files)
+        result = lifecycle_app.spec_status(TargetRequest(target, no_local_files))
     except (WorkflowError, LocalWorkflowError) as e:
         print_error(str(e))
         raise SystemExit(1) from e
@@ -1267,7 +1287,7 @@ def spec_outline(
 ) -> None:
     """Print headings from the active committed or local SPEC."""
     try:
-        result = local_spec_outline(target, no_local_files=no_local_files)
+        result = lifecycle_app.spec_outline(TargetRequest(target, no_local_files))
     except (WorkflowError, LocalWorkflowError) as e:
         print_error(str(e))
         raise SystemExit(1) from e
@@ -1290,7 +1310,10 @@ def spec_promote(
         print_error("spec promote currently requires --dry-run")
         raise SystemExit(1)
     try:
-        print(spec_promote_dry_run(target, no_local_files=no_local_files), end="")
+        print(
+            lifecycle_app.spec_promote_dry_run(TargetRequest(target, no_local_files)),
+            end="",
+        )
     except (WorkflowError, LocalWorkflowError) as e:
         print_error(str(e))
         raise SystemExit(1) from e
@@ -1358,7 +1381,11 @@ def plan(
                 ) from e
         if not text:
             raise LocalWorkflowError("plan requires TEXT or --from-file PATH")
-        result = add_note(target, kind="plan", text=text, no_local_files=no_local_files)
+        result = lifecycle_app.note(
+            NoteRequest(
+                target=target, no_local_files=no_local_files, kind="plan", text=text
+            )
+        )
     except (WorkflowError, LocalWorkflowError) as e:
         print_error(
             f"{e}\nFor legacy plan artifacts, use: hk legacy plan <slug> --target <repo> --json"
@@ -1399,7 +1426,7 @@ def status(
         emit(result, json=json)
         return
     try:
-        result = local_status(target, no_local_files=no_local_files)
+        result = lifecycle_app.status(TargetRequest(target, no_local_files))
     except (WorkflowError, LocalWorkflowError) as e:
         print_error(str(e))
         raise SystemExit(1) from e

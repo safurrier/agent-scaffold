@@ -27,14 +27,14 @@ description: >
 - [x] Preserve legacy external/overlay state paths.
 - [x] Add/adjust tests for scoped target behavior.
 - [x] Run focused parity gate.
-- [ ] Commit chunk 2.
+- [x] Commit chunk 2.
 
 ## Chunk 3: HK2 Lifecycle Application Module
 
-- [ ] Introduce lifecycle application Module/request objects.
-- [ ] Make CLI lifecycle commands delegate through the Module.
-- [ ] Keep compatibility shims where useful during migration.
-- [ ] Run focused parity gate.
+- [x] Introduce lifecycle application Module/request objects.
+- [x] Make CLI lifecycle commands delegate through the Module.
+- [x] Keep compatibility shims where useful during migration.
+- [x] Run focused parity gate.
 - [ ] Commit chunk 3.
 
 ## Chunk 4: Typed Ledger/Event Seam

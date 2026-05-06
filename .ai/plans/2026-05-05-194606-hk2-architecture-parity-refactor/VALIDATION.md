@@ -44,6 +44,23 @@ uv run pytest tests/unit/test_repo_state_resolution.py tests/unit/test_hk2_lifec
 
 Result: `75 passed, 2 xfailed`.
 
+### 2026-05-05 — Chunk 3 HK2 lifecycle application Module
+
+```bash
+uv run ruff check --fix src/harness_toolkit/kit/app/lifecycle.py src/harness_toolkit/kit/cli.py
+uv run ruff format src/harness_toolkit/kit/app/lifecycle.py src/harness_toolkit/kit/cli.py
+uv run ty check src/harness_toolkit/kit/app/lifecycle.py src/harness_toolkit/kit/cli.py
+uv run pytest tests/unit/test_hk2_lifecycle_parity.py tests/e2e/test_hk2_cli_parity.py tests/unit/test_harness_kit_2.py -q
+```
+
+Result: `46 passed, 2 xfailed`.
+
+```bash
+uv run pytest tests/unit/test_repo_state_resolution.py tests/unit/test_hk2_lifecycle_parity.py tests/e2e/test_hk2_cli_parity.py tests/unit/test_hk2_rendering_parity.py tests/unit/test_harness_kit_2.py tests/unit/test_portable_workflow.py tests/e2e/test_harness_kit_rollout.py -q
+```
+
+Result: `75 passed, 2 xfailed`.
+
 ## Planned final gates
 
 ```bash
