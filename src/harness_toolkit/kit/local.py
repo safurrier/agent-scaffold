@@ -320,6 +320,13 @@ def git_pathspec_excludes(exclude_paths: tuple[str, ...] = ()) -> list[str]:
     return [f":(exclude){path}" for path in exclude_paths]
 
 
+def is_allowed_sync_exclude_path(candidate: str) -> bool:
+    return any(
+        candidate == allowed or candidate.startswith(f"{allowed}/")
+        for allowed in AGENT_LOCAL_STATE_PATHS
+    )
+
+
 def git_status_for_path(path: Path, candidate: str) -> str:
     result = subprocess.run(
         ["git", "status", "--porcelain", "--", candidate],
@@ -677,6 +684,12 @@ def sync_checkpoint(
     if normalized_excludes and not reason.strip():
         raise LocalWorkflowError("sync --exclude requires --reason")
     for candidate in normalized_excludes:
+        if not is_allowed_sync_exclude_path(candidate):
+            allowed = ", ".join(AGENT_LOCAL_STATE_PATHS)
+            raise LocalWorkflowError(
+                "sync --exclude only supports known agent-local state paths "
+                f"({allowed}); refusing: {candidate}"
+            )
         status = git_status_for_path(state.target_root, candidate).strip()
         if not status:
             raise LocalWorkflowError(

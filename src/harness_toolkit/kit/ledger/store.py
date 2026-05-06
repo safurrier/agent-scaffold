@@ -19,6 +19,91 @@ def utc_now() -> str:
     return datetime.now(UTC).isoformat(timespec="seconds")
 
 
+def _shape_error(path: Path, line_number: int, kind: str) -> LedgerStoreError:
+    return LedgerStoreError(
+        f"Malformed {kind} JSONL in {path} at line {line_number}: invalid {kind} shape"
+    )
+
+
+def _object_row(
+    path: Path, line_number: int, row: object, kind: str
+) -> dict[str, object]:
+    if not isinstance(row, dict):
+        raise _shape_error(path, line_number, kind)
+    return cast("dict[str, object]", row)
+
+
+def _required_int(
+    data: dict[str, object], key: str, *, path: Path, line_number: int, kind: str
+) -> int:
+    value = data.get(key)
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise _shape_error(path, line_number, kind)
+    return value
+
+
+def _required_str(
+    data: dict[str, object], key: str, *, path: Path, line_number: int, kind: str
+) -> str:
+    value = data.get(key)
+    if not isinstance(value, str):
+        raise _shape_error(path, line_number, kind)
+    return value
+
+
+def _optional_str(
+    data: dict[str, object],
+    key: str,
+    *,
+    path: Path,
+    line_number: int,
+    kind: str,
+    default: str = "",
+) -> str:
+    if key not in data:
+        return default
+    return _required_str(data, key, path=path, line_number=line_number, kind=kind)
+
+
+def _required_bool(
+    data: dict[str, object], key: str, *, path: Path, line_number: int, kind: str
+) -> bool:
+    value = data.get(key)
+    if not isinstance(value, bool):
+        raise _shape_error(path, line_number, kind)
+    return value
+
+
+def _required_str_list(
+    data: dict[str, object], key: str, *, path: Path, line_number: int, kind: str
+) -> list[str]:
+    value = data.get(key)
+    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+        raise _shape_error(path, line_number, kind)
+    return [str(item) for item in cast("list[str]", value)]
+
+
+def parse_event_row(
+    data: dict[str, object], *, path: Path, line_number: int
+) -> EventRecord:
+    event_data = data.get("data")
+    if not isinstance(event_data, dict):
+        raise _shape_error(path, line_number, "ledger")
+    return EventRecord(
+        schema_version=_required_int(
+            data, "schema_version", path=path, line_number=line_number, kind="ledger"
+        ),
+        seq=_required_int(
+            data, "seq", path=path, line_number=line_number, kind="ledger"
+        ),
+        type=_required_str(
+            data, "type", path=path, line_number=line_number, kind="ledger"
+        ),
+        at=_required_str(data, "at", path=path, line_number=line_number, kind="ledger"),
+        data=cast("dict[str, object]", event_data),
+    )
+
+
 def next_seq(events_path: Path) -> int:
     if not events_path.exists():
         return 1
@@ -32,16 +117,12 @@ def next_seq(events_path: Path) -> int:
             raise LedgerStoreError(
                 f"Malformed ledger JSONL in {events_path} at line {line_number}: {e.msg}"
             ) from e
-        if not isinstance(row, dict):
-            raise LedgerStoreError(
-                f"Malformed ledger JSONL in {events_path} at line {line_number}: row must be an object"
-            )
-        value = row.get("seq")
-        if not isinstance(value, int):
-            raise LedgerStoreError(
-                f"Malformed ledger JSONL in {events_path} at line {line_number}: invalid event shape"
-            )
-        seq = max(seq, value)
+        event = parse_event_row(
+            _object_row(events_path, line_number, row, "ledger"),
+            path=events_path,
+            line_number=line_number,
+        )
+        seq = max(seq, event.seq)
     return seq + 1
 
 
@@ -76,68 +157,82 @@ def read_events(work_dir: Path) -> list[EventRecord]:
         if not line.strip():
             continue
         try:
-            data = json.loads(line)
+            row = json.loads(line)
         except json.JSONDecodeError as e:
             raise LedgerStoreError(
                 f"Malformed ledger JSONL in {path} at line {line_number}: {e.msg}"
             ) from e
-        try:
-            events.append(
-                EventRecord(
-                    schema_version=int(data["schema_version"]),
-                    seq=int(data["seq"]),
-                    type=str(data["type"]),
-                    at=str(data["at"]),
-                    data=dict(data.get("data", {})),
-                )
+        events.append(
+            parse_event_row(
+                _object_row(path, line_number, row, "ledger"),
+                path=path,
+                line_number=line_number,
             )
-        except (KeyError, TypeError, ValueError) as e:
-            raise LedgerStoreError(
-                f"Malformed ledger JSONL in {path} at line {line_number}: invalid event shape"
-            ) from e
+        )
     return events
 
 
-def _int_field(data: dict[str, object], key: str) -> int:
-    value = data[key]
-    if isinstance(value, int):
-        return value
-    if isinstance(value, str):
-        return int(value)
-    raise TypeError(f"field {key} must be int-compatible")
-
-
-def _string_list_field(data: dict[str, object], key: str) -> list[str]:
-    value = data.get(key, [])
-    if not isinstance(value, list):
-        return []
-    return [str(item) for item in cast("list[object]", value)]
-
-
-def parse_evidence(data: dict[str, object]) -> EvidenceRecord:
+def parse_evidence(
+    data: dict[str, object], *, path: Path, line_number: int
+) -> EvidenceRecord:
+    kind = "evidence"
     return EvidenceRecord(
-        schema_version=_int_field(data, "schema_version"),
-        id=str(data["id"]),
-        type=str(data["type"]),
-        capture_mode=str(data["capture_mode"]),
-        kind=str(data["kind"]),
-        command_display=str(data["command_display"]),
-        argv=_string_list_field(data, "argv"),
-        shell_command=str(data.get("shell_command", "")),
-        cwd=str(data["cwd"]),
-        target=str(data["target"]),
-        branch=str(data["branch"]),
-        git_sha=str(data["git_sha"]),
-        dirty_before=bool(data["dirty_before"]),
-        dirty_after=bool(data["dirty_after"]),
-        exit_code=_int_field(data, "exit_code"),
-        status=str(data["status"]),
-        started_at=str(data["started_at"]),
-        ended_at=str(data["ended_at"]),
-        duration_ms=_int_field(data, "duration_ms"),
-        transcript_path=str(data["transcript_path"]),
-        redaction=str(data["redaction"]),
-        why=str(data.get("why", "")),
+        schema_version=_required_int(
+            data, "schema_version", path=path, line_number=line_number, kind=kind
+        ),
+        id=_required_str(data, "id", path=path, line_number=line_number, kind=kind),
+        type=_required_str(data, "type", path=path, line_number=line_number, kind=kind),
+        capture_mode=_required_str(
+            data, "capture_mode", path=path, line_number=line_number, kind=kind
+        ),
+        kind=_required_str(data, "kind", path=path, line_number=line_number, kind=kind),
+        command_display=_required_str(
+            data, "command_display", path=path, line_number=line_number, kind=kind
+        ),
+        argv=_required_str_list(
+            data, "argv", path=path, line_number=line_number, kind=kind
+        ),
+        shell_command=_optional_str(
+            data, "shell_command", path=path, line_number=line_number, kind=kind
+        ),
+        cwd=_required_str(data, "cwd", path=path, line_number=line_number, kind=kind),
+        target=_required_str(
+            data, "target", path=path, line_number=line_number, kind=kind
+        ),
+        branch=_required_str(
+            data, "branch", path=path, line_number=line_number, kind=kind
+        ),
+        git_sha=_required_str(
+            data, "git_sha", path=path, line_number=line_number, kind=kind
+        ),
+        dirty_before=_required_bool(
+            data, "dirty_before", path=path, line_number=line_number, kind=kind
+        ),
+        dirty_after=_required_bool(
+            data, "dirty_after", path=path, line_number=line_number, kind=kind
+        ),
+        exit_code=_required_int(
+            data, "exit_code", path=path, line_number=line_number, kind=kind
+        ),
+        status=_required_str(
+            data, "status", path=path, line_number=line_number, kind=kind
+        ),
+        started_at=_required_str(
+            data, "started_at", path=path, line_number=line_number, kind=kind
+        ),
+        ended_at=_required_str(
+            data, "ended_at", path=path, line_number=line_number, kind=kind
+        ),
+        duration_ms=_required_int(
+            data, "duration_ms", path=path, line_number=line_number, kind=kind
+        ),
+        transcript_path=_required_str(
+            data, "transcript_path", path=path, line_number=line_number, kind=kind
+        ),
+        redaction=_required_str(
+            data, "redaction", path=path, line_number=line_number, kind=kind
+        ),
+        why=_optional_str(data, "why", path=path, line_number=line_number, kind=kind),
     )
 
 
@@ -150,15 +245,16 @@ def read_evidence(work_dir: Path) -> list[EvidenceRecord]:
         if not line.strip():
             continue
         try:
-            data = json.loads(line)
+            row = json.loads(line)
         except json.JSONDecodeError as e:
             raise LedgerStoreError(
                 f"Malformed evidence JSONL in {path} at line {line_number}: {e.msg}"
             ) from e
-        try:
-            records.append(parse_evidence(data))
-        except (KeyError, TypeError, ValueError) as e:
-            raise LedgerStoreError(
-                f"Malformed evidence JSONL in {path} at line {line_number}: invalid evidence shape"
-            ) from e
+        records.append(
+            parse_evidence(
+                _object_row(path, line_number, row, "evidence"),
+                path=path,
+                line_number=line_number,
+            )
+        )
     return records

@@ -93,7 +93,7 @@ guarantees:
 2. There is an explicit plan.
 3. There is explicit spec/decision reflection.
 4. There is validation evidence with rationale.
-5. There is external-enough review evidence, or an explicit accepted waiver.
+5. There is external-enough review evidence, or an explicit `hk dangerously-skip review --reason ...` record.
 6. There is a binary readiness gate.
 7. There is a rendered handoff artifact.
 

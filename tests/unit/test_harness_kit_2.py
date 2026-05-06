@@ -260,7 +260,7 @@ def test_git_diff_hash_streams_untracked_file_content(
     assert second != first
 
 
-@pytest.mark.parametrize("bad_row", ("{not-json}\n", "{}\n", "[]\n"))
+@pytest.mark.parametrize("bad_row", ("{not-json}\n", "{}\n", "[]\n", '{"seq": 1}\n'))
 def test_malformed_ledger_jsonl_fails_loudly(tmp_path: Path, bad_row: str) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -272,12 +272,44 @@ def test_malformed_ledger_jsonl_fails_loudly(tmp_path: Path, bad_row: str) -> No
         add_note(target, kind="learning", text="This should not append.")
 
 
-def test_malformed_evidence_jsonl_fails_loudly(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "bad_row",
+    (
+        "{}\n",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "id": "ev",
+                "type": "command",
+                "capture_mode": "captured",
+                "kind": "test",
+                "command_display": "cmd",
+                "argv": "not-a-list",
+                "cwd": ".",
+                "target": ".",
+                "branch": "main",
+                "git_sha": "abc",
+                "dirty_before": "false",
+                "dirty_after": "false",
+                "exit_code": 0,
+                "status": "pass",
+                "started_at": "now",
+                "ended_at": "now",
+                "duration_ms": 1,
+                "transcript_path": "",
+                "redaction": "builtin",
+                "why": [],
+            }
+        )
+        + "\n",
+    ),
+)
+def test_malformed_evidence_jsonl_fails_loudly(tmp_path: Path, bad_row: str) -> None:
     target = tmp_path / "repo"
     _git_init(target)
     init_state(target)
     work = create_work(target, "bad-evidence")
-    Path(work.work_dir, "evidence.jsonl").write_text("{}\n")
+    Path(work.work_dir, "evidence.jsonl").write_text(bad_row)
 
     with pytest.raises(LocalWorkflowError, match="Malformed evidence JSONL"):
         read_evidence(Path(work.work_dir))
@@ -590,7 +622,7 @@ def test_sync_exclude_rejects_missing_reason_and_absent_path(tmp_path: Path) -> 
         sync_checkpoint(target, exclude_paths=(".pi",))
 
     with pytest.raises(LocalWorkflowError, match="not present in git status"):
-        sync_checkpoint(target, exclude_paths=(".missing",), reason="Nope.")
+        sync_checkpoint(target, exclude_paths=(".pi/missing",), reason="Nope.")
 
 
 @pytest.mark.parametrize("exclude_path", (".", "../outside", ":(glob)*", "*.py"))
@@ -617,11 +649,60 @@ def test_sync_exclude_rejects_tracked_source_paths(tmp_path: Path) -> None:
     create_work(target, "exclude-tracked")
     (target / "README.md").write_text("# modified\n")
 
-    with pytest.raises(LocalWorkflowError, match="only supports untracked"):
+    with pytest.raises(LocalWorkflowError, match="known agent-local state"):
         sync_checkpoint(
             target,
             exclude_paths=("README.md",),
             reason="Tracked source changes must not be hidden.",
+        )
+
+
+def test_sync_exclude_rejects_untracked_source_paths(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "exclude-untracked-source")
+    (target / "src").mkdir()
+    (target / "src" / "scratch.py").write_text("print('local')\n")
+
+    with pytest.raises(LocalWorkflowError, match="known agent-local state"):
+        sync_checkpoint(
+            target,
+            exclude_paths=("src/scratch.py",),
+            reason="Source paths must not be excluded.",
+        )
+
+
+def test_sync_exclude_rejects_source_directory_with_tracked_descendants(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "exclude-source-dir")
+    (target / "src").mkdir()
+    (target / "src" / "app.py").write_text("print('tracked')\n")
+    subprocess.run(["git", "add", "src/app.py"], cwd=target, check=True, env=_git_env())
+    subprocess.run(
+        ["git", "commit", "--no-verify", "-m", "add source"],
+        cwd=target,
+        check=True,
+        capture_output=True,
+        env=_git_env()
+        | {
+            "GIT_AUTHOR_NAME": "Test",
+            "GIT_AUTHOR_EMAIL": "test@example.com",
+            "GIT_COMMITTER_NAME": "Test",
+            "GIT_COMMITTER_EMAIL": "test@example.com",
+        },
+    )
+    (target / "src" / "tmp.log").write_text("local\n")
+
+    with pytest.raises(LocalWorkflowError, match="known agent-local state"):
+        sync_checkpoint(
+            target,
+            exclude_paths=("src",),
+            reason="Source directories must not be excluded.",
         )
 
 
