@@ -40,11 +40,13 @@ from harness_toolkit.kit.readiness.policy import (
     notes_by_kind,
     notes_by_kinds,
     ready_for_events,
-    review_events,
 )
 from harness_toolkit.kit.readiness.policy import (
     lifecycle_phase as policy_lifecycle_phase,
 )
+from harness_toolkit.kit.rendering.handoff import render_handoff_markdown
+from harness_toolkit.kit.rendering.materialize import write_note_views
+from harness_toolkit.kit.rendering.review_prompt import render_review_prompt
 from harness_toolkit.kit.state.repo import (
     RepoStateError,
     git_branch,
@@ -965,100 +967,16 @@ def brief_markdown(value: Brief) -> str:
 def render_handoff(work_dir: Path, state: LocalState) -> str:
     events = read_events(work_dir)
     evidence = read_evidence(work_dir)
-    sync_status = sync_status_for(state)
-    lines = [
-        "# Handoff",
-        "",
-        "## Summary",
-        f"- Work: `{work_dir.name}`",
-        f"- Branch: `{git_branch(state.target_root)}`",
-        f"- Git SHA: `{git_sha(state.target_root)}`",
-        f"- Dirty: `{str(git_dirty(state.target_root)).lower()}`",
-        f"- Sync status: `{sync_status}`",
-        "",
-        "## Context",
-    ]
-    lines.extend(
-        [f"- {item}" for item in notes_by_kinds(events, ("context", "background"))]
-        or ["- None recorded."]
+    return render_handoff_markdown(
+        work_id=work_dir.name,
+        branch=git_branch(state.target_root),
+        git_sha=git_sha(state.target_root),
+        dirty=git_dirty(state.target_root),
+        sync_status=sync_status_for(state),
+        events=events,
+        evidence=evidence,
+        readiness=ready_for_work(work_dir, state, check_handoff=False),
     )
-    lines.extend(["", "## Plan"])
-    lines.extend(
-        [f"- {item}" for item in notes_by_kind(events, "plan")] or ["- None recorded."]
-    )
-    lines.extend(["", "## Decisions and spec reflection"])
-    lines.extend(
-        [f"- {item}" for item in notes_by_kind(events, "decision")]
-        or ["- None recorded."]
-    )
-    spec_impact = notes_by_kind(events, "spec-impact")
-    if spec_impact:
-        lines.extend([f"  - Spec: {item}" for item in spec_impact])
-    lines.extend(["", "## Learning"])
-    lines.extend(
-        [f"- {item}" for item in notes_by_kind(events, "learning")]
-        or ["- None recorded."]
-    )
-    lines.extend(["", "## Gaps"])
-    lines.extend(
-        [f"- {item}" for item in notes_by_kind(events, "gap")] or ["- None recorded."]
-    )
-    lines.extend(["", "## Validation evidence"])
-    if evidence:
-        for record in evidence:
-            transcript = (
-                f" — `{record.transcript_path}`" if record.transcript_path else ""
-            )
-            if record.why:
-                verb = (
-                    "validates" if record.status == "pass" else "attempted to validate"
-                )
-                why = f" — {verb}: {record.why}"
-            else:
-                why = ""
-            lines.append(
-                f"- `{record.command_display}`: {record.status} (exit {record.exit_code}){why}{transcript}"
-            )
-    else:
-        lines.append("- No validation evidence recorded.")
-    lines.extend(["", "## Readiness"])
-    readiness = ready_for_work(work_dir, state, check_handoff=False)
-    lines.append(f"- Status: `{readiness.status}`")
-    for check in readiness.checks:
-        lines.append(f"- {check.id}: {check.status} — {check.message}")
-    lines.extend(["", "## Review"])
-    reviews = review_events(events)
-    if reviews:
-        for review in reviews:
-            raw_rubrics = review.get("rubrics", [])
-            rubrics_list = raw_rubrics if isinstance(raw_rubrics, list) else []
-            rubrics = ", ".join(str(item) for item in rubrics_list)
-            lines.append(
-                f"- {review.get('backend')} / {review.get('reviewer')} ({rubrics}): {review.get('summary')} [{review.get('disposition')}]"
-            )
-    else:
-        lines.append("- None recorded.")
-    sync_exclusions = [
-        event.data
-        for event in events
-        if event.type == "sync_checkpoint" and event.data.get("excluded_paths")
-    ]
-    if sync_exclusions:
-        lines.extend(["", "## Sync exclusions"])
-        for checkpoint in sync_exclusions:
-            paths = checkpoint.get("excluded_paths", [])
-            path_text = (
-                ", ".join(str(path) for path in paths)
-                if isinstance(paths, list)
-                else str(paths)
-            )
-            lines.append(f"- {path_text}: {checkpoint.get('exclude_reason')}")
-    skips = [event.data for event in events if event.type == "dangerous_skip_added"]
-    if skips:
-        lines.extend(["", "## Dangerous skips"])
-        for skip in skips:
-            lines.append(f"- {skip.get('check')}: {skip.get('reason')}")
-    return "\n".join(lines) + "\n"
 
 
 def changed_paths(root: Path) -> list[str]:
@@ -1082,66 +1000,15 @@ def changed_paths(root: Path) -> list[str]:
 def review_prompt(target: Path, *, no_local_files: bool = False) -> ReviewPromptResult:
     state = ensure_state(target, no_local_files=no_local_files)
     work_dir = require_work(state)
-    events = read_events(work_dir)
-    evidence = read_evidence(work_dir)
-    lines = [
-        "You are an independent AI/tool reviewer or fresh-context subagent reviewer for this HK lifecycle work.",
-        "Do not rely on the implementation agent's self-review; review independently.",
-        "Preferred review is a separate AI/tool reviewer, ideally a different model/runtime or context.",
-        "Minimum fallback is a fresh-context subagent review. Implementation-agent self-review does not count.",
-        "If your harness has a fresh-context review mechanism, dispatch this prompt to that reviewer now.",
-        "",
-        f"Work: {work_dir.name}",
-        f"Target: {state.target_root}",
-        f"Branch: {git_branch(state.target_root)}",
-        "",
-        "Plan:",
-    ]
-    lines.extend(
-        [f"- {item}" for item in notes_by_kind(events, "plan")] or ["- None recorded."]
+    prompt = render_review_prompt(
+        work_id=work_dir.name,
+        target_root=str(state.target_root),
+        branch=git_branch(state.target_root),
+        events=read_events(work_dir),
+        evidence=read_evidence(work_dir),
+        changed_paths=changed_paths(state.target_root),
     )
-    lines.extend(["", "Context:"])
-    lines.extend(
-        [f"- {item}" for item in notes_by_kinds(events, ("context", "background"))]
-        or ["- None recorded."]
-    )
-    lines.extend(["", "Decisions and spec reflection:"])
-    lines.extend(
-        [f"- {item}" for item in notes_by_kind(events, "decision")]
-        or ["- None recorded."]
-    )
-    for item in notes_by_kind(events, "spec-impact"):
-        lines.append(f"  - Spec: {item}")
-    lines.extend(["", "Validation evidence:"])
-    if evidence:
-        for record in evidence:
-            lines.append(
-                f"- {record.status}: `{record.command_display}` — {record.why or 'no rationale'}"
-            )
-    else:
-        lines.append("- None recorded.")
-    lines.extend(["", "Changed paths:"])
-    lines.extend(
-        [f"- {path}" for path in changed_paths(state.target_root)] or ["- none"]
-    )
-    lines.extend(
-        [
-            "",
-            "Review task:",
-            "1. Inspect the changed files and relevant tests.",
-            "2. Check correctness, missed edge cases, docs/spec impact, validation adequacy, and HK handoff quality.",
-            "3. Return blocking findings, non-blocking findings, and final disposition.",
-            "4. If accepted, the implementation agent must record you with `hk review add --backend subagent --reviewer reviewer-fresh-context --rubric core-quality --summary '...'`.",
-            "",
-            "Dispatch hint for implementation agents:",
-            "- If you have a fresh-context review mechanism, send this whole prompt to it now.",
-            "- Examples: Pi `subagent` tool; Claude Code `Agent` tool (legacy `Task`); Codex via Shell tool running `codex review --uncommitted`.",
-            "- Do not answer this prompt yourself as the implementation agent.",
-            "- After review tooling runs, re-run `hk status`; review tools may create agent-local state that must be removed or handled with `hk sync --exclude PATH --reason ...`.",
-            "- If no independent AI/tool or fresh-context subagent is available, record `hk dangerously-skip review --reason ...`.",
-        ]
-    )
-    return ReviewPromptResult(work_id=work_dir.name, prompt="\n".join(lines) + "\n")
+    return ReviewPromptResult(work_id=work_dir.name, prompt=prompt)
 
 
 def add_review(
@@ -1316,20 +1183,7 @@ def materialize_work(target: Path, *, no_local_files: bool = False) -> HandoffRe
     work_dir = require_work(state)
     events = read_events(work_dir)
     views = work_dir / "views"
-    views.mkdir(exist_ok=True)
-    for filename, kinds, title in (
-        ("plan.md", ("plan",), "Plan"),
-        ("learning-log.md", ("learning",), "Learning Log"),
-        ("decisions.md", ("decision",), "Decisions"),
-        ("context.md", ("context", "background"), "Context"),
-        ("background.md", ("context", "background"), "Context"),
-        ("gaps.md", ("gap",), "Gaps"),
-    ):
-        items = notes_by_kinds(events, kinds)
-        content = f"# {title}\n\n" + "\n".join(f"- {item}" for item in items)
-        if not items:
-            content += "None recorded."
-        (views / filename).write_text(content + "\n")
+    write_note_views(views, events)
     handoff = render_handoff(work_dir, state)
     path = views / "handoff.md"
     path.write_text(handoff)

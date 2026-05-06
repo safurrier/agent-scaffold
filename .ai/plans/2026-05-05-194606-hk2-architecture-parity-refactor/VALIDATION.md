@@ -118,6 +118,29 @@ uv run pytest tests/unit/test_hk2_capture_adapters.py tests/unit/test_hk2_readin
 
 Result: `83 passed, 2 xfailed`.
 
+### 2026-05-05 — Chunk 7 rendering Module
+
+```bash
+uv run ruff check --fix src/harness_toolkit/kit/rendering src/harness_toolkit/kit/local.py tests/unit/test_hk2_rendering_parity.py
+uv run ruff format src/harness_toolkit/kit/rendering src/harness_toolkit/kit/local.py tests/unit/test_hk2_rendering_parity.py
+uv run ty check src/harness_toolkit/kit/rendering src/harness_toolkit/kit/local.py tests/unit/test_hk2_rendering_parity.py
+uv run pytest tests/unit/test_hk2_rendering_parity.py tests/unit/test_hk2_lifecycle_parity.py tests/e2e/test_hk2_cli_parity.py tests/unit/test_harness_kit_2.py -q
+```
+
+Result: `48 passed, 2 xfailed`.
+
+```bash
+uv run pytest tests/unit/test_hk2_rendering_parity.py tests/unit/test_hk2_capture_adapters.py tests/unit/test_hk2_readiness_policy.py tests/unit/test_hk2_ledger_events.py tests/unit/test_repo_state_resolution.py tests/unit/test_hk2_lifecycle_parity.py tests/e2e/test_hk2_cli_parity.py tests/unit/test_harness_kit_2.py tests/unit/test_portable_workflow.py tests/e2e/test_harness_kit_rollout.py -q
+```
+
+Result: `83 passed, 2 xfailed`.
+
+```bash
+mise run check
+```
+
+Result: `797 passed, 2 xfailed`.
+
 ## Planned final gates
 
 ```bash

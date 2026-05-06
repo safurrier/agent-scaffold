@@ -59,15 +59,15 @@ description: >
 - [x] Add fake-adapter tests for pass/fail/no-log/raw-log behavior.
 - [x] Preserve CLI `hk validate` / `hk capture` behavior.
 - [x] Run focused parity gate.
-- [ ] Commit chunk 6.
+- [x] Commit chunk 6.
 
 ## Chunk 7: Rendering Module
 
-- [ ] Move handoff rendering to focused rendering Module.
-- [ ] Move review prompt rendering to focused rendering Module.
-- [ ] Move materialized view generation out of lifecycle state code.
-- [ ] Add/refresh normalized rendering parity tests.
-- [ ] Run focused parity gate plus `mise run check`.
+- [x] Move handoff rendering to focused rendering Module.
+- [x] Move review prompt rendering to focused rendering Module.
+- [x] Move materialized view generation out of lifecycle state code.
+- [x] Add/refresh normalized rendering parity tests.
+- [x] Run focused parity gate plus `mise run check`.
 - [ ] Commit chunk 7.
 
 ## Chunk 8: Delete Legacy HK1 Plan-Artifact Commands
