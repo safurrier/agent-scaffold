@@ -141,6 +141,14 @@ def test_init_work_note_materialize_keep_local_state_ignored(tmp_path: Path) -> 
     assert _git_status(target) == ""
 
 
+def test_init_requires_git_repo(tmp_path: Path) -> None:
+    target = tmp_path / "not-a-repo"
+    target.mkdir()
+
+    with pytest.raises(LocalWorkflowError, match="not inside a git repository"):
+        init_state(target)
+
+
 def test_external_state_creates_no_checkout_files(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -229,6 +237,17 @@ def test_git_diff_hash_streams_untracked_file_content(
     assert first.startswith("sha256:")
     assert second.startswith("sha256:")
     assert second != first
+
+
+def test_malformed_ledger_jsonl_fails_loudly(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    work = create_work(target, "bad-ledger")
+    Path(work.work_dir, "events.jsonl").write_text("{not-json}\n")
+
+    with pytest.raises(LocalWorkflowError, match="Malformed ledger JSONL"):
+        add_note(target, kind="learning", text="This should not append.")
 
 
 def test_capture_records_redacted_success_and_failed_command(tmp_path: Path) -> None:
@@ -541,6 +560,38 @@ def test_sync_exclude_rejects_missing_reason_and_absent_path(tmp_path: Path) -> 
         sync_checkpoint(target, exclude_paths=(".missing",), reason="Nope.")
 
 
+@pytest.mark.parametrize("exclude_path", (".", "../outside", ":(glob)*", "*.py"))
+def test_sync_exclude_rejects_broad_or_pathspec_paths(
+    tmp_path: Path, exclude_path: str
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "exclude-pathspec")
+
+    with pytest.raises(LocalWorkflowError, match="sync --exclude"):
+        sync_checkpoint(
+            target,
+            exclude_paths=(exclude_path,),
+            reason="Should not be accepted.",
+        )
+
+
+def test_sync_exclude_rejects_tracked_source_paths(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "exclude-tracked")
+    (target / "README.md").write_text("# modified\n")
+
+    with pytest.raises(LocalWorkflowError, match="only supports untracked"):
+        sync_checkpoint(
+            target,
+            exclude_paths=("README.md",),
+            reason="Tracked source changes must not be hidden.",
+        )
+
+
 def test_sync_exclude_does_not_hide_source_changes_after_checkpoint(
     tmp_path: Path,
 ) -> None:
@@ -710,6 +761,22 @@ def test_cli_spec_outline_json_is_parseable(tmp_path: Path) -> None:
     assert "# Local Project Specification" in payload["headings"]
 
 
+def test_cli_spec_promote_dry_run_json_is_parseable(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    assert _run_hk("init", "--target", str(target), "--json").returncode == 0
+    assert (
+        _run_hk("spec", "init", "--local", "--target", str(target), "--json").returncode
+        == 0
+    )
+
+    result = _run_hk("spec", "promote", "--dry-run", "--target", str(target), "--json")
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert "Would write local spec" in payload["preview"]
+
+
 def test_cli_handoff_rejects_invalid_format(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -722,6 +789,24 @@ def test_cli_handoff_rejects_invalid_format(tmp_path: Path) -> None:
     result = _run_hk("handoff", "--target", str(target), "--format", "xml")
 
     assert result.returncode != 0
+
+
+def test_cli_handoff_pr_format_renders_pr_body(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    assert (
+        _run_hk(
+            "start", "handoff-pr", "--target", str(target), "--plan", "Ship it"
+        ).returncode
+        == 0
+    )
+
+    result = _run_hk("handoff", "--target", str(target), "--format", "pr")
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.startswith("## Summary")
+    assert "## Validation" in result.stdout
+    assert "# Handoff" not in result.stdout
 
 
 def test_cli_note_from_file_records_plan_note(tmp_path: Path) -> None:

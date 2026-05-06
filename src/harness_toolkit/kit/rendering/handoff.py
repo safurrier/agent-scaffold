@@ -11,6 +11,54 @@ from harness_toolkit.kit.readiness.policy import (
 )
 
 
+def render_handoff_pr_markdown(
+    *,
+    work_id: str,
+    branch: str,
+    git_sha: str,
+    dirty: bool,
+    sync_status: str,
+    events: list[EventRecord],
+    evidence: list[EvidenceRecord],
+    readiness: ReadyResult,
+) -> str:
+    plan_items = notes_by_kind(events, "plan")
+    decision_items = notes_by_kind(events, "decision")
+    learning_items = notes_by_kind(events, "learning")
+    gap_items = notes_by_kind(events, "gap")
+    lines = [
+        "## Summary",
+        f"- Work: `{work_id}` on `{branch}` at `{git_sha}`",
+        f"- Readiness: `{readiness.status}`; sync: `{sync_status}`; dirty: `{str(dirty).lower()}`",
+    ]
+    lines.extend(
+        [f"- {item}" for item in plan_items]
+        or ["- See commit history for implementation details."]
+    )
+    if decision_items:
+        lines.extend(["", "## Decisions", *[f"- {item}" for item in decision_items]])
+    if learning_items or gap_items:
+        lines.append("")
+        lines.append("## Notes for reviewers")
+        lines.extend([f"- Learning: {item}" for item in learning_items])
+        lines.extend([f"- Gap: {item}" for item in gap_items])
+    lines.extend(["", "## Validation"])
+    if evidence:
+        for record in evidence:
+            why = f" — {record.why}" if record.why else ""
+            lines.append(
+                f"- `{record.command_display}`: {record.status} (exit {record.exit_code}){why}"
+            )
+    else:
+        lines.append("- No validation evidence recorded in HK.")
+    if not readiness.ready:
+        lines.extend(["", "## Open readiness checks"])
+        for check in readiness.checks:
+            if check.status != "pass":
+                lines.append(f"- {check.id}: {check.message}")
+    return "\n".join(lines) + "\n"
+
+
 def render_handoff_markdown(
     *,
     work_id: str,

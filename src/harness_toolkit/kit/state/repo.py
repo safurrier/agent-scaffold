@@ -27,7 +27,10 @@ def git_root(path: Path) -> Path:
         text=True,
     )
     if result.returncode != 0:
-        return path.resolve()
+        detail = result.stderr.strip() or "not a git repository"
+        raise RepoStateError(
+            f"target is not inside a git repository: {path} ({detail})"
+        )
     return Path(result.stdout.strip()).resolve()
 
 

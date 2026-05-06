@@ -71,6 +71,7 @@ class DangerousSkipRequest(TargetRequest):
 @dataclass(frozen=True)
 class HandoffRequest(TargetRequest):
     output_path: Path | None = None
+    format: Literal["markdown", "pr", "json"] = "markdown"
 
 
 class LifecycleApp:
@@ -171,6 +172,7 @@ class LifecycleApp:
             request.target,
             output_path=request.output_path,
             no_local_files=request.no_local_files,
+            format=request.format,
         )
 
     def spec_init(self, request: TargetRequest) -> local.SpecResult:

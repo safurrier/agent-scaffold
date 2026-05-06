@@ -1167,11 +1167,13 @@ def handoff(
     json: bool = False,
 ) -> None:
     """Render a conservative handoff from the active work ledger."""
-    _ = format
     try:
         result = lifecycle_app.handoff(
             HandoffRequest(
-                target=target, no_local_files=no_local_files, output_path=write
+                target=target,
+                no_local_files=no_local_files,
+                output_path=write,
+                format=format,
             )
         )
     except LocalWorkflowError as e:
@@ -1249,16 +1251,20 @@ def spec_promote(
     dry_run: bool = False,
     target: Path = Path("."),
     no_local_files: bool = False,
+    json: bool = False,
 ) -> None:
     """Preview promoting a local draft SPEC into the target repo."""
     if not dry_run:
         print_error("spec promote currently requires --dry-run")
         raise SystemExit(1)
     try:
-        print(
-            lifecycle_app.spec_promote_dry_run(TargetRequest(target, no_local_files)),
-            end="",
+        preview = lifecycle_app.spec_promote_dry_run(
+            TargetRequest(target, no_local_files)
         )
+        if json:
+            print(json_dump_object({"preview": preview}))
+            return
+        print(preview, end="")
     except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e

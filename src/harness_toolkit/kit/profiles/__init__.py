@@ -31,6 +31,9 @@ from harness_toolkit.kit.profiles.models import (
     TargetBinding,
     WorkflowProfile,
 )
+from harness_toolkit.kit.profiles.resolution import (
+    resolve_profile as resolve_target_profile,
+)
 from harness_toolkit.names import KIT_COMMAND
 
 
@@ -75,47 +78,6 @@ class ProfileCatalog:
     def template(self, name: str, *, target: Path, preset: str = "generic") -> str:
         return profile_template(name, target=target, preset=preset)
 
-
-GENERIC_INSTRUCTIONS = f"""Use this profile when a repo has no more specific built-in or custom profile.
-
-Before choosing generic, run `{KIT_COMMAND} profile list --target <target> --json`
-and check whether a module, repo, language, or task-runner profile matches the
-checkout. Inspect the repo's own AGENTS.md, README, and docs for validation
-commands. If the repo has adopted harness-scaffold or a similar task contract,
-prefer its documented fast and heavy gates. Otherwise run the repo-native fast
-gate directly and record the exact command/result with `hk validate --why`.
-"""
-
-PYTHON_INSTRUCTIONS = """Use this profile for Python projects.
-
-Prefer the repository's documented task runner when one exists. Common fast loops
-are `uv run pytest`, `uv run ruff check .`, and `uv run ty check` or the repo's
-configured type checker. Run commands directly and record exact command/result
-evidence with `hk validate --why`.
-"""
-
-GO_INSTRUCTIONS = """Use this profile for Go projects.
-
-Prefer the repository's documented task runner when one exists. Common fast loops
-are `go test ./...`, `go vet ./...`, and the repo's formatter/linter. Run commands
-directly and record exact command/result evidence with `hk validate --why`.
-"""
-
-RUST_INSTRUCTIONS = """Use this profile for Rust projects.
-
-Prefer the repository's documented task runner when one exists. Common fast loops
-are `cargo test`, `cargo check`, `cargo clippy`, and `cargo fmt --check`. Run
-commands directly and record exact command/result evidence with `hk validate --why`.
-"""
-
-RUST_MISE_INSTRUCTIONS = f"""Use this profile for Rust projects that expose a mise task contract.
-
-Prefer `mise run check` as the fast local gate and `mise run verify` when the
-change needs heavier confidence. Run commands directly and record exact
-command/result evidence with `hk validate --why`. Do not assume a repo-native `mise run
-sync-check` exists; for HK 2 lifecycle handoff state, use `{KIT_COMMAND} sync`,
-`{KIT_COMMAND} ready`, and `{KIT_COMMAND} handoff`.
-"""
 
 PROFILE_SELECTION_GUIDANCE = """Choose the closest available profile yourself unless user config explicitly resolves one; the CLI does not use heuristic auto-selection.
 
@@ -493,9 +455,7 @@ def resolve_profile(
     catalog: dict[str, LoadedProfile] | None = None,
     config: HarnessConfig | None = None,
 ) -> ProfileResolution:
-    from harness_toolkit.kit.profiles.resolution import resolve_profile as resolve
-
-    return resolve(target, catalog=catalog, config=config)
+    return resolve_target_profile(target, catalog=catalog, config=config)
 
 
 def _toml_string(value: str) -> str:

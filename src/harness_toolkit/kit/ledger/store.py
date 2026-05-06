@@ -11,6 +11,10 @@ from typing import cast
 from harness_toolkit.kit.ledger.models import EventRecord, EvidenceRecord
 
 
+class LedgerStoreError(RuntimeError):
+    """Raised when persisted ledger JSONL cannot be read safely."""
+
+
 def utc_now() -> str:
     return datetime.now(UTC).isoformat(timespec="seconds")
 
@@ -19,13 +23,15 @@ def next_seq(events_path: Path) -> int:
     if not events_path.exists():
         return 1
     seq = 0
-    for line in events_path.read_text().splitlines():
+    for line_number, line in enumerate(events_path.read_text().splitlines(), start=1):
         if not line.strip():
             continue
         try:
             row = json.loads(line)
-        except json.JSONDecodeError:
-            continue
+        except json.JSONDecodeError as e:
+            raise LedgerStoreError(
+                f"Malformed ledger JSONL in {events_path} at line {line_number}: {e.msg}"
+            ) from e
         value = row.get("seq")
         if isinstance(value, int):
             seq = max(seq, value)
@@ -59,10 +65,15 @@ def read_events(work_dir: Path) -> list[EventRecord]:
     path = work_dir / "events.jsonl"
     if not path.exists():
         return events
-    for line in path.read_text().splitlines():
+    for line_number, line in enumerate(path.read_text().splitlines(), start=1):
         if not line.strip():
             continue
-        data = json.loads(line)
+        try:
+            data = json.loads(line)
+        except json.JSONDecodeError as e:
+            raise LedgerStoreError(
+                f"Malformed ledger JSONL in {path} at line {line_number}: {e.msg}"
+            ) from e
         events.append(
             EventRecord(
                 schema_version=int(data["schema_version"]),
@@ -123,8 +134,14 @@ def read_evidence(work_dir: Path) -> list[EvidenceRecord]:
     path = work_dir / "evidence.jsonl"
     if not path.exists():
         return records
-    for line in path.read_text().splitlines():
+    for line_number, line in enumerate(path.read_text().splitlines(), start=1):
         if not line.strip():
             continue
-        records.append(parse_evidence(json.loads(line)))
+        try:
+            data = json.loads(line)
+        except json.JSONDecodeError as e:
+            raise LedgerStoreError(
+                f"Malformed evidence JSONL in {path} at line {line_number}: {e.msg}"
+            ) from e
+        records.append(parse_evidence(data))
     return records

@@ -24,6 +24,9 @@ from harness_toolkit.kit.capture.transcripts import transcript_path
 from harness_toolkit.kit.ledger.events import append_lifecycle_event
 from harness_toolkit.kit.ledger.models import EventRecord, EvidenceRecord
 from harness_toolkit.kit.ledger.store import (
+    LedgerStoreError,
+)
+from harness_toolkit.kit.ledger.store import (
     next_seq as ledger_next_seq,
 )
 from harness_toolkit.kit.ledger.store import (
@@ -44,7 +47,10 @@ from harness_toolkit.kit.readiness.policy import (
 from harness_toolkit.kit.readiness.policy import (
     lifecycle_phase as policy_lifecycle_phase,
 )
-from harness_toolkit.kit.rendering.handoff import render_handoff_markdown
+from harness_toolkit.kit.rendering.handoff import (
+    render_handoff_markdown,
+    render_handoff_pr_markdown,
+)
 from harness_toolkit.kit.rendering.materialize import write_note_views
 from harness_toolkit.kit.rendering.review_prompt import render_review_prompt
 from harness_toolkit.kit.specs.models import SpecOutline, SpecResult
@@ -471,15 +477,21 @@ def validate_slug(slug: str) -> str:
 
 
 def next_seq(events_path: Path) -> int:
-    return ledger_next_seq(events_path)
+    try:
+        return ledger_next_seq(events_path)
+    except LedgerStoreError as e:
+        raise LocalWorkflowError(str(e)) from e
 
 
 def append_event(
     work_dir: Path, event_type: str, data: dict[str, object]
 ) -> EventRecord:
-    return append_lifecycle_event(
-        work_dir, event_type, data, schema_version=STATE_SCHEMA_VERSION
-    )
+    try:
+        return append_lifecycle_event(
+            work_dir, event_type, data, schema_version=STATE_SCHEMA_VERSION
+        )
+    except LedgerStoreError as e:
+        raise LocalWorkflowError(str(e)) from e
 
 
 def create_work(
@@ -536,11 +548,17 @@ def add_note(
 
 
 def read_events(work_dir: Path) -> list[EventRecord]:
-    return ledger_read_events(work_dir)
+    try:
+        return ledger_read_events(work_dir)
+    except LedgerStoreError as e:
+        raise LocalWorkflowError(str(e)) from e
 
 
 def read_evidence(work_dir: Path) -> list[EvidenceRecord]:
-    return ledger_read_evidence(work_dir)
+    try:
+        return ledger_read_evidence(work_dir)
+    except LedgerStoreError as e:
+        raise LocalWorkflowError(str(e)) from e
 
 
 def int_from_event_data(data: dict[str, object], key: str) -> int:
@@ -569,10 +587,24 @@ def latest_sync_relevant_seq(events: list[EventRecord]) -> int:
 def normalize_exclude_paths(exclude_paths: tuple[str | Path, ...]) -> tuple[str, ...]:
     normalized: list[str] = []
     for path in exclude_paths:
-        text = str(path).strip()
+        text = str(path).strip().replace("\\", "/")
         if not text:
-            continue
-        normalized.append(text.rstrip("/"))
+            raise LocalWorkflowError("sync --exclude path cannot be empty")
+        text = text.rstrip("/")
+        if text in {"", "."}:
+            raise LocalWorkflowError(
+                "sync --exclude cannot exclude the repository root"
+            )
+        candidate = Path(text)
+        if candidate.is_absolute():
+            raise LocalWorkflowError("sync --exclude path must be relative")
+        if ".." in candidate.parts:
+            raise LocalWorkflowError("sync --exclude path cannot contain '..'")
+        if text.startswith(":") or any(char in text for char in "*?["):
+            raise LocalWorkflowError(
+                "sync --exclude path must be a literal path, not a git pathspec"
+            )
+        normalized.append(text)
     return tuple(dict.fromkeys(normalized))
 
 
@@ -628,11 +660,19 @@ def sync_checkpoint(
     if normalized_excludes and not reason.strip():
         raise LocalWorkflowError("sync --exclude requires --reason")
     for candidate in normalized_excludes:
-        if not git_status_for_path(state.target_root, candidate).strip():
+        status = git_status_for_path(state.target_root, candidate).strip()
+        if not status:
             raise LocalWorkflowError(
                 f"sync --exclude path is not present in git status: {candidate}"
             )
+        if any(not line.startswith("?? ") for line in status.splitlines()):
+            raise LocalWorkflowError(
+                "sync --exclude only supports untracked local-only paths; "
+                f"refusing tracked or staged path: {candidate}"
+            )
     current_hash = git_diff_hash(state.target_root, normalized_excludes)
+    if not current_hash:
+        raise LocalWorkflowError("could not compute git diff hash for sync checkpoint")
     sync_events = [event for event in events if event.type == "sync_checkpoint"]
     guidance = [
         "Plan: did you record the agreed implementation intent?",
@@ -653,11 +693,13 @@ def sync_checkpoint(
             )
         latest_sync = sync_events[-1]
         synced_seq = int_from_event_data(latest_sync.data, "event_seq")
-        checkpoint_excludes = string_list_from_event_data(
-            latest_sync.data, "excluded_paths"
+        checkpoint_excludes = normalize_exclude_paths(
+            string_list_from_event_data(latest_sync.data, "excluded_paths")
         )
         synced_hash = str(latest_sync.data.get("diff_hash", ""))
         current_hash = git_diff_hash(state.target_root, checkpoint_excludes)
+        if not current_hash:
+            raise LocalWorkflowError("could not compute git diff hash for sync check")
         synced = synced_seq >= latest_seq and synced_hash == current_hash
         if not synced and skip is not None:
             return SyncResult(
@@ -855,8 +897,8 @@ def sync_status_for(state: LocalState) -> str:
     if sync_events:
         latest_sync = sync_events[-1]
         synced_seq = int_from_event_data(latest_sync.data, "event_seq")
-        checkpoint_excludes = string_list_from_event_data(
-            latest_sync.data, "excluded_paths"
+        checkpoint_excludes = normalize_exclude_paths(
+            string_list_from_event_data(latest_sync.data, "excluded_paths")
         )
         if synced_seq >= latest_sync_relevant_seq(events) and str(
             latest_sync.data.get("diff_hash", "")
@@ -949,10 +991,13 @@ def brief_markdown(value: Brief) -> str:
     return "\n".join(lines) + "\n"
 
 
-def render_handoff(work_dir: Path, state: LocalState) -> str:
+def render_handoff(
+    work_dir: Path, state: LocalState, *, format: HandoffFormat = "markdown"
+) -> str:
     events = read_events(work_dir)
     evidence = read_evidence(work_dir)
-    return render_handoff_markdown(
+    render = render_handoff_pr_markdown if format == "pr" else render_handoff_markdown
+    return render(
         work_id=work_dir.name,
         branch=git_branch(state.target_root),
         git_sha=git_sha(state.target_root),
@@ -1176,11 +1221,15 @@ def materialize_work(target: Path, *, no_local_files: bool = False) -> HandoffRe
 
 
 def handoff(
-    target: Path, *, output_path: Path | None = None, no_local_files: bool = False
+    target: Path,
+    *,
+    output_path: Path | None = None,
+    no_local_files: bool = False,
+    format: HandoffFormat = "markdown",
 ) -> HandoffResult:
     state = ensure_state(target, no_local_files=no_local_files)
     work_dir = require_work(state)
-    content = render_handoff(work_dir, state)
+    content = render_handoff(work_dir, state, format=format)
     path_text = ""
     if output_path is not None:
         output_path.parent.mkdir(parents=True, exist_ok=True)
