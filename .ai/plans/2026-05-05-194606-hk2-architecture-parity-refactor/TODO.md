@@ -43,14 +43,14 @@ description: >
 - [x] Keep JSONL on-disk compatibility.
 - [x] Move consumers away from raw dict filtering where practical.
 - [x] Run focused parity gate plus `mise run check`.
-- [ ] Commit chunk 4.
+- [x] Commit chunk 4.
 
 ## Chunk 5: Readiness Policy Module
 
-- [ ] Extract readiness diagnostics and binary policy.
-- [ ] Move human-facing wording into message/presentation layer.
-- [ ] Ensure `hk ready`, `hk status`, and handoff use the same diagnostics.
-- [ ] Run focused parity gate.
+- [x] Extract readiness diagnostics and binary policy.
+- [x] Move human-facing wording into message/presentation layer.
+- [x] Ensure `hk ready`, `hk status`, and handoff use the same diagnostics.
+- [x] Run focused parity gate.
 - [ ] Commit chunk 5.
 
 ## Chunk 6: Command Capture Adapters
