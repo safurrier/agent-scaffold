@@ -83,6 +83,22 @@ class HandoffRequest(TargetRequest):
     format: Literal["markdown", "pr"] = "markdown"
 
 
+def _work_started_slug(work_dir: Path) -> str:
+    for event in local.read_events(work_dir):
+        if event.type == "work_started":
+            return str(event.data.get("slug", ""))
+    return ""
+
+
+def _note_exists(work_dir: Path, *, kind: str, text: str) -> bool:
+    return any(
+        event.type == "note_added"
+        and event.data.get("kind") == kind
+        and event.data.get("text") == text
+        for event in local.read_events(work_dir)
+    )
+
+
 class LifecycleApp:
     """Deep Harness Kit lifecycle Module over local state primitives."""
 
@@ -90,9 +106,33 @@ class LifecycleApp:
         return local.init_state(request.target, no_local_files=request.no_local_files)
 
     def start(self, request: StartRequest) -> local.WorkResult:
+        slug = local.validate_slug(request.slug)
+        state = local.ensure_state(
+            request.target, no_local_files=request.no_local_files
+        )
+        active_work = local.active_work_dir(state)
+        if active_work is not None and _work_started_slug(active_work) == slug:
+            for kind, text in (
+                ("plan", request.plan.strip()),
+                ("context", request.context.strip()),
+            ):
+                if text and not _note_exists(active_work, kind=kind, text=text):
+                    local.add_note(
+                        request.target,
+                        kind=kind,
+                        text=text,
+                        no_local_files=request.no_local_files,
+                    )
+            return local.WorkResult(
+                work_id=active_work.name,
+                work_dir=str(active_work),
+                state_dir=str(state.state_dir),
+                resumed=True,
+            )
+
         result = local.create_work(
             request.target,
-            request.slug,
+            slug,
             no_local_files=request.no_local_files,
         )
         if request.plan.strip():

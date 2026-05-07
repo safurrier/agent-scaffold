@@ -165,6 +165,10 @@ hk ready
 hk handoff
 ```
 
+If an agent retries `hk start` with the same slug while that work item is still
+active, HK resumes the active work item instead of creating duplicate retry
+state. Use a new slug only when you intentionally want a separate work item.
+
 `hk status` is the journey guide. It tells the agent when to record context,
 decisions/spec impact, review, sync, or explicit dangerous skips.
 
@@ -241,7 +245,7 @@ persistent sync ignore config are deferred.
 |---|---|
 | `hk brief` | Print a read-only repo brief without choosing validation commands |
 | `hk init` | Initialize ignored local Harness Kit state |
-| `hk start <slug> --plan <text>` | Start a lifecycle work item and optionally seed context/plan records |
+| `hk start <slug> --plan <text>` | Start a lifecycle work item and optionally seed context/plan records; same-slug retries resume the active work item |
 | `hk work start` | Advanced compatibility surface for ledger-backed local work units |
 | `hk note` | Advanced: append typed plan, background, learning, decision, gap, or spec-impact notes |
 | `hk status` | Show active work, readiness checks, and next-action guidance |

@@ -1,0 +1,16 @@
+slug: hk-cli-help-idempotency-polish
+branch: feat/harness-kit-2-ledger-assistant
+created: 2026-05-07
+pr: 12
+status: complete
+source: user-request
+contract_change: implementation_only
+decision_record: none
+review_mode: external_required
+review_backend: builtin reviewer subagent
+review_rubrics:
+  - core-quality
+evidence_required:
+  - commands
+continues_from: 2026-05-07-132317-hk-agent-friendly-cli-polish
+supersedes:

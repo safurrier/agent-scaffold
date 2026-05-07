@@ -146,6 +146,7 @@ class WorkResult:
     work_id: str
     work_dir: str
     state_dir: str
+    resumed: bool = False
 
 
 @dataclass(frozen=True)

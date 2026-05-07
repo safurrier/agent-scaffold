@@ -82,6 +82,25 @@ def test_workflow_help_includes_agent_copyable_examples() -> None:
     assert "hk legacy" not in result.stdout
 
 
+def test_root_help_groups_primary_lifecycle_before_advanced_commands() -> None:
+    result = _run_workflow("--help")
+
+    assert result.returncode == 0, result.stderr
+    assert "1. Primary lifecycle" in result.stdout
+    assert "4. Advanced/local state" in result.stdout
+    assert result.stdout.index("1. Primary lifecycle") < result.stdout.index(
+        "4. Advanced/local state"
+    )
+
+
+def test_help_examples_preserve_short_copyable_command_lines() -> None:
+    result = _run_workflow("validate", "--help")
+
+    assert result.returncode == 0, result.stderr
+    assert "hk validate --why 'Focused test' -- uv run pytest -q" in result.stdout
+    assert "tests/test_example.py" not in result.stdout
+
+
 def test_harness_kit_long_command_is_available() -> None:
     result = _run_workflow("--help", command="harness-kit")
 
@@ -183,6 +202,68 @@ def test_profile_flags_after_validate_separator_are_native_command_args() -> Non
         )
         is None
     )
+
+
+def test_start_retries_resume_active_work_with_same_slug(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+
+    first = _run_workflow(
+        "start",
+        "demo-work",
+        "--plan",
+        "Adopted implementation intent",
+        "--context",
+        "Important context",
+        "--target",
+        str(repo),
+        "--json",
+    )
+    second = _run_workflow(
+        "start",
+        "demo-work",
+        "--plan",
+        "Adopted implementation intent",
+        "--context",
+        "Important context",
+        "--target",
+        str(repo),
+        "--json",
+    )
+
+    assert first.returncode == 0, first.stderr
+    assert second.returncode == 0, second.stderr
+    first_payload = json.loads(first.stdout)
+    second_payload = json.loads(second.stdout)
+    assert first_payload["work_id"] == second_payload["work_id"]
+    assert first_payload["resumed"] is False
+    assert second_payload["resumed"] is True
+    state_dir = Path(second_payload["state_dir"])
+    work_dirs = list((state_dir / "work").iterdir())
+    assert len(work_dirs) == 1
+    events_path = state_dir / "work" / second_payload["work_id"] / "events.jsonl"
+    notes = [
+        json.loads(line)
+        for line in events_path.read_text().splitlines()
+        if line.strip()
+    ]
+    plan_notes = [
+        event
+        for event in notes
+        if event["type"] == "note_added"
+        and event["data"]["kind"] == "plan"
+        and event["data"]["text"] == "Adopted implementation intent"
+    ]
+    context_notes = [
+        event
+        for event in notes
+        if event["type"] == "note_added"
+        and event["data"]["kind"] == "context"
+        and event["data"]["text"] == "Important context"
+    ]
+    assert len(plan_notes) == 1
+    assert len(context_notes) == 1
 
 
 def test_workflow_instructions_profile_implies_repo_scope_for_compatibility() -> None:

@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 from typing import Literal
 
-from cyclopts import App
+from cyclopts import App, Group
 
 from harness_toolkit.kit.app.lifecycle import (
     ArtifactAttachRequest,
@@ -46,20 +46,66 @@ from harness_toolkit.kit.profiles import (
 from harness_toolkit.kit.state.repo import RepoStateError, git_root
 from harness_toolkit.names import KIT_COMMAND
 
+
+def examples(*commands: str, note: str = "") -> str:
+    """Render help examples as a code block so Cyclopts preserves line breaks."""
+    body = "\n".join(commands)
+    rendered = f"Examples:\n\n```bash\n{body}\n```"
+    if note:
+        rendered += f"\n\n{note}"
+    return rendered
+
+
+LIFECYCLE_GROUP = Group("1. Primary lifecycle", help="Start here for normal work.")
+GUIDANCE_GROUP = Group(
+    "2. Guidance and discovery",
+    help="Read-only repo, profile, and instruction helpers.",
+)
+EVIDENCE_GROUP = Group(
+    "3. Evidence, review, and handoff", help="Capture proof and finish handoff."
+)
+ADVANCED_GROUP = Group(
+    "4. Advanced/local state", help="Lower-level inspection and local state helpers."
+)
+
 # Keep this module as the Cyclopts adapter. If command behavior grows beyond
 # argument parsing, output formatting, and error translation, move application
 # operations behind a deeper kit module.
 app = App(
     name=Path(sys.argv[0]).name,
     help="Use the Harness Kit lifecycle in any repo without committing scaffold files.",
+    group_commands=LIFECYCLE_GROUP,
+    help_epilogue=examples(
+        "hk start <slug> --plan 'Adopted implementation intent'",
+        "hk validate --why 'What this proves' -- <native command>",
+        "hk status --target .",
+        "hk ready --target . && hk handoff --target .",
+        note="Run `hk instructions` for AGENTS.md guidance and `hk checks --target . --json` for validation hints.",
+    ),
 )
-profile_app = App(name="profile", help="List, show, and create workflow profiles.")
-work_app = App(name="work", help="Advanced: manage ledger-backed local work units.")
-evidence_app = App(name="evidence", help="Inspect captured evidence; use `list`.")
-spec_app = App(name="spec", help="Manage optional local/external specs.")
-review_app = App(name="review", help="Record external-enough review evidence.")
+profile_app = App(
+    name="profile",
+    help="List, show, and create workflow profiles.",
+    group=GUIDANCE_GROUP,
+)
+work_app = App(
+    name="work",
+    help="Advanced: manage ledger-backed local work units.",
+    group=ADVANCED_GROUP,
+)
+evidence_app = App(
+    name="evidence", help="Inspect captured evidence; use `list`.", group=EVIDENCE_GROUP
+)
+spec_app = App(
+    name="spec", help="Manage optional local/external specs.", group=ADVANCED_GROUP
+)
+review_app = App(
+    name="review", help="Record external-enough review evidence.", group=EVIDENCE_GROUP
+)
 artifact_app = App(
-    name="artifact", help="Attach external files to active Harness Kit work."
+    name="artifact",
+    help="Attach external files to active Harness Kit work.",
+    group=EVIDENCE_GROUP,
 )
 app.command(profile_app, name="profile")
 app.command(work_app, name="work")
@@ -225,13 +271,13 @@ def _preflight_agent_friendly_errors(argv: list[str]) -> None:
 
 
 @app.command(
-    help_epilogue=(
-        "Examples:\n"
-        "  hk instructions\n"
-        "  hk instructions --scope user --json\n"
-        "  hk instructions --scope repo --profile python\n"
-        "  hk instructions --scope repo --profile my-project-api --profiles-dir ~/.config/harness-toolkit/profiles --json"
-    )
+    group=GUIDANCE_GROUP,
+    help_epilogue=examples(
+        "hk instructions",
+        "hk instructions --scope user --json",
+        "hk instructions --scope repo --profile python",
+        "hk instructions --scope repo --profile api --profiles-dir ./profiles --json",
+    ),
 )
 def instructions(
     *,
@@ -283,11 +329,10 @@ def instructions(
 
 @profile_app.command(
     name="list",
-    help_epilogue=(
-        "Examples:\n"
-        "  hk profile list\n"
-        "  hk profile list --target /work/repo --json\n"
-        "  hk profile list --profiles-dir ~/.config/harness-toolkit/profiles --json"
+    help_epilogue=examples(
+        "hk profile list",
+        "hk profile list --target /work/repo --json",
+        "hk profile list --profiles-dir ~/.config/harness-toolkit/profiles --json",
     ),
 )
 def profile_list(
@@ -335,10 +380,9 @@ def profile_list(
 
 @profile_app.command(
     name="resolve",
-    help_epilogue=(
-        "Examples:\n"
-        "  hk profile resolve --target . --json\n"
-        "  HARNESS_KIT_CONFIG=/tmp/harness.toml hk profile resolve --target /work/foreman --json"
+    help_epilogue=examples(
+        "hk profile resolve --target . --json",
+        "HARNESS_KIT_CONFIG=/tmp/h.toml hk profile resolve --target .",
     ),
 )
 def profile_resolve(
@@ -372,10 +416,9 @@ def profile_resolve(
 
 @profile_app.command(
     name="show",
-    help_epilogue=(
-        "Examples:\n"
-        "  hk profile show python\n"
-        "  hk profile show my-project-api --profiles-dir ~/.config/harness-toolkit/profiles --json"
+    help_epilogue=examples(
+        "hk profile show python",
+        "hk profile show api --profiles-dir ./profiles --json",
     ),
 )
 def profile_show(
@@ -428,10 +471,9 @@ def profile_show(
 
 @profile_app.command(
     name="create",
-    help_epilogue=(
-        "Examples:\n"
-        "  hk profile create my-project-api --target my_project/api --preset python --output ~/.config/harness-toolkit/profiles/my-project-api.toml\n"
-        "  hk profile create foreman-root --target /work/foreman --preset rust-mise --stdout"
+    help_epilogue=examples(
+        "hk profile create api --target api --preset python --output /tmp/api.toml",
+        "hk profile create foreman --target . --preset rust-mise --stdout",
     ),
 )
 def profile_create(
@@ -519,12 +561,12 @@ def profile_create(
 
 
 @app.command(
-    help_epilogue=(
-        "Examples:\n"
-        "  hk checks --target /work/my-python-package --json\n"
-        "  hk checks --profile python --target /work/my-python-package --json\n"
-        "  hk checks --profile my-project-api --profiles-dir ~/.config/harness-toolkit/profiles --target /work/repo/my_project/api"
-    )
+    group=GUIDANCE_GROUP,
+    help_epilogue=examples(
+        "hk checks --target /work/my-python-package --json",
+        "hk checks --profile python --target /work/my-python-package --json",
+        "hk checks --profile api --profiles-dir ./profiles --target api --json",
+    ),
 )
 def checks(
     *,
@@ -588,7 +630,8 @@ def checks(
 
 
 @app.command(
-    help_epilogue=("Examples:\n  hk brief --target .\n  hk brief --target . --json\n")
+    group=GUIDANCE_GROUP,
+    help_epilogue=examples("hk brief --target .", "hk brief --target . --json"),
 )
 def brief(
     *,
@@ -612,10 +655,10 @@ def brief(
 
 @app.command(
     name="init",
-    help_epilogue=(
-        "Examples:\n"
-        "  hk init --target . --json\n"
-        "  hk init --target . --no-local-files --json\n"
+    group=ADVANCED_GROUP,
+    help_epilogue=examples(
+        "hk init --target . --json",
+        "hk init --target . --no-local-files --json",
     ),
 )
 def init_command(
@@ -639,12 +682,11 @@ def init_command(
 
 @app.command(
     name="start",
-    help_epilogue=(
-        "Examples:\n"
-        "  hk start my-slice --plan 'Adopted implementation intent'\n"
-        "  hk start my-slice --context 'Relevant constraint or repo fact' --plan 'Adopted implementation intent'\n"
-        "\n"
-        "Slug guidance: use a short human-readable task name. HK adds the timestamp/work ID for chronological ordering."
+    group=LIFECYCLE_GROUP,
+    help_epilogue=examples(
+        "hk start my-slice --plan 'Adopted implementation intent'",
+        "hk start my-slice --context 'Constraint' --plan 'Intent'",
+        note="Slug guidance: use a short human-readable task name. If the active work already has the same slug, `hk start` resumes it instead of creating duplicate retry state.",
     ),
 )
 def start(
@@ -675,6 +717,8 @@ def start(
         return
     print(f"work_id={result.work_id}")
     print(f"work_dir={result.work_dir}")
+    if result.resumed:
+        print("resumed=true")
     if context.strip():
         print(f"context: {context.strip()}")
     if plan.strip():
@@ -693,11 +737,11 @@ def start(
 
 @app.command(
     name="context",
-    help_epilogue=(
-        "Examples:\n"
-        "  hk context 'Relevant constraints, files, or repo facts' --target . --json\n"
-        "  hk context --from-file /tmp/context.md --target . --json\n"
-        "  printf '%s\\n' 'Rich context with `backticks`' | hk context --from-file - --target . --json"
+    group=LIFECYCLE_GROUP,
+    help_epilogue=examples(
+        "hk context 'Relevant constraints, files, or repo facts' --target . --json",
+        "hk context --from-file /tmp/context.md --target . --json",
+        "printf 'Context\\n' | hk context --from-file - --target . --json",
     ),
 )
 def context_command(
@@ -743,7 +787,13 @@ def context_command(
     print(f"context: {result.text}")
 
 
-@work_app.command(name="start")
+@work_app.command(
+    name="start",
+    help_epilogue=examples(
+        "hk work start experiment --target . --json",
+        note="Advanced compatibility surface. Prefer `hk start <slug> --plan ...` for normal lifecycle work.",
+    ),
+)
 def work_start(
     slug: str,
     *,
@@ -764,9 +814,16 @@ def work_start(
         return
     print(f"work_id={result.work_id}")
     print(f"work_dir={result.work_dir}")
+    if result.resumed:
+        print("resumed=true")
 
 
-@work_app.command(name="status")
+@work_app.command(
+    name="status",
+    help_epilogue=examples(
+        "hk work status --target .", "hk work status --target . --json"
+    ),
+)
 def work_status(
     *,
     target: Path = Path("."),
@@ -788,7 +845,10 @@ def work_status(
     print(f"sync_status={result.sync_status}")
 
 
-@work_app.command(name="materialize")
+@work_app.command(
+    name="materialize",
+    help_epilogue=examples("hk work materialize --target . --json"),
+)
 def work_materialize(
     *,
     target: Path = Path("."),
@@ -808,13 +868,13 @@ def work_materialize(
 
 
 @app.command(
-    help_epilogue=(
-        "Examples:\n"
-        "  hk note --kind plan 'Implement the agreed sync/readiness docs update'\n"
-        "  hk note --kind learning 'Auth timeout is owned by session refresh'\n"
-        "  hk note --kind gap 'Full suite not run' --json\n"
-        "  hk note --kind plan --from-file /tmp/plan-summary.md\n"
-    )
+    group=ADVANCED_GROUP,
+    help_epilogue=examples(
+        "hk note --kind plan 'Implement the agreed sync/readiness docs update'",
+        "hk note --kind learning 'Auth timeout is owned by session refresh'",
+        "hk note --kind gap 'Full suite not run' --json",
+        "hk note --kind plan --from-file /tmp/plan-summary.md",
+    ),
 )
 def note(
     text: str = "",
@@ -858,11 +918,11 @@ def note(
 
 @app.command(
     name="decide",
-    help_epilogue=(
-        "Examples:\n"
-        "  hk decide 'Kept API behavior unchanged' --spec-impact none\n"
-        "  hk decide 'Updated lifecycle command shape' --spec-impact updated --spec-ref SPEC.md --spec-ref docs/harness-kit-lifecycle-design.md\n"
-        "  hk decide 'Internal refactor only' --spec-impact not-needed"
+    group=LIFECYCLE_GROUP,
+    help_epilogue=examples(
+        "hk decide 'Kept API behavior unchanged' --spec-impact none",
+        "hk decide 'Updated CLI' --spec-impact updated --spec-ref SPEC.md",
+        "hk decide 'Internal refactor only' --spec-impact not-needed",
     ),
 )
 def decide(
@@ -928,14 +988,13 @@ def decide(
 
 
 @app.command(
-    help_epilogue=(
-        "Examples:\n"
-        "  hk sync --target .\n"
-        "  hk sync --check --target . --json\n"
-        "  hk sync --exclude .pi --reason 'Only local agent session state changed' --target . --json\n"
-        "\n"
-        "Repeat --exclude for multiple explicit paths. Exclusions are one-shot checkpoint evidence, not persisted ignore config."
-    )
+    group=LIFECYCLE_GROUP,
+    help_epilogue=examples(
+        "hk sync --target .",
+        "hk sync --check --target . --json",
+        "hk sync --exclude .pi --reason agent-local --json",
+        note="Repeat --exclude for multiple explicit paths. Exclusions are one-shot checkpoint evidence, not persisted ignore config.",
+    ),
 )
 def sync(
     *,
@@ -973,11 +1032,11 @@ def sync(
 
 
 @app.command(
-    help_epilogue=(
-        "Examples:\n"
-        "  hk validate --why 'Focused regression coverage' -- uv run pytest tests/test_example.py -q\n"
-        "  hk validate --why 'Lint and typecheck gate' --shell 'pnpm run lint && pnpm run typecheck'\n"
-    )
+    group=LIFECYCLE_GROUP,
+    help_epilogue=examples(
+        "hk validate --why 'Focused test' -- uv run pytest -q",
+        "hk validate --why 'Lint/typecheck' --shell 'pnpm lint && pnpm typecheck'",
+    ),
 )
 def validate(
     command: tuple[str, ...] = (),
@@ -1025,11 +1084,11 @@ def validate(
 
 
 @app.command(
-    help_epilogue=(
-        "Examples:\n"
-        "  hk capture --kind test -- uv run pytest tests/test_example.py -q\n"
-        "  hk capture --shell 'pnpm run lint && pnpm run typecheck'\n"
-    )
+    group=ADVANCED_GROUP,
+    help_epilogue=examples(
+        "hk capture --kind test -- uv run pytest -q",
+        "hk capture --shell 'pnpm lint && pnpm typecheck'",
+    ),
 )
 def capture(
     command: tuple[str, ...] = (),
@@ -1073,11 +1132,10 @@ def capture(
 
 @artifact_app.command(
     name="attach",
-    help_epilogue=(
-        "Examples:\n"
-        "  hk artifact attach --path /tmp/session.jsonl --kind agent-session --target . --json\n"
-        "  hk artifact attach --path /tmp/codex-review.md --kind codex-review --label 'Codex review transcript'\n"
-        "  hk artifact attach --path /tmp/large.har --kind browser-har --no-copy --redaction external\n"
+    help_epilogue=examples(
+        "hk artifact attach --path /tmp/session.jsonl --kind agent-session --json",
+        "hk artifact attach --path /tmp/review.md --kind codex-review --label review",
+        "hk artifact attach --path /tmp/large.har --kind browser-har --no-copy",
     ),
 )
 def artifact_attach(
@@ -1117,15 +1175,16 @@ def artifact_attach(
 
 @review_app.command(
     name="add",
-    help_epilogue=(
-        "Examples:\n"
-        "  hk review add --backend subagent --reviewer reviewer-fresh-context --rubric core-quality --summary 'No blocking findings' --target . --json\n"
-        "  hk review add --backend codex --reviewer codex-bug-hunter --rubric bug-hunt --summary 'No blocking findings' --target . --json\n\n"
-        "Review is required by default. Preferred: independent AI/tool reviewer, ideally different model/runtime/context. Minimum fallback: fresh-context subagent.\n"
-        "Implementation-agent self-review does not satisfy readiness. Generate a reviewer prompt with: hk review prompt --target .\n"
-        "If available, dispatch that prompt via your harness: Pi subagent tool, Claude Code Agent/Task tool, or Codex Shell tool running `codex review --uncommitted`. Then record with hk review add and re-run hk status because review tools may create agent-local state.\n"
-        "If no independent AI/tool or fresh-context review is possible, record the risk explicitly:\n"
-        "  hk dangerously-skip review --reason 'no independent/fresh-context reviewer available before handoff' --target . --json"
+    help_epilogue=examples(
+        "hk review add --backend subagent --reviewer fresh --rubric core --summary OK",
+        "hk review add --backend codex --reviewer bug-hunter --rubric bugs --summary OK",
+        "hk dangerously-skip review --reason 'No reviewer available' --json",
+        note=(
+            "Review is required by default. Preferred: independent AI/tool reviewer.\n"
+            "Minimum fallback: fresh-context subagent, e.g. reviewer-fresh-context.\n"
+            "Implementation-agent self-review does not satisfy readiness.\n"
+            "Generate a prompt with `hk review prompt --target .`, dispatch it, then record with `hk review add` and re-run `hk status`."
+        ),
     ),
 )
 def review_add(
@@ -1171,10 +1230,8 @@ def review_add(
 
 @review_app.command(
     name="prompt",
-    help_epilogue=(
-        "Examples:\n"
-        "  hk review prompt --target .\n"
-        "  hk review prompt --target . --json\n"
+    help_epilogue=examples(
+        "hk review prompt --target .", "hk review prompt --target . --json"
     ),
 )
 def review_prompt_command(
@@ -1215,7 +1272,13 @@ def evidence_default(
     raise SystemExit(1)
 
 
-@evidence_app.command(name="list")
+@evidence_app.command(
+    name="list",
+    help_epilogue=examples(
+        "hk evidence list --target .",
+        "hk evidence list --target . --json",
+    ),
+)
 def evidence_list(
     *,
     target: Path = Path("."),
@@ -1241,7 +1304,8 @@ def evidence_list(
 
 @app.command(
     name="ready",
-    help_epilogue=("Examples:\n  hk ready --target .\n  hk ready --target . --json\n"),
+    group=LIFECYCLE_GROUP,
+    help_epilogue=examples("hk ready --target .", "hk ready --target . --json"),
 )
 def ready_command(
     *,
@@ -1267,12 +1331,11 @@ def ready_command(
 
 @app.command(
     name="dangerously-skip",
-    help_epilogue=(
-        "Examples:\n"
-        "  hk dangerously-skip review --reason 'docs-only change; no independent reviewer available' --target . --json\n"
-        "  hk dangerously-skip sync --reason 'Only .pi agent-local state changed after the last checkpoint' --target . --json\n"
-        "\n"
-        "Sync skips are tied to the current diff snapshot; run them as one of the final freshness actions."
+    group=LIFECYCLE_GROUP,
+    help_epilogue=examples(
+        "hk dangerously-skip review --reason 'Docs-only change' --json",
+        "hk dangerously-skip sync --reason 'Only agent-local state changed' --json",
+        note="Sync skips are tied to the current diff snapshot; run them as one of the final freshness actions.",
     ),
 )
 def ready_dangerously_skip(
@@ -1303,7 +1366,11 @@ def ready_dangerously_skip(
     print(f"reason={reason}")
 
 
-@app.command(name="export")
+@app.command(
+    name="export",
+    group=EVIDENCE_GROUP,
+    help_epilogue=examples("hk export --target .", "hk export --target . --json"),
+)
 def export_command(
     *,
     target: Path = Path("."),
@@ -1325,11 +1392,11 @@ def export_command(
 
 
 @app.command(
-    help_epilogue=(
-        "Examples:\n"
-        "  hk handoff --format markdown\n"
-        "  hk handoff --format pr --write /tmp/handoff.md\n"
-    )
+    group=EVIDENCE_GROUP,
+    help_epilogue=examples(
+        "hk handoff --format markdown",
+        "hk handoff --format pr --write /tmp/handoff.md",
+    ),
 )
 def handoff(
     *,
@@ -1358,7 +1425,10 @@ def handoff(
     print(result.content, end="")
 
 
-@spec_app.command(name="init")
+@spec_app.command(
+    name="init",
+    help_epilogue=examples("hk spec init --target . --json"),
+)
 def spec_init(
     *,
     local: bool = False,
@@ -1379,7 +1449,12 @@ def spec_init(
     print(result.spec_path)
 
 
-@spec_app.command(name="status")
+@spec_app.command(
+    name="status",
+    help_epilogue=examples(
+        "hk spec status --target .", "hk spec status --target . --json"
+    ),
+)
 def spec_status(
     *,
     target: Path = Path("."),
@@ -1398,7 +1473,12 @@ def spec_status(
     print(f"{result.source}: {result.spec_path}")
 
 
-@spec_app.command(name="outline")
+@spec_app.command(
+    name="outline",
+    help_epilogue=examples(
+        "hk spec outline --target .", "hk spec outline --target . --json"
+    ),
+)
 def spec_outline(
     *,
     target: Path = Path("."),
@@ -1418,7 +1498,13 @@ def spec_outline(
         print(heading)
 
 
-@spec_app.command(name="promote")
+@spec_app.command(
+    name="promote",
+    help_epilogue=examples(
+        "hk spec promote --dry-run --target .",
+        "hk spec promote --dry-run --target . --json",
+    ),
+)
 def spec_promote(
     *,
     dry_run: bool = False,
@@ -1444,14 +1530,13 @@ def spec_promote(
 
 
 @app.command(
-    help_epilogue=(
-        "Examples:\n"
-        "  hk plan 'Implement lifecycle-first ready checks'\n"
-        "  hk plan --from-file /tmp/adopted-plan.md --json\n"
-        "  hk start my-slice --plan 'Initial implementation intent'\n"
-        "\n"
-        "Use `hk plan` to record/refine the lifecycle plan for active Harness Kit work. Use `hk start --plan` to seed the first plan while starting work."
-    )
+    group=LIFECYCLE_GROUP,
+    help_epilogue=examples(
+        "hk plan 'Implement lifecycle-first ready checks'",
+        "hk plan --from-file /tmp/adopted-plan.md --json",
+        "hk start my-slice --plan 'Initial implementation intent'",
+        note="Use `hk plan` to record/refine the lifecycle plan for active Harness Kit work. Use `hk start --plan` to seed the first plan while starting work.",
+    ),
 )
 def plan(
     text: str = "",
@@ -1491,11 +1576,11 @@ def plan(
 
 
 @app.command(
-    help_epilogue=(
-        "Examples:\n"
-        "  hk status --target /work/repo\n"
-        "  hk status --target /work/repo --json"
-    )
+    group=LIFECYCLE_GROUP,
+    help_epilogue=examples(
+        "hk status --target /work/repo",
+        "hk status --target /work/repo --json",
+    ),
 )
 def status(
     *,

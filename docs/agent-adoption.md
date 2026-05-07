@@ -67,8 +67,11 @@ hk profile resolve --target . --json
 hk start <slug> --plan "Adopted implementation intent" --target .
 ```
 
-Then work normally in the repository. Use the repo's own commands for tests,
-linters, type checks, builds, or other validation.
+Then work normally in the repository. If you accidentally retry `hk start` with
+the same slug while that work item is still active, HK resumes it instead of
+creating duplicate retry state. Use a new slug only for a separate work item.
+Use the repo's own commands for tests, linters, type checks, builds, or other
+validation.
 
 Record validation evidence with the exact native command:
 
