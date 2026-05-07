@@ -1,0 +1,8 @@
+Simulated agent preflight with hk absent from PATH
+Command: env -i PATH=/tmp/hk-no-path HOME=/tmp /bin/bash --noprofile --norc -c 'hk --version'
+Exit: 127
+stdout:
+stderr:
+/bin/bash: hk: command not found
+
+Expected doc-guided response: stop, tell the user hk is unavailable, and suggest uv tool install git+https://github.com/safurrier/harness-toolkit.git.

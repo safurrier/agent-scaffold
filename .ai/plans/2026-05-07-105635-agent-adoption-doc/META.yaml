@@ -1,0 +1,18 @@
+slug: agent-adoption-doc
+branch: feat/harness-kit-2-ledger-assistant
+created: 2026-05-07
+pr: 12
+status: complete
+source: user requested a focused agent adoption doc and update to existing hk instructions command
+contract_change: implementation_only
+decision_record: none
+review_mode: external_required
+review_backend: codex exec
+review_rubrics:
+  - core-quality
+  - docs-clarity
+evidence_required:
+  - commands
+  - report
+continues_from:
+supersedes:

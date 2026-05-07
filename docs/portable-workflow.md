@@ -108,70 +108,33 @@ when needed.
 
 The intended adoption path is a tiny durable instruction in a user's global or
 repo-level `AGENTS.md`, not a pile of committed scaffold files in every shared
-repo. Print the snippet with:
+repo. See [Agent Adoption](agent-adoption.md) for the user-level snippet and
+setup notes.
+
+Print the user-level snippet with:
 
 ```bash
 hk instructions
-hk instructions --json
+hk instructions --scope user --json
 ```
 
-### User-level AGENTS.md bootstrap
-
-If you want agents to default to Harness Kit across arbitrary repos, append a
-compact instruction block to your user-level `AGENTS.md`. Keep it short and point
-to a fuller reference or skill so every session does not load the entire workflow
-manual.
-
-Example:
-
-````markdown
-## Harness Kit Workflow
-
-For meaningful code changes, use Harness Kit (`hk`) as the default planning and
-handoff loop unless stronger repo-specific instructions supersede it.
-
-If the current session is not already familiar with the `hk` workflow, it MUST:
-
-1. Print the current instructions:
-   ```bash
-   hk instructions --profile generic --json
-   ```
-2. Read the local Harness Kit workflow reference if one is available.
-
-If already familiar with the workflow, do not reload the full reference just for
-ceremony. Still use the managed profile catalog when selecting profiles:
-
-```bash
-hk profile list --target <repo-or-module> --profiles-dir ~/.config/harness-toolkit/profiles --json
-```
-
-Rules to remember:
-
-- `hk` manages planning/handoff state; it does not run validation commands.
-- Run validation directly and record exact command/result evidence with `hk validate --why`.
-- Keep `--target`, `--profile`, and `--profiles-dir` consistent across `hk` commands.
-- If no good profile exists, use the profile-authoring workflow to propose one;
-  do not create profiles silently.
-````
-
-For repo-local adoption, `hk instructions` prints a smaller target-specific
-snippet:
+For repo-local adoption, `hk instructions --scope repo` prints a fuller
+profile-specific snippet:
 
 ````markdown
 ## Portable agent workflow
 
-Use `hk` for meaningful work in this repo or scoped path. Do not
-create or commit `.ai/`, `.agent/`, `.mise/`, or `.gitignore` workflow files
-unless the user explicitly asks to adopt harness-scaffold in this repository.
+Use `hk` for meaningful work in this repo or scoped path unless stronger repo-specific instructions supersede it. Treat Harness Kit and agent-generated local state as uncommitted unless the repo instructions or user explicitly say it should be committed.
 
 Standard loop:
 
 ```bash
-hk start <slug> --plan 'Adopted implementation intent' --target .
+hk brief --target . --json
+hk start <slug> --plan 'Adopted implementation intent' --target . --json
 hk checks --target . --json
 hk validate --why 'What this proves' --target . -- <native command>
-hk status --target .
-hk ready --target .
+hk status --target . --json
+hk ready --target . --json
 hk handoff --target .
 ```
 
@@ -282,7 +245,7 @@ persistent sync ignore config are deferred.
 | `hk review prompt` | Print a reviewer prompt to dispatch to an independent AI/tool or fresh-context reviewer, e.g. Pi `subagent`, Claude Code `Agent`/`Task` alias, or Codex via Shell tool running `codex review --uncommitted`; re-run `hk status` after review tools run |
 | `hk handoff` | Render a conservative handoff from the work ledger |
 | `hk spec` | Manage optional local/external spec drafts |
-| `hk instructions` | Print the minimal `AGENTS.md` snippet, optionally profile-specific |
+| `hk instructions` | Print the compact user-level `AGENTS.md` snippet; use `--scope repo` for a fuller profile-specific repo snippet |
 | `hk profile list` | List built-in/custom/user-config profile contracts and model-directed selection guidance |
 | `hk profile resolve` | Resolve the configured profile for a target using explicit user config bindings |
 | `hk profile show <name>` | Show one profile's instructions, checks, and review guidance |

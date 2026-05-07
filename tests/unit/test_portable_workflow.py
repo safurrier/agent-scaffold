@@ -95,11 +95,30 @@ def test_legacy_agent_workflow_command_is_not_registered() -> None:
     assert result.returncode != 0
 
 
-def test_workflow_instructions_prints_minimal_agents_snippet() -> None:
-    result = _run_workflow("instructions", "--profile", "python", "--json")
+def test_workflow_instructions_default_to_user_level_snippet() -> None:
+    result = _run_workflow("instructions", "--json")
 
     assert result.returncode == 0, result.stderr
     payload = json.loads(result.stdout)
+    assert payload["scope"] == "user"
+    assert "## Harness Kit" in payload["agents_md"]
+    assert "hk profile resolve --target . --json" in payload["agents_md"]
+    assert "hk start <slug> --plan" in payload["agents_md"]
+    assert (
+        "https://safurrier.github.io/harness-toolkit/agent-adoption/"
+        in payload["agents_md"]
+    )
+    assert "--profile generic" not in payload["agents_md"]
+
+
+def test_workflow_instructions_print_repo_profile_snippet() -> None:
+    result = _run_workflow(
+        "instructions", "--scope", "repo", "--profile", "python", "--json"
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["scope"] == "repo"
     assert payload["profile"] == "python"
     assert "hk brief --target . --json" in payload["agents_md"]
     assert (
@@ -110,8 +129,25 @@ def test_workflow_instructions_prints_minimal_agents_snippet() -> None:
     assert "hk checks --target . --profile python --json" in payload["agents_md"]
     assert "hk validate --why" in payload["agents_md"]
     assert "hk ready --target . --json" in payload["agents_md"]
-    assert "Do not create or commit `.ai/`" in payload["agents_md"]
+    assert "agent-generated local state as uncommitted" in payload["agents_md"]
     assert "shell-first" in payload["agents_md"]
+
+
+def test_workflow_instructions_profile_implies_repo_scope_for_compatibility() -> None:
+    result = _run_workflow("instructions", "--profile", "python", "--json")
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["scope"] == "repo"
+    assert payload["profile"] == "python"
+    assert "hk checks --target . --profile python --json" in payload["agents_md"]
+
+
+def test_workflow_instructions_reject_user_scope_with_profile() -> None:
+    result = _run_workflow("instructions", "--scope", "user", "--profile", "python")
+
+    assert result.returncode == 1
+    assert "--profile/--profiles-dir only apply with --scope repo" in result.stderr
 
 
 def test_user_harness_config_resolves_inline_profile_and_checks(

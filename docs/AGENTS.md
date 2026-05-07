@@ -13,6 +13,7 @@ Agent routing index for MkDocs-managed documentation. Structure is owned by `mkd
 | Doc | Description |
 |-----|-------------|
 | `development.md` | Contribute to the scaffold: test layers, fixtures, adding stacks |
+| `agent-adoption.md` | Add Harness Kit to user-level AGENTS.md and guide agents that are unfamiliar with `hk` |
 
 ## Explanation
 

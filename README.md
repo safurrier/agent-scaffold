@@ -62,9 +62,9 @@ and the current no-PyPI-yet policy. See [Harness Kit Design](docs/harness-kit-li
 for the lifecycle-first local assistant direction backed by ledger state.
 
 To make Harness Kit the default workflow for your AI tools, add a compact
-instruction block to your user-level `AGENTS.md` and point agents at a fuller
-reference only when they are unfamiliar with the workflow. See
-[Portable Workflow](docs/portable-workflow.md#user-level-agentsmd-bootstrap).
+instruction block to your user-level `AGENTS.md`. See
+[Agent Adoption](docs/agent-adoption.md) for the snippet and dotfiles-managed
+setup notes.
 
 ## Getting Started
 
@@ -84,6 +84,9 @@ mise run init -- --non-interactive --name my-project --shape single --stack pyth
 ```
 
 ## Harness Kit Agent Workflow
+
+To have agents use Harness Kit across repos, add the short directive from
+[Agent Adoption](docs/agent-adoption.md) to your user-level `AGENTS.md`.
 
 Harness Kit is primarily an **agent-facing lifecycle**. Humans do not need to
 run it as a task manager. The usual adoption story is that a human shapes the

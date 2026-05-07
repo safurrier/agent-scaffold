@@ -44,7 +44,7 @@ from harness_toolkit.kit.profiles import (
     resolution_to_json,
 )
 from harness_toolkit.kit.state.repo import RepoStateError, git_root
-from harness_toolkit.names import KIT_COMMAND, SCAFFOLD_COMMAND
+from harness_toolkit.names import KIT_COMMAND
 
 # Keep this module as the Cyclopts adapter. If command behavior grows beyond
 # argument parsing, output formatting, and error translation, move application
@@ -75,7 +75,29 @@ def resolve_catalog(profiles_dir: Path | None) -> ProfileCatalog:
     return ProfileCatalog.load(profiles_dir)
 
 
-def agents_snippet(
+AGENT_ADOPTION_URL = "https://safurrier.github.io/harness-toolkit/agent-adoption/"
+InstructionScope = Literal["user", "repo"]
+
+
+def user_agents_snippet() -> str:
+    return f"""## Harness Kit
+
+For meaningful code changes, use Harness Kit (`{KIT_COMMAND}`) for planning, validation evidence, review, sync, and handoff unless stronger repo-specific instructions supersede it.
+
+Start by resolving the repo/module workflow:
+
+```bash
+{KIT_COMMAND} profile resolve --target . --json
+```
+
+Use the repo or module that owns the work as `--target`. Then start work with `{KIT_COMMAND} start <slug> --plan "..."`, record validation with `{KIT_COMMAND} validate --why`, and follow `{KIT_COMMAND} status --target .`.
+
+If `{KIT_COMMAND}` is unavailable or you are unfamiliar with the workflow, read the Harness Kit agent adoption guide before proceeding:
+{AGENT_ADOPTION_URL}
+"""
+
+
+def repo_agents_snippet(
     profile_name: ProfileName, *, profiles_dir: Path | None = None
 ) -> str:
     catalog = resolve_catalog(profiles_dir)
@@ -85,7 +107,7 @@ def agents_snippet(
     )
     return f"""## Portable agent workflow
 
-Use `{KIT_COMMAND}` for meaningful work in this repo or scoped path. Do not create or commit `.ai/`, `.agent/`, `.mise/`, or `.gitignore` workflow files unless the user explicitly asks to adopt {SCAFFOLD_COMMAND} in this repository.
+Use `{KIT_COMMAND}` for meaningful work in this repo or scoped path unless stronger repo-specific instructions supersede it. Treat Harness Kit and agent-generated local state as uncommitted unless the repo instructions or user explicitly say it should be committed.
 
 Profile: `{profile.name}` — {profile.summary}
 
@@ -131,36 +153,55 @@ def print_error(message: str) -> None:
     help_epilogue=(
         "Examples:\n"
         "  hk instructions\n"
-        "  hk instructions --profile python\n"
-        "  hk instructions --profile my-project-api --profiles-dir ~/.config/harness-toolkit/profiles --json"
+        "  hk instructions --scope user --json\n"
+        "  hk instructions --scope repo --profile python\n"
+        "  hk instructions --scope repo --profile my-project-api --profiles-dir ~/.config/harness-toolkit/profiles --json"
     )
 )
 def instructions(
     *,
-    profile: ProfileName = "generic",
+    scope: InstructionScope | None = None,
+    profile: ProfileName | None = None,
     profiles_dir: Path | None = None,
     json: bool = False,
 ) -> None:
-    """Print the minimal AGENTS.md snippet for harness-wide use.
+    """Print an AGENTS.md snippet for Harness Kit adoption.
 
     Parameters
     ----------
+    scope
+        `user` prints the compact durable user-level directive. `repo` prints a
+        fuller repo-local snippet with profile-specific guidance. When omitted,
+        `--profile` or `--profiles-dir` implies `repo`; otherwise `user`.
     profile
-        Workflow profile to include in the snippet.
+        Workflow profile to include in the repo snippet. Defaults to `generic`
+        for repo snippets.
     profiles_dir
         Optional directory of custom profile TOML files.
     json
         Print machine-readable JSON with the snippet in `agents_md`.
     """
+    if scope == "user" and (profile is not None or profiles_dir is not None):
+        print_error("--profile/--profiles-dir only apply with --scope repo")
+        raise SystemExit(1)
+    effective_scope: InstructionScope = scope or (
+        "repo" if profile is not None or profiles_dir is not None else "user"
+    )
+    effective_profile: ProfileName = profile or "generic"
     try:
-        snippet = agents_snippet(profile, profiles_dir=profiles_dir)
+        snippet = (
+            user_agents_snippet()
+            if effective_scope == "user"
+            else repo_agents_snippet(effective_profile, profiles_dir=profiles_dir)
+        )
     except (KeyError, ProfileError) as e:
         print_error(str(e))
         raise SystemExit(1) from e
+    payload = {"agents_md": snippet, "scope": effective_scope}
+    if effective_scope == "repo":
+        payload["profile"] = effective_profile
     if json:
-        print(
-            json_lib.dumps({"agents_md": snippet, "profile": profile}, sort_keys=True)
-        )
+        print(json_lib.dumps(payload, sort_keys=True))
         return
     print(snippet)
 
