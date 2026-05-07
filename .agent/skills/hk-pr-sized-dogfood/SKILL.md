@@ -1,9 +1,6 @@
 ---
 name: hk-pr-sized-dogfood
-description: >
-  Run PR-sized Harness Kit dogfood replay trials in temporary repos. Use when
-  validating HK lifecycle UX with real implementation tasks, especially to see
-  how agents naturally discover and misuse HK with minimal prompting.
+description: Run PR-sized Harness Kit dogfood replay trials in temporary repos to validate HK lifecycle UX with realistic tasks and observe how agents naturally discover or misuse HK.
 allowed-tools: Read, Write, Edit, Bash, Subagent
 ---
 
@@ -103,7 +100,7 @@ Example:
 ```bash
 mkdir -p "$ROOT/foreman"
 git -C "$ROOT/foreman" init
-git -C "$ROOT/foreman" fetch --depth=1 /path/to/original/repo <parent-sha>
+git -C "$ROOT/foreman" fetch --depth=1 /path/to/original/repo PARENT_SHA
 git -C "$ROOT/foreman" checkout -b hk-dogfood-foreman FETCH_HEAD
 git -C "$ROOT/foreman" remote remove origin 2>/dev/null || true
 ```
@@ -120,21 +117,124 @@ Use the HK CLI for this workflow; begin by exploring the CLI to onboard to it.
 For this trial, the HK CLI binary is /tmp/hk-pr-sized-trials/bin/hk.
 Do not force a fixed command sequence; this rollout is testing natural discovery.
 
-Task: <PR-sized implementation directive>.
+Task: PR_SIZED_IMPLEMENTATION_DIRECTIVE.
 
-At the end, write /tmp/hk-pr-sized-trials/reports/<name>-worker-report.md with
+At the end, write /tmp/hk-pr-sized-trials/reports/NAME-worker-report.md with
 what you changed, validations run, and every HK command you tried including
 mistakes or places you chose not to use HK.
 ```
 
 Run workers in parallel when comparing behavior across repos.
 
+## Agent adoption snippet variant
+
+Use this variant to test whether an agent follows only the durable user-level
+AGENTS.md Harness Kit directive.
+
+### Purpose
+
+This is not a PR-sized implementation replay. It tests whether the short snippet
+printed by `hk instructions --scope user` is enough for a fresh agent to:
+
+- resolve the target/profile before work;
+- start HK work;
+- run native validation directly;
+- capture validation with `hk validate --why`;
+- follow `hk status` without being handed the full HK lifecycle.
+
+### Setup
+
+Create a small temp repo and put the generated snippet in `AGENTS.md`:
+
+```bash
+ROOT=/tmp/hk-agent-adoption-trial
+rm -rf "$ROOT"
+mkdir -p "$ROOT/bin" "$ROOT/repo"
+
+cat > "$ROOT/bin/hk" <<'EOF'
+#!/usr/bin/env bash
+set +e
+LOG="${HK_DOGFOOD_LOG:-/tmp/hk-agent-adoption-trial/hk-commands.jsonl}"
+START_NS=$(date +%s%N)
+python3 - "$LOG" "$PWD" "$START_NS" "$@" <<'PY'
+import json, sys, time
+log, cwd, start, *argv = sys.argv[1:]
+with open(log, "a") as f:
+    f.write(json.dumps({"event":"start","at":time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),"cwd":cwd,"start_ns":start,"argv":argv})+"\n")
+PY
+/Users/alex.furrier/git_repositories/harness-toolkit/scripts/hk-dev "$@"
+STATUS=$?
+END_NS=$(date +%s%N)
+python3 - "$LOG" "$PWD" "$START_NS" "$END_NS" "$STATUS" "$@" <<'PY'
+import json, sys, time
+log, cwd, start, end, status, *argv = sys.argv[1:]
+with open(log, "a") as f:
+    f.write(json.dumps({"event":"end","at":time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),"cwd":cwd,"start_ns":start,"end_ns":end,"status":int(status),"argv":argv})+"\n")
+PY
+exit "$STATUS"
+EOF
+chmod +x "$ROOT/bin/hk"
+
+cd "$ROOT/repo"
+git init
+git checkout -b hk-agent-adoption
+/Users/alex.furrier/git_repositories/harness-toolkit/scripts/hk-dev instructions --scope user > AGENTS.md
+cat > README.md <<'EOF'
+# adoption trial
+EOF
+cat > pyproject.toml <<'EOF'
+[project]
+name = "adoption-trial"
+version = "0.1.0"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+EOF
+git add AGENTS.md README.md pyproject.toml
+git commit --no-verify -m 'chore: init adoption trial'
+```
+
+### Worker prompt
+
+Do not mention HK or AGENTS.md in the prompt for the realistic trial:
+
+```text
+Add a small Python utility function and tests for it. Do not commit. When done,
+write /tmp/hk-agent-adoption-trial/worker-report.md summarizing what you changed
+and what validation you ran.
+```
+
+If you need a controlled trial, add `Follow repo instructions.` to the prompt and
+compare behavior.
+
+### Evaluation
+
+After the worker exits, inspect:
+
+```bash
+cat "$ROOT/hk-commands.jsonl"
+git -C "$ROOT/repo" status --short
+find "$ROOT/repo/.harness-local" -maxdepth 5 -type f 2>/dev/null | sort
+```
+
+Record:
+
+- whether the agent invoked `hk profile resolve --target . --json`;
+- whether it ran `hk start` before or during implementation;
+- whether native validation was captured with `hk validate --why`;
+- whether it followed `hk status`, `hk ready`, or `hk handoff`;
+- whether it avoided committing or staging HK/local state;
+- whether a missing-HK trial stops and suggests installation.
+
+Persist the synthesis under the active `.ai/plans/.../artifacts/` directory.
+
 ## Parent collection
 
 After workers finish, collect:
 
 ```bash
-for d in <trial-names>; do
+for d in TRIAL_NAMES; do
   /tmp/hk-pr-sized-trials/bin/hk ready --target "$ROOT/$d" --json || true
   /tmp/hk-pr-sized-trials/bin/hk handoff --target "$ROOT/$d" \
     --write "$ROOT/reports/$d-handoff.md" || true
@@ -162,7 +262,7 @@ with open(log) as f:
         by[key].append(event)
 for key, events in by.items():
     failures=sum(1 for event in events if event.get('status') != 0)
-    commands=collections.Counter((event.get('argv') or ['<none>'])[0] for event in events)
+    commands=collections.Counter((event.get('argv') or ['no-command'])[0] for event in events)
     print(key, len(events), 'commands', failures, 'failed', commands)
 PY
 ```

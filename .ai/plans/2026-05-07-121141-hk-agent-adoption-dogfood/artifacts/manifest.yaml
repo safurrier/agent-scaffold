@@ -1,0 +1,16 @@
+artifacts:
+  - path: artifacts/adoption-trial-summary.md
+    type: report
+    description: Synthesis of the fresh-agent trial using only the user-level HK AGENTS.md snippet.
+  - path: artifacts/adoption-trial-hk-commands.jsonl
+    type: evidence
+    description: Complete logged HK command stream from the adoption snippet dogfood trial.
+  - path: artifacts/adoption-trial-worker-report.md
+    type: evidence
+    description: Worker-written report from the Codex trial.
+  - path: artifacts/agents-md-relevance-review.md
+    type: report
+    description: Context-engineering-style relevance review of root AGENTS.md after the PR.
+  - path: artifacts/review-summary.md
+    type: review
+    description: Review summary for the dogfood variant and trial behavior.
