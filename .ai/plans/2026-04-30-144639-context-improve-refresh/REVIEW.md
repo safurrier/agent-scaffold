@@ -20,11 +20,11 @@ description: >
 
 ## Findings
 
-- Initial handoff review returned `NEEDS_WORK` because several task-<REDACTED_TOKEN>
+- Initial handoff review returned `NEEDS_WORK` because several task-contract
   paths were made too vague and root `AGENTS.md` under-described required stack
   task updates.
 - Addressed the path-precision findings by restoring exact generated paths in
-  `docs/task-<REDACTED_TOKEN>.md` where they are contractually useful, while keeping
+  `docs/task-contract.md` where they are contractually useful, while keeping
   generated-only paths out of machine-checked current-repo backticks.
 - Addressed the stack guidance finding by making root `AGENTS.md` explicitly
   require stack registry, templates, and affected mise task dispatch handlers.

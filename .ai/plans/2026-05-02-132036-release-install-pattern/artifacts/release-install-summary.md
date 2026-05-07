@@ -4,8 +4,8 @@ The release/install docs now describe GitHub-sourced uv tool installs instead of
 PyPI install-by-name:
 
 ```bash
-uv tool install git+https://github.com/<GITHUB_OWNER>/harness-toolkit.git
-uv tool install git+https://github.com/<GITHUB_OWNER>/harness-toolkit.git@v0.1.0
+uv tool install git+https://github.com/safurrier/harness-toolkit.git
+uv tool install git+https://github.com/safurrier/harness-toolkit.git@v0.1.0
 uv tool install --editable ~/git_repositories/harness-toolkit
 ```
 

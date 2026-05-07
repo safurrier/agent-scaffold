@@ -15,7 +15,7 @@ description: >
   root `AGENTS.md` contains a Commands section. This is intentional for this
   single root scaffold contract.
 - `context-engineering antipatterns . --json` — passed with three info-only
-  findings: `docs/task-<REDACTED_TOKEN>.md` length, plus two low-density sections in
+  findings: `docs/task-contract.md` length, plus two low-density sections in
   the generated plan AGENTS template.
 - `context-engineering frontmatter docs --json` — passed with no findings.
 - `context-engineering tier . --json` — classified the repo as tier 1.

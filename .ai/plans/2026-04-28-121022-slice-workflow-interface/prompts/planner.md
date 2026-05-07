@@ -56,7 +56,7 @@ This must build on the current stacked branch, including the Rust stack work.
   coding harness.
 - Include deterministic tests for new task files, prompt rendering, generated
   repo output, and Rust-stack generated repos.
-- Update README, AGENTS, task-<REDACTED_TOKEN> docs, SPEC/templates, and CI/task
+- Update README, AGENTS, task-contract docs, SPEC/templates, and CI/task
   contract expectations so source and generated repos agree.
 - Add holdout sample task fixtures or docs that can be used to evaluate prompt
   quality without blocking normal CI.
@@ -135,7 +135,7 @@ description: >
 - [ ] Add canonical generated `slice-workflow` skill, phase wrappers, and references.
 - [ ] Add stdlib prompt-rendering/status helper behind `mise` tasks.
 - [ ] Add `slice-plan`, `slice-implement`, `slice-review`, and `slice-status` task files.
-- [ ] Update docs/templates/specs/task-<REDACTED_TOKEN> references, including Rust stack docs drift.
+- [ ] Update docs/templates/specs/task-contract references, including Rust stack docs drift.
 - [ ] Add holdout sample task fixtures/docs for prompt-quality regression review.
 - [ ] Add or update unit/contract/e2e tests.
 - [ ] Run fast validation and update `VALIDATION.md`.

@@ -38,7 +38,7 @@ description: >
 ## Phase 6: Pre-push skill fixes
 - [x] Fix SPEC.md: task count 11→13, add plan requirements, add frontmatter keywords
 - [x] Fix AGENTS.md: repo map 12→13, add .agent/ and .ai/ directories
-- [x] Fix docs/task-<REDACTED_TOKEN>.md: add plan and docs task rows/sections
+- [x] Fix docs/task-contract.md: add plan and docs task rows/sections
 - [x] Fix docs/index.md: add plan to task listing
 - [x] Create ADR 0002 for this branch
 - [x] Update plan META.yaml, TODO, LEARNING_LOG, VALIDATION

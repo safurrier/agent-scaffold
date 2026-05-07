@@ -11,7 +11,7 @@ description: >
 - [x] Add canonical generated `slice-workflow` skill, phase wrappers, and references.
 - [x] Add stdlib prompt-rendering/status helper behind `mise` tasks.
 - [x] Add `slice-plan`, `slice-implement`, `slice-review`, and `slice-status` task files.
-- [x] Update docs/templates/specs/task-<REDACTED_TOKEN> references, including Rust stack docs drift.
+- [x] Update docs/templates/specs/task-contract references, including Rust stack docs drift.
 - [x] Add holdout sample task fixtures/docs for prompt-quality regression review.
 - [x] Add or update unit/contract/e2e tests.
 - [x] Run fast validation and update `VALIDATION.md`.

@@ -28,7 +28,7 @@ We want to implement all ten architecture deepening opportunities from the archi
   - `hk legacy plan`, `hk legacy sync-check`, and `hk attach` are deleted;
   - normal HK2 command paths do not carry legacy-only flags;
   - normal help/docs do not teach legacy as a starting point;
-  - scaffold/task-<REDACTED_TOKEN> `mise run sync-check` remains available through the slice-workflow CLI, not through `hk`.
+  - scaffold/task-contract `mise run sync-check` remains available through the slice-workflow CLI, not through `hk`.
 - The refactor lands as small, parity-checked commits/chunks. Each chunk must be reversible and reviewable.
 - Subagent rollout runs after the full refactor and exercises HK2 lifecycle, profile/config, legacy compatibility, and code architecture review in fresh contexts.
 
@@ -59,7 +59,7 @@ We want to implement all ten architecture deepening opportunities from the archi
 - Reintroduce `hk run` or make HK a task runner.
 - Silently ignore `.pi` or other agent-local paths; sync exclusions must remain explicit evidence.
 - Count implementation-agent self-review as review evidence.
-- Delete scaffold/task-<REDACTED_TOKEN> `mise run sync-check`; that gate belongs to the slice-workflow CLI and remains supported.
+- Delete scaffold/task-contract `mise run sync-check`; that gate belongs to the slice-workflow CLI and remains supported.
 - Change current scaffold `mise run sync-check` behavior.
 
 ## Explicitly Intended Deprecation Breaks

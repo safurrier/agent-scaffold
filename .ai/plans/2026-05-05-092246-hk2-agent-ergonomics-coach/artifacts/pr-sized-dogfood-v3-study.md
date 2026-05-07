@@ -115,7 +115,7 @@ This addressed the previous issue where agents discovered readiness requirements
 
 ### 3. `dangerously-skip sync` was discoverable and used correctly
 
-All three workers used `hk dangerously-skip sync --reason ...` after intentionally creating `.pi/session.json` after the sync checkpoint. The reasons were specific and risk-<REDACTED_TOKEN> rather than bland waivers.
+All three workers used `hk dangerously-skip sync --reason ...` after intentionally creating `.pi/session.json` after the sync checkpoint. The reasons were specific and risk-accepted rather than bland waivers.
 
 Handoffs render sync skips under `## Dangerous skips`, and final `ready` returns `ready-with-dangerous-skips`.
 

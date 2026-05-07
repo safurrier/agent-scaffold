@@ -48,7 +48,7 @@ description: >
 - `docs/index.md`
 - `docs/getting-started.md`
 - `docs/development.md`
-- `docs/task-<REDACTED_TOKEN>.md`
+- `docs/task-contract.md`
 - `docs/portable-workflow.md`
 - `docs/decisions/0007-harness-toolkit-naming.md`
 - `mkdocs.yml`

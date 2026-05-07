@@ -31,7 +31,7 @@ Built all 5 phases in one pass. No surprises:
 Ran all 4 pre-push skills. Findings:
 - SPEC.md still had "All 11 task scripts" in MUST requirements (missed in earlier count fix)
 - AGENTS.md repo map was missing .agent/ and .ai/ directories
-- docs/task-<REDACTED_TOKEN>.md had no plan or docs task documentation
+- docs/task-contract.md had no plan or docs task documentation
 - docs/index.md code block didn't show plan command
 - No ADR for this branch
 - Plan's own META.yaml, TODO, LEARNING_LOG all stale
