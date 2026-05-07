@@ -140,6 +140,11 @@ use it only in a copied scaffold or throwaway init target.
   commands; use Pi `subagent`, Claude Code `Agent`/legacy `Task`, or Codex via
   the Shell tool running `codex review --uncommitted`.
 
+- **DO** keep public Harness Kit docs focused on generic adoption and agent-facing
+  workflow. **NOT** include personal dotfiles implementation notes or machine-specific
+  setup steps in this repo's public docs. **BECAUSE** user-specific adoption notes
+  belong in the user's dotfiles repo or private setup docs.
+
 - **DO** treat profiles and dumb repo scripts as validation guidance and stable
   command surfaces that feed `hk validate -- <native command>`. **NOT** turn HK
   into a task runner that chooses and executes checks itself. **BECAUSE** Harness Kit

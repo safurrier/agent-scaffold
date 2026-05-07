@@ -109,7 +109,7 @@ when needed.
 The intended adoption path is a tiny durable instruction in a user's global or
 repo-level `AGENTS.md`, not a pile of committed scaffold files in every shared
 repo. See [Agent Adoption](agent-adoption.md) for the user-level snippet and
-setup notes.
+agent-facing first steps.
 
 Print the user-level snippet with:
 

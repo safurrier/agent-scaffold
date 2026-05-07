@@ -21,20 +21,3 @@ description: >
 - Updated `tests/unit/test_portable_workflow.py` to cover both user and repo
   instruction scopes.
 
-## Dotfiles adoption notes
-
-The new doc gives generic dotfiles-managed setup steps:
-
-1. edit the source file that syncs to user-level `AGENTS.md`;
-2. paste the output of `hk instructions --scope user`;
-3. run the local dotfiles or AI-config sync command;
-4. start a fresh agent session;
-5. test in a repo.
-
-For the observed dots setup, likely commands are:
-
-```bash
-mise run ai-config:sync:dry-run
-mise run ai-config:sync
-mise run dotfiles
-```

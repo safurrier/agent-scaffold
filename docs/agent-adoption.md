@@ -8,8 +8,6 @@ index:
     keywords: [AGENTS.md, user-level, bootstrap, directive]
   - id: agent-first-steps
     keywords: [hk, install, profile, target, status]
-  - id: dotfiles-managed-agents-md
-    keywords: [dotfiles, config, sync, ai-config]
 ---
 
 # Agent Adoption
@@ -138,31 +136,6 @@ only files that are part of the requested code, docs, tests, or configuration
 change, or files that repo instructions or the user explicitly ask you to commit.
 
 When unsure, ask before adding workflow/state files to git.
-
-## Dotfiles-managed AGENTS.md
-
-If your user-level `AGENTS.md` is generated from a dotfiles repo, edit the source
-file, not the deployed copy.
-
-A typical adoption pass is:
-
-1. Find the source file that syncs to your user-level agent instructions. In one
-   common layout this is `dots/config/ai-config/AGENTS.md`.
-2. Append or replace the Harness Kit block with the output of:
-   ```bash
-   hk instructions --scope user
-   ```
-3. Run the dotfiles or AI-config sync command for your setup. In a mise-managed
-   dots repo, likely candidates are:
-   ```bash
-   mise run ai-config:sync:dry-run
-   mise run ai-config:sync
-   mise run dotfiles
-   ```
-4. Start a fresh agent session so the new instruction is loaded.
-5. In a test repo, ask the agent to make a small change and confirm it starts
-   with `hk profile resolve --target . --json` or reads this guide when `hk` is
-   missing.
 
 ## Repo-local snippet
 

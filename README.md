@@ -63,8 +63,8 @@ for the lifecycle-first local assistant direction backed by ledger state.
 
 To make Harness Kit the default workflow for your AI tools, add a compact
 instruction block to your user-level `AGENTS.md`. See
-[Agent Adoption](docs/agent-adoption.md) for the snippet and dotfiles-managed
-setup notes.
+[Agent Adoption](docs/agent-adoption.md) for the snippet and agent-facing first
+steps.
 
 ## Getting Started
 

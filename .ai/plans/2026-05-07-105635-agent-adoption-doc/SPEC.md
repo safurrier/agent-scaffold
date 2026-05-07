@@ -22,7 +22,6 @@ better canonical snippet.
 - Keep the durable AGENTS.md block short enough to live in global/user context.
 - Avoid hardcoding `--profile generic` in the user-level directive.
 - Tell agents how to handle missing `hk` without trying to continue silently.
-- Include generic dotfiles-managed setup steps for adopting the snippet later.
 - Update `hk instructions` and tests so the CLI prints the new default snippet.
 
 ### SHOULD
