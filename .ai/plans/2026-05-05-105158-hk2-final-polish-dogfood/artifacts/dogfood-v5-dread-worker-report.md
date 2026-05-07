@@ -48,7 +48,7 @@ I also ran non-HK exploratory checks:
 13. PASS lint: `hk validate ... -- uv run --extra dev ruff check src/dread/formatting.py tests/test_formatting.py tests/test_cli.py`
 14. `/tmp/hk2-pr-sized-trials-v5/bin/hk status --target . --json && /tmp/hk2-pr-sized-trials-v5/bin/hk ready --target . --json`
 15. `/tmp/hk2-pr-sized-trials-v5/bin/hk decide --help && /tmp/hk2-pr-sized-trials-v5/bin/hk sync --help`
-16. `/tmp/hk2-pr-sized-trials-v5/bin/hk decide 'Normalize whitespace in message previews so plain text/TSV CLI output is not broken by embedded tabs or multiline Discord content; also trim truncated prefixes before ellipsis.' --spec-impact not-needed --target . --json`
+16. `/tmp/hk2-pr-sized-trials-v5/bin/hk decide 'Normalize whitespace in message previews so plain text/TSV CLI output is not broken by embedded tabs or multiline <REDACTED_ORG> content; also trim truncated prefixes before ellipsis.' --spec-impact not-needed --target . --json`
 17. `/tmp/hk2-pr-sized-trials-v5/bin/hk review prompt --target .`
 18. `/tmp/hk2-pr-sized-trials-v5/bin/hk dangerously-skip review --reason 'No independent AI/tool or fresh-context reviewer is available to this delegated worker; implementation-agent self-review is explicitly not being recorded.' --target . --json`
 19. `/tmp/hk2-pr-sized-trials-v5/bin/hk sync --exclude .pi --reason 'Common agent-local state exists in git status; source/test snapshot is otherwise reconciled for handoff.' --target . --json && /tmp/hk2-pr-sized-trials-v5/bin/hk ready --target . --json`

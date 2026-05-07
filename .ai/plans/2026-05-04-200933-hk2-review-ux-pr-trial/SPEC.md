@@ -31,7 +31,7 @@ subagent review.
 
 - A full `hk ready dangerously-skip ...` command restructure.
 - Profile versus `.harness/harness.toml` design.
-- Actually running the Discord/Discord-AI-shaped PR-sized trial in this slice.
+- Actually running the <REDACTED_ORG>/<REDACTED_ORG>-AI-shaped PR-sized trial in this slice.
 
 ## Acceptance
 

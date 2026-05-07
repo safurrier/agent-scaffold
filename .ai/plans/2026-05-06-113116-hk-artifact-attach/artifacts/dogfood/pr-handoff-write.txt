@@ -11,4 +11,4 @@
 
 ## Attached artifacts
 - codex-review-transcript: `/private/tmp/hk-artifact-dogfood.K0vW7c/repo/.harness-local/harness-kit/root/work/2026-05-06-115834-artifact-attach/artifacts/artifact_20260506_115838_243386_codex-review-transcript_codex-rereview-events.jsonl` — Codex rereview JSONL transcript copied into HK artifacts
-- pi-session-transcript: `/Users/alex.furrier/.pi/agent/sessions/--Users-alex.furrier-git_repositories-harness-toolkit--/2026-05-03T19-41-06-705Z_019def5b-d711-710e-9285-06c785a17f7a.jsonl` — Current Pi session JSONL referenced by path/hash only; not copied
+- pi-session-transcript: `<USER_HOME>/.pi/agent/sessions/--Users-<USER>-git_repositories-harness-toolkit--/2026-05-03T19-41-06-705Z_019def5b-d711-710e-9285-06c785a17f7a.jsonl` — Current Pi session JSONL referenced by path/hash only; not copied

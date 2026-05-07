@@ -11,7 +11,7 @@ description: >
 
 - [x] Cut slice with `mise run plan -- hk2-architecture-parity-refactor`.
 - [x] Convert architecture-review suggestions into a parity-driven implementation plan.
-- [x] Confirm final implementation order with Alex before touching source code.
+- [x] Confirm final implementation order with <USER> before touching source code.
 
 ## Chunk 1: Test Seam and Repo Fixtures
 

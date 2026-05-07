@@ -33,7 +33,7 @@ description: >
 - `templates/.agent/skills/slice-planner/SKILL.md`
 - `templates/.agent/skills/slice-implementer/SKILL.md`
 - `templates/.agent/skills/slice-reviewer/SKILL.md`
-- `docs/task-contract.md`
+- `docs/task-<REDACTED_TOKEN>.md`
 - `mkdocs.yml`
 - `templates/README.md.tmpl`
 - `templates/AGENTS.md.tmpl`

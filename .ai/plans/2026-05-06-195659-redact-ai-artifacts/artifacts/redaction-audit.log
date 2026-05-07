@@ -1,0 +1,7 @@
+$ rg -n --hidden "/Users/(alex|alex\\.furrier)|/private/var/folders|/var/folders" .ai
+
+$ rg -n --hidden -i "\\bdiscord\\b|alex\\.furrier|alex-furrier|Alex Furrier|\\bAlex\\b|safurrier|alex-ai" .ai
+
+$ rg -n --hidden -i "obsidian-vault|datadog|notion|gmail" .ai
+
+$ rg -n --hidden -i secret/token high-signal patterns .ai

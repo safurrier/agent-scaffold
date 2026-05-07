@@ -14,7 +14,7 @@
 - Pick a narrow message formatting or CLI output edge case from existing dread tests/source; implement a small realistic code+test change; validate with focused unit tests and HK readiness.
 
 ## Decisions and spec reflection
-- Normalize whitespace in message previews so plain text/TSV CLI output is not broken by embedded tabs or multiline Discord content; also trim truncated prefixes before ellipsis.
+- Normalize whitespace in message previews so plain text/TSV CLI output is not broken by embedded tabs or multiline <REDACTED_ORG> content; also trim truncated prefixes before ellipsis.
   - Spec: not-needed: Spec/docs update not needed.
 
 ## Learning

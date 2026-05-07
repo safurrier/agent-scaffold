@@ -14,7 +14,7 @@
 2. `/tmp/hk2-pr-sized-trials-v7/bin/hk status` — showed no active work and suggested `hk start`.
 3. `/tmp/hk2-pr-sized-trials-v7/bin/hk start dread-format-config --plan 'Make a narrow message formatting or config behavior change with focused tests, then run HK validation and review lifecycle.'` — started work `2026-05-05-135903-dread-format-config`.
 4. `/tmp/hk2-pr-sized-trials-v7/bin/hk context 'Relevant files: src/dread/formatting.py defines message_preview used by tab-separated CLI output in message list, mention list, and inbox recap. Existing tests do not cover formatting helper directly; add focused unit coverage.'` — recorded context.
-5. `/tmp/hk2-pr-sized-trials-v7/bin/hk decide 'Normalize Discord message previews for terminal tabular output by collapsing all whitespace runs to one space before truncation. This avoids embedded tabs/carriage returns/newlines breaking TSV-style CLI rows while preserving concise previews.' --no-spec-impact` — recorded decision.
+5. `/tmp/hk2-pr-sized-trials-v7/bin/hk decide 'Normalize <REDACTED_ORG> message previews for terminal tabular output by collapsing all whitespace runs to one space before truncation. This avoids embedded tabs/carriage returns/newlines breaking TSV-style CLI rows while preserving concise previews.' --no-spec-impact` — recorded decision.
 6. `/tmp/hk2-pr-sized-trials-v7/bin/hk validate --why 'Focused formatting helper tests cover whitespace normalization and truncation behavior.' -- uv run pytest tests/test_formatting.py -v` — passed.
 7. `/tmp/hk2-pr-sized-trials-v7/bin/hk validate --why 'Ruff lint ensures the formatting helper and new tests satisfy project style.' -- uv run ruff check src/dread/formatting.py tests/test_formatting.py` — passed.
 8. `/tmp/hk2-pr-sized-trials-v7/bin/hk status` — showed review and sync still required; also noted `.pi` local state.
@@ -27,7 +27,7 @@
 15. `/tmp/hk2-pr-sized-trials-v7/bin/hk handoff` — rendered final HK handoff.
 
 ## Non-HK commands and mistakes
-- `command -v codex || true` — confirmed Codex was installed at `/Users/alex.furrier/.npm-global/bin/codex`.
+- `command -v codex || true` — confirmed Codex was installed at `<USER_HOME>/.npm-global/bin/codex`.
 - Mistake: tried `codex review --uncommitted -` with the HK prompt on stdin. This failed with `the argument '--uncommitted' cannot be used with '[PROMPT]'` in this Codex CLI version, despite `codex review --help` documenting `-` as stdin prompt.
 - `codex review --help` — inspected Codex review syntax.
 - `codex review --uncommitted` — succeeded and produced an independent review. It said the formatting change and tests looked sound, and flagged only the untracked `.pi/session.json` artifact.

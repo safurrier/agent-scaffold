@@ -31,5 +31,5 @@ description: >
 ## Deferred
 
 - `hk ready dangerously-skip ...` command shape remains a follow-up.
-- PR-sized Discord/Discord-AI-shaped replay trial remains a follow-up after this
+- PR-sized <REDACTED_ORG>/<REDACTED_ORG>-AI-shaped replay trial remains a follow-up after this
   UX patch lands.

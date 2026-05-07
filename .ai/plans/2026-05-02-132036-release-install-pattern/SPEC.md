@@ -36,4 +36,4 @@ source/tag workflow explicit.
 
 - Do not add PyPI publishing automation yet.
 - Do not claim `uv tool install harness-toolkit` works until the package is published.
-- Keep the docs compatible with the current repository URL: `safurrier/harness-toolkit`.
+- Keep the docs compatible with the current repository URL: `<GITHUB_OWNER>/harness-toolkit`.

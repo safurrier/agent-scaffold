@@ -17,8 +17,8 @@ description: >
 - `subagent reviewer` — no code blockers after follow-up docs fix; reviewer also ran focused tests and full check.
 - `mise run sync-check -- --plan-dir .ai/plans/2026-05-05-072708-hk2-dogfood-ux-fixes` — passed plan/spec/evidence/review contract.
 - `parallel worker subagent dogfood rerun` — 3/3 worker tasks succeeded and produced reports under `/tmp/hk2-pr-sized-trials-v2/reports/`.
-- `/tmp/hk2-pr-sized-trials-v2/bin/hk ready --target /tmp/hk2-pr-sized-trials-v2/discord-ads-ml --json` — `ready=false`, `status=not-ready`; expected missing review plus `.pi` sync warning.
-- `/tmp/hk2-pr-sized-trials-v2/bin/hk ready --target /tmp/hk2-pr-sized-trials-v2/discord-ads-api --json` — `ready=false`, `status=not-ready`; expected missing lifecycle records/review plus `.pi` sync warning.
+- `/tmp/hk2-pr-sized-trials-v2/bin/hk ready --target /tmp/hk2-pr-sized-trials-v2/<REDACTED_ORG>-ads-ml --json` — `ready=false`, `status=not-ready`; expected missing review plus `.pi` sync warning.
+- `/tmp/hk2-pr-sized-trials-v2/bin/hk ready --target /tmp/hk2-pr-sized-trials-v2/<REDACTED_ORG>-ads-api --json` — `ready=false`, `status=not-ready`; expected missing lifecycle records/review plus `.pi` sync warning.
 - `/tmp/hk2-pr-sized-trials-v2/bin/hk ready --target /tmp/hk2-pr-sized-trials-v2/foreman --json` — `ready=false`, `status=not-ready`; expected missing decision/review plus `.pi` sync warning.
 
 ## Evidence
@@ -30,11 +30,11 @@ Artifacts listed in `artifacts/manifest.yaml`:
 External temp artifacts retained for this session:
 
 - `/tmp/hk2-pr-sized-trials-v2/hk-commands.jsonl`
-- `/tmp/hk2-pr-sized-trials-v2/reports/discord-ads-ml-worker-report.md`
-- `/tmp/hk2-pr-sized-trials-v2/reports/discord-ads-api-worker-report.md`
+- `/tmp/hk2-pr-sized-trials-v2/reports/<REDACTED_ORG>-ads-ml-worker-report.md`
+- `/tmp/hk2-pr-sized-trials-v2/reports/<REDACTED_ORG>-ads-api-worker-report.md`
 - `/tmp/hk2-pr-sized-trials-v2/reports/foreman-worker-report.md`
-- `/tmp/hk2-pr-sized-trials-v2/reports/discord-ads-ml-handoff.md`
-- `/tmp/hk2-pr-sized-trials-v2/reports/discord-ads-api-handoff.md`
+- `/tmp/hk2-pr-sized-trials-v2/reports/<REDACTED_ORG>-ads-ml-handoff.md`
+- `/tmp/hk2-pr-sized-trials-v2/reports/<REDACTED_ORG>-ads-api-handoff.md`
 - `/tmp/hk2-pr-sized-trials-v2/reports/foreman-handoff.md`
 
 ## Notes

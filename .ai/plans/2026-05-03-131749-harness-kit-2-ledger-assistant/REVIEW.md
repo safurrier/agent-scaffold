@@ -41,6 +41,6 @@ description: >
 - Addressed docs mismatch by marking unimplemented brief/handoff details as follow-ups.
 - Addressed plan-contract blockers by updating `META.yaml`, `REVIEW.md`, and `artifacts/manifest.yaml` to the expected contract shape.
 
-Final verification review path: `/var/folders/kf/js4h91w14pl7zwfgnvj896b00000gq/T/tmp.VeO7WGYN7E/review.md`.
+Final verification review path: `<TMPDIR>`.
 
 See `artifacts/codex-review-summary.md` for the durable review summary.

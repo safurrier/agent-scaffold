@@ -38,7 +38,7 @@ description: >
 - `.mise/tasks/slice-implement`
 - `.mise/tasks/slice-review`
 - `.mise/tasks/slice-status`
-- `docs/task-contract.md`
+- `docs/task-<REDACTED_TOKEN>.md`
 - `docs/stacks/acceptance-rubric.md`
 - `docs/development.md`
 - `docs/stacks/index.md`

@@ -12,7 +12,7 @@ description: >
 
 - Mode: external
 - Backend: manual_external
-- Reviewer: Alex Furrier product-direction review and questionnaire
+- Reviewer: <USER> product-direction review and questionnaire
 
 ## Rubrics
 

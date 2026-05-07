@@ -14,7 +14,7 @@
 - Make a narrow message formatting or config behavior change with focused tests, then run HK validation and review lifecycle.
 
 ## Decisions and spec reflection
-- Normalize Discord message previews for terminal tabular output by collapsing all whitespace runs to one space before truncation. This avoids embedded tabs/carriage returns/newlines breaking TSV-style CLI rows while preserving concise previews.
+- Normalize <REDACTED_ORG> message previews for terminal tabular output by collapsing all whitespace runs to one space before truncation. This avoids embedded tabs/carriage returns/newlines breaking TSV-style CLI rows while preserving concise previews.
   - Spec: none: No spec impact declared.
 
 ## Learning

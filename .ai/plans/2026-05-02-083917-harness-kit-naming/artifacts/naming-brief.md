@@ -49,7 +49,7 @@ hk sync-check --target . --profile python --json
 ```
 
 ```bash
-git clone https://github.com/safurrier/harness-toolkit.git my-project
+git clone https://github.com/<GITHUB_OWNER>/harness-toolkit.git my-project
 cd my-project
 mise run init -- --non-interactive --name my-project --shape single --stack python
 ```

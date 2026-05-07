@@ -16,13 +16,13 @@ description: >
   - `hk legacy plan` and `hk legacy sync-check` are deleted;
   - root `hk attach` is deleted;
   - normal HK2 commands do not silently route to legacy behavior;
-  - scaffold/task-contract `mise run sync-check` remains supported through the slice-workflow CLI.
+  - scaffold/task-<REDACTED_TOKEN> `mise run sync-check` remains supported through the slice-workflow CLI.
 
 ## Why
 
 - The current HK2 behavior is ready, but the implementation has low Locality because lifecycle, ledger, readiness, rendering, capture, profiles, specs, and legacy compatibility are concentrated in broad Modules.
 - A large structural refactor is acceptable only if each seam is parity-checked independently.
-- Scaffold/task-contract users do not need `hk legacy`; their durable plan gate is `mise run sync-check` backed by the slice-workflow CLI, so removing `hk legacy` simplifies the HK2 Interface without breaking that gate.
+- Scaffold/task-<REDACTED_TOKEN> users do not need `hk legacy`; their durable plan gate is `mise run sync-check` backed by the slice-workflow CLI, so removing `hk legacy` simplifies the HK2 Interface without breaking that gate.
 
 ## Where Reflected
 

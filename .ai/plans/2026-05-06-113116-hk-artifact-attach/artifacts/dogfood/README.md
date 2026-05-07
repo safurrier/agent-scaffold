@@ -1,7 +1,7 @@
 # Artifact attach dogfood
 
 Temp repo: /tmp/hk-artifact-dogfood.K0vW7c/repo
-Pi session referenced with --no-copy: /Users/alex.furrier/.pi/agent/sessions/--Users-alex.furrier-git_repositories-harness-toolkit--/2026-05-03T19-41-06-705Z_019def5b-d711-710e-9285-06c785a17f7a.jsonl
+Pi session referenced with --no-copy: <USER_HOME>/.pi/agent/sessions/--Users-<USER>-git_repositories-harness-toolkit--/2026-05-03T19-41-06-705Z_019def5b-d711-710e-9285-06c785a17f7a.jsonl
 Codex rereview transcript copied from: /tmp/hk-artifact-dogfood.K0vW7c/codex-rereview-events.jsonl
 
 Scenario:

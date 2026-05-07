@@ -55,4 +55,4 @@ HK2 now has a coherent lifecycle happy path, but one more polish pass should add
 - Do not loosen readiness to accept implementation-agent self-review.
 - Do not remove advanced commands in this slice.
 - Use temp/synthetic repos for dogfood, not originals.
-- Do not read the forbidden Obsidian note: `/Users/alex.furrier/git_repositories/obsidian-vault/staging/harness kit 2.0 refactor.md`.
+- Do not read the forbidden Obsidian note: `<PRIVATE_VAULT_PATH> kit 2.0 refactor.md`.

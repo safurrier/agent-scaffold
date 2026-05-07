@@ -26,7 +26,7 @@ Applied user feedback: moved the portable agent-facing command surface to Cyclop
 
 ## 2026-05-01 13:42
 
-Dogfooded the `.ai` plan by writing a real SPEC/IMPLEMENTATION for the profile DSL. Implemented profiles as read-only structured task-contract docs, not a runner: `agent-workflow checks --profile python --json` exposes named loops and command templates, but the agent still runs the command directly and records the result in `VALIDATION.md`.
+Dogfooded the `.ai` plan by writing a real SPEC/IMPLEMENTATION for the profile DSL. Implemented profiles as read-only structured task-<REDACTED_TOKEN> docs, not a runner: `agent-workflow checks --profile python --json` exposes named loops and command templates, but the agent still runs the command directly and records the result in `VALIDATION.md`.
 
 ## 2026-05-01 13:49
 

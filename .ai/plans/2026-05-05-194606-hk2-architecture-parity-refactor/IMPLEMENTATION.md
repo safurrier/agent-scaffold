@@ -314,7 +314,7 @@ mise run check
 
 **Maps to architecture candidate 6, with the product decision to remove compatibility instead of isolating it.**
 
-Goal: remove HK1 plan-artifact workflow commands from `hk` completely while preserving the independent scaffold/task-contract `mise run sync-check` path.
+Goal: remove HK1 plan-artifact workflow commands from `hk` completely while preserving the independent scaffold/task-<REDACTED_TOKEN> `mise run sync-check` path.
 
 Potential files:
 

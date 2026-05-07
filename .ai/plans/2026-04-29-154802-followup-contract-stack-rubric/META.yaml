@@ -1,7 +1,7 @@
 slug: followup-contract-stack-rubric
 branch: feat/followup-contract-stack-rubric
 created: 2026-04-29
-pr: https://github.com/safurrier/agent-scaffold/pull/8
+pr: https://github.com/<GITHUB_OWNER>/agent-scaffold/pull/8
 status: complete
 source: GitHub issues #6 and #7
 contract_change: contract_changed

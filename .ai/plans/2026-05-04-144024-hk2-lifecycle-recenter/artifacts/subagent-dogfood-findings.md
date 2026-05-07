@@ -11,7 +11,7 @@ a small product plan:
 The agent was instructed to use the local checkout executable:
 
 ```bash
-uv --directory /Users/alex.furrier/git_repositories/harness-toolkit run hk
+uv --directory <REPO_ROOT> run hk
 ```
 
 ## Outcome

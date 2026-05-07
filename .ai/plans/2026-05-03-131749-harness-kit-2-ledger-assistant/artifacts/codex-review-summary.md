@@ -4,10 +4,10 @@
 
 Three Codex 4-pass reviews were run during this slice.
 
-1. Initial review: `/var/folders/kf/js4h91w14pl7zwfgnvj896b00000gq/T/tmp.eX2D4saAb6/review.md`
-2. Follow-up review: `/var/folders/kf/js4h91w14pl7zwfgnvj896b00000gq/T/tmp.wxzF5SgGDk/review.md`
-3. Final pre-fix review: `/var/folders/kf/js4h91w14pl7zwfgnvj896b00000gq/T/tmp.JOQZQCoahk/review.md`
-4. Final verification review: `/var/folders/kf/js4h91w14pl7zwfgnvj896b00000gq/T/tmp.VeO7WGYN7E/review.md`
+1. Initial review: `<TMPDIR>`
+2. Follow-up review: `<TMPDIR>`
+3. Final pre-fix review: `<TMPDIR>`
+4. Final verification review: `<TMPDIR>`
 
 ## Findings Addressed
 

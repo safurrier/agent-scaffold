@@ -21,7 +21,7 @@ HK wrapper:
 The wrapper delegates to:
 
 ```text
-/Users/alex.furrier/git_repositories/harness-toolkit/scripts/hk-dev
+<REPO_ROOT>/scripts/hk-dev
 ```
 
 Unlike the first run's `uv --directory` wrapper, `scripts/hk-dev` uses
@@ -30,14 +30,14 @@ the temp repo.
 
 Worker reports:
 
-- `/tmp/hk2-pr-sized-trials-v2/reports/discord-ads-ml-worker-report.md`
-- `/tmp/hk2-pr-sized-trials-v2/reports/discord-ads-api-worker-report.md`
+- `/tmp/hk2-pr-sized-trials-v2/reports/<REDACTED_ORG>-ads-ml-worker-report.md`
+- `/tmp/hk2-pr-sized-trials-v2/reports/<REDACTED_ORG>-ads-api-worker-report.md`
 - `/tmp/hk2-pr-sized-trials-v2/reports/foreman-worker-report.md`
 
 Generated handoffs:
 
-- `/tmp/hk2-pr-sized-trials-v2/reports/discord-ads-ml-handoff.md`
-- `/tmp/hk2-pr-sized-trials-v2/reports/discord-ads-api-handoff.md`
+- `/tmp/hk2-pr-sized-trials-v2/reports/<REDACTED_ORG>-ads-ml-handoff.md`
+- `/tmp/hk2-pr-sized-trials-v2/reports/<REDACTED_ORG>-ads-api-handoff.md`
 - `/tmp/hk2-pr-sized-trials-v2/reports/foreman-handoff.md`
 
 HK command log:
@@ -48,27 +48,27 @@ HK command log:
 
 | Trial | Temp repo | Baseline commit | Task |
 |---|---|---:|---|
-| Discord Ads ML | `/tmp/hk2-pr-sized-trials-v2/discord-ads-ml` | `6d67f5d09` | Schedule `table_endorsement_scorer` monthly and add per-run metrics/output summary |
-| Discord Ads API | `/tmp/hk2-pr-sized-trials-v2/discord-ads-api` | `4170b7bc` | Migrate delivery/pacing readers from flat AdSet delivery fields to `delivery_config` accessors |
+| <REDACTED_ORG> Ads ML | `/tmp/hk2-pr-sized-trials-v2/<REDACTED_ORG>-ads-ml` | `6d67f5d09` | Schedule `table_endorsement_scorer` monthly and add per-run metrics/output summary |
+| <REDACTED_ORG> Ads API | `/tmp/hk2-pr-sized-trials-v2/<REDACTED_ORG>-ads-api` | `4170b7bc` | Migrate delivery/pacing readers from flat AdSet delivery fields to `delivery_config` accessors |
 | Foreman | `/tmp/hk2-pr-sized-trials-v2/foreman` | `95d8611` | Keep native agent signals hook-only |
 
 ## Results by trial
 
-### Discord Ads ML
+### <REDACTED_ORG> Ads ML
 
 Worker implemented monthly production scheduling and run metrics for
 `table_endorsement_scorer`.
 
 Changed files included:
 
-- `discord_ai/models/py/table_endorsement_scorer/settings.py`
-- `discord_ai/models/py/table_endorsement_scorer/publish.py`
-- `discord_ai/models/py/table_endorsement_scorer/model.py`
-- `discord_ai/models/py/table_endorsement_scorer/card.py`
-- `discord_ai/models/py/table_endorsement_scorer/README.md`
-- `discord_ai/models/py/table_endorsement_scorer/test/BUILD.bazel`
-- new `discord_ai/models/py/table_endorsement_scorer/test/test_publish.py`
-- new `discord_dagster/repositories/ml_predictions/repo/pipelines/ml_output/table_endorsement_scorer_batch.py`
+- `<REDACTED_ORG>_ai/models/py/table_endorsement_scorer/settings.py`
+- `<REDACTED_ORG>_ai/models/py/table_endorsement_scorer/publish.py`
+- `<REDACTED_ORG>_ai/models/py/table_endorsement_scorer/model.py`
+- `<REDACTED_ORG>_ai/models/py/table_endorsement_scorer/card.py`
+- `<REDACTED_ORG>_ai/models/py/table_endorsement_scorer/README.md`
+- `<REDACTED_ORG>_ai/models/py/table_endorsement_scorer/test/BUILD.bazel`
+- new `<REDACTED_ORG>_ai/models/py/table_endorsement_scorer/test/test_publish.py`
+- new `<REDACTED_ORG>_dagster/repositories/ml_predictions/repo/pipelines/ml_output/table_endorsement_scorer_batch.py`
 
 Validation:
 
@@ -91,7 +91,7 @@ Readiness state:
 - review: fail, as expected for implementation worker
 - sync: fail, with new `.pi` agent-local warning
 
-### Discord Ads API
+### <REDACTED_ORG> Ads API
 
 Worker implemented a broader delivery reader migration to `delivery_config`.
 
@@ -265,9 +265,9 @@ blocked on missing external/fresh-context review.
    - That may be acceptable, but context is not naturally used by every agent even
      for PR-sized work.
 
-4. **Environment blockers dominate Discord validation.**
+4. **Environment blockers dominate <REDACTED_ORG> validation.**
    - HK captures them well, but local macOS dogfood cannot prove full CI behavior.
-   - Future Discord trials should run in Coder/Slyncy/Linux-compatible contexts
+   - Future <REDACTED_ORG> trials should run in Coder/Slyncy/Linux-compatible contexts
      when validation quality matters.
 
 5. **Finalization helper remains deferred.**

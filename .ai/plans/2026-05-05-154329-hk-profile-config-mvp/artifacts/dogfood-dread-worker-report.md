@@ -26,7 +26,7 @@
   - Recorded with HK: `hk validate --why 'Profile lint-changed check for dread source and tests; observed direct run passed with all checks passed.' -- uv run ruff check src/ tests/`
 
 ## Review dispatch outcome
-- Codex was available at `/Users/alex.furrier/.npm-global/bin/codex`.
+- Codex was available at `<USER_HOME>/.npm-global/bin/codex`.
 - Attempting to pass the profile prompt with `codex review --uncommitted <prompt>` failed because this Codex version rejects combining `--uncommitted` and a prompt.
 - Ran the dispatch hint as supported: `codex review --uncommitted`.
 - Codex final review result: no discrete bugs found; the formatting change and tests are consistent with intended single-line message preview behavior.

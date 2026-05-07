@@ -22,6 +22,6 @@
 
 - The root Commands warning is accepted because `agent-scaffold` is a single
   root scaffold tool and the root task contract is the canonical entry point.
-- The antipattern info findings are not blockers: `docs/task-contract.md` stays
+- The antipattern info findings are not blockers: `docs/task-<REDACTED_TOKEN>.md` stays
   below the hard size stop, and the plan AGENTS template sections are generated
   contract documentation.

@@ -2,4 +2,4 @@ version: 1
 artifacts:
   - path: artifacts/pr-sized-dogfood-study.md
     type: report
-    description: PR-sized parallel HK 2.0 dogfood study across Discord Ads ML, Discord Ads API, and Foreman
+    description: PR-sized parallel HK 2.0 dogfood study across <REDACTED_ORG> Ads ML, <REDACTED_ORG> Ads API, and Foreman

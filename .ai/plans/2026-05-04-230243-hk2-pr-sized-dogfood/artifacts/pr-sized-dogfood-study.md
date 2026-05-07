@@ -7,8 +7,8 @@ original repositories:
 
 | Trial | Temp repo | Baseline commit | Intended replay |
 |---|---|---:|---|
-| Discord Ads ML | `/tmp/hk2-pr-sized-trials/discord-ads-ml` | `7d73f2c35` | table_endorsement_scorer coalesce phase |
-| Discord Ads API | `/tmp/hk2-pr-sized-trials/discord-ads-api` | `05f586067` | AdSetBuilder DeliveryConfig / delivery_config_json migration |
+| <REDACTED_ORG> Ads ML | `/tmp/hk2-pr-sized-trials/<REDACTED_ORG>-ads-ml` | `7d73f2c35` | table_endorsement_scorer coalesce phase |
+| <REDACTED_ORG> Ads API | `/tmp/hk2-pr-sized-trials/<REDACTED_ORG>-ads-api` | `05f586067` | AdSetBuilder DeliveryConfig / delivery_config_json migration |
 | Foreman | `/tmp/hk2-pr-sized-trials/foreman` | `61e0f23` | macOS notification sound + click/lifecycle handling |
 
 The trial repos were created via shallow fetch of the parent commits, with no git
@@ -33,36 +33,36 @@ hk` and logs every HK invocation to:
 
 Worker reports:
 
-- `/tmp/hk2-pr-sized-trials/reports/discord-ads-ml-worker-report.md`
-- `/tmp/hk2-pr-sized-trials/reports/discord-ads-api-worker-report.md`
+- `/tmp/hk2-pr-sized-trials/reports/<REDACTED_ORG>-ads-ml-worker-report.md`
+- `/tmp/hk2-pr-sized-trials/reports/<REDACTED_ORG>-ads-api-worker-report.md`
 - `/tmp/hk2-pr-sized-trials/reports/foreman-worker-report.md`
 
 Generated handoffs after the run:
 
-- `/tmp/hk2-pr-sized-trials/reports/discord-ads-ml-handoff.md`
-- `/tmp/hk2-pr-sized-trials/reports/discord-ads-api-handoff.md`
+- `/tmp/hk2-pr-sized-trials/reports/<REDACTED_ORG>-ads-ml-handoff.md`
+- `/tmp/hk2-pr-sized-trials/reports/<REDACTED_ORG>-ads-api-handoff.md`
 - `/tmp/hk2-pr-sized-trials/reports/foreman-handoff.md`
 
 ## Trial results
 
-### Discord Ads ML
+### <REDACTED_ORG> Ads ML
 
 Worker implemented a table endorsement scorer coalesce phase.
 
 Changed tracked files:
 
-- `discord_ai/models/py/table_endorsement_scorer/BUILD.bazel`
-- `discord_ai/models/py/table_endorsement_scorer/README.md`
-- `discord_ai/models/py/table_endorsement_scorer/model.py`
-- `discord_ai/models/py/table_endorsement_scorer/publish.py`
-- `discord_ai/models/py/table_endorsement_scorer/score.py`
-- `discord_ai/models/py/table_endorsement_scorer/settings.py`
-- `discord_ai/models/py/table_endorsement_scorer/test/BUILD.bazel`
+- `<REDACTED_ORG>_ai/models/py/table_endorsement_scorer/BUILD.bazel`
+- `<REDACTED_ORG>_ai/models/py/table_endorsement_scorer/README.md`
+- `<REDACTED_ORG>_ai/models/py/table_endorsement_scorer/model.py`
+- `<REDACTED_ORG>_ai/models/py/table_endorsement_scorer/publish.py`
+- `<REDACTED_ORG>_ai/models/py/table_endorsement_scorer/score.py`
+- `<REDACTED_ORG>_ai/models/py/table_endorsement_scorer/settings.py`
+- `<REDACTED_ORG>_ai/models/py/table_endorsement_scorer/test/BUILD.bazel`
 
 Untracked implementation files:
 
-- `discord_ai/models/py/table_endorsement_scorer/coalesce.py`
-- `discord_ai/models/py/table_endorsement_scorer/test/test_coalesce.py`
+- `<REDACTED_ORG>_ai/models/py/table_endorsement_scorer/coalesce.py`
+- `<REDACTED_ORG>_ai/models/py/table_endorsement_scorer/test/test_coalesce.py`
 
 Validation:
 
@@ -83,20 +83,20 @@ Final readiness observed by parent:
 Readiness failures: missing plan, missing decision/spec reflection, missing
 review, stale sync.
 
-### Discord Ads API
+### <REDACTED_ORG> Ads API
 
 Worker implemented a DeliveryConfig migration for ad set construction and JSON
 persistence.
 
 Changed files:
 
-- `discord_api/discord/modules/ads/lib/model_ops/builders/ad_set_builder.py`
-- `discord_api/discord/modules/ads/lib/update_campaign/utils/ad_sets.py`
-- `discord_api/discord/modules/ads/models/ad_sets.py`
-- `discord_api/discord/modules/ads/models/tests/test_ad_sets.py`
-- `discord_api/discord/modules/ads/response_models/ads_manager/ad_sets.py`
-- `discord_api/discord/modules/ads/scripts/create_bounty_ad_hierarchy.py`
-- `discord_api/discord/views/admin/tests/quests/test_update_quest.py`
+- `<REDACTED_ORG>_api/<REDACTED_ORG>/modules/ads/lib/model_ops/builders/ad_set_builder.py`
+- `<REDACTED_ORG>_api/<REDACTED_ORG>/modules/ads/lib/update_campaign/utils/ad_sets.py`
+- `<REDACTED_ORG>_api/<REDACTED_ORG>/modules/ads/models/ad_sets.py`
+- `<REDACTED_ORG>_api/<REDACTED_ORG>/modules/ads/models/tests/test_ad_sets.py`
+- `<REDACTED_ORG>_api/<REDACTED_ORG>/modules/ads/response_models/ads_manager/ad_sets.py`
+- `<REDACTED_ORG>_api/<REDACTED_ORG>/modules/ads/scripts/create_bounty_ad_hierarchy.py`
+- `<REDACTED_ORG>_api/<REDACTED_ORG>/views/admin/tests/quests/test_update_quest.py`
 
 Validation:
 
@@ -172,7 +172,7 @@ The most natural successful lifecycle shape was:
 
 ```bash
 hk brief/status --target <repo>
-hk init --target <repo>          # two Discord workers used this
+hk init --target <repo>          # two <REDACTED_ORG> workers used this
 hk start <slug> --target <repo>
 hk plan ... --target <repo>      # Ads API and Foreman only
 hk validate --why ... --target <repo> -- <native command>

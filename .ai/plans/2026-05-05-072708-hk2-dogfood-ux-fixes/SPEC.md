@@ -45,7 +45,7 @@ several sharp edges still cause wasted motion or incomplete lifecycle records:
 - Completing the profile versus `.harness/harness.toml` design.
 - Implementing a full `hk finish`/`hk close` workflow unless explicitly selected.
 - Making HK infer context or parse prior conversations.
-- Solving Discord/Coder environment validation constraints.
+- Solving <REDACTED_ORG>/Coder environment validation constraints.
 - Merging worker code from dogfood trials.
 
 ## Proposed acceptance criteria

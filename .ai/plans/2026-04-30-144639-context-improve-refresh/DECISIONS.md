@@ -35,7 +35,7 @@ description: >
 - `docs/shapes.md`
 - `docs/stacks/go.md`
 - `docs/stacks/rust.md`
-- `docs/task-contract.md`
+- `docs/task-<REDACTED_TOKEN>.md`
 - `templates/.ai/plans/AGENTS.md`
 
 ## Promotion

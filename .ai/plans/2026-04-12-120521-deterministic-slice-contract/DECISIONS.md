@@ -32,7 +32,7 @@ description: >
 ## Where Reflected
 
 - `docs/decisions/0003-deterministic-slice-contract.md`
-- `docs/task-contract.md`
+- `docs/task-<REDACTED_TOKEN>.md`
 - `.mise/tasks/evidence-check`
 - `scripts/plan_contract.py`
 - `tests/unit/test_plan_contract.py`

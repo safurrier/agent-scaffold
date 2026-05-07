@@ -24,8 +24,8 @@ an older HK command surface.
 
 Launched three parallel `worker` subagents with fresh context:
 
-- Discord Ads ML: table_endorsement_scorer coalesce phase.
-- Discord Ads API: AdSetBuilder DeliveryConfig / delivery_config_json migration.
+- <REDACTED_ORG> Ads ML: table_endorsement_scorer coalesce phase.
+- <REDACTED_ORG> Ads API: AdSetBuilder DeliveryConfig / delivery_config_json migration.
 - Foreman: macOS notification sound and click/lifecycle handling.
 
 Prompting intentionally avoided HK lifecycle walkthroughs. Workers were told to

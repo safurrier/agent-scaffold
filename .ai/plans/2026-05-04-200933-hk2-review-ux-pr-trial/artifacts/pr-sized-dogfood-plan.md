@@ -9,7 +9,7 @@ ability to support real execution, evidence, review, readiness, and handoff.
 
 ## Candidate repos
 
-- Discord / Discord AI shaped scoped checkout, if available and safe.
+- <REDACTED_ORG> / <REDACTED_ORG> AI shaped scoped checkout, if available and safe.
 - Foreman, using a recent merged PR that is larger than a test-only tweak.
 - Dread, using a recent merged PR that touches CLI behavior, tests, and docs.
 

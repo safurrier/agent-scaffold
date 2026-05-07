@@ -42,7 +42,7 @@ Two user clarifications shape this slice:
 
 ## Constraints
 
-- Do not read the forbidden Obsidian note: `/Users/alex.furrier/git_repositories/obsidian-vault/staging/harness kit 2.0 refactor.md`.
+- Do not read the forbidden Obsidian note: `<PRIVATE_VAULT_PATH> kit 2.0 refactor.md`.
 - Do not reintroduce root `hk sync-check`; legacy sync-check stays under `hk legacy sync-check`.
 - Do not silently ignore `.pi` or other agent-local state as part of sync freshness.
 - Do not add fuzzy conversation parsing, `hk adopt`, or HK-mediated command execution.

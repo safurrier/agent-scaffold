@@ -23,7 +23,7 @@ description: >
 ## Where Reflected
 
 - `docs/decisions/0005-harden-sync-contract-ci.md`
-- `docs/task-contract.md`
+- `docs/task-<REDACTED_TOKEN>.md`
 - `docs/ci.md`
 - `templates/.ai/plans/AGENTS.md`
 - `templates/.agent/skills/slice-workflow/references/artifact-policy.md`

@@ -12,5 +12,5 @@ description: >
 - [x] Make `hk review add` help and generated snippets explicitly say self-review does not count.
 - [x] Reject obvious self-review records at entry time as a guardrail.
 - [x] Improve readiness failure copy when review records exist but do not satisfy external-enough review.
-- [x] Document the next ambitious PR-sized dogfood trial idea for Discord/Discord-AI-shaped work.
+- [x] Document the next ambitious PR-sized dogfood trial idea for <REDACTED_ORG>/<REDACTED_ORG>-AI-shaped work.
 - [x] Run focused tests and full check.

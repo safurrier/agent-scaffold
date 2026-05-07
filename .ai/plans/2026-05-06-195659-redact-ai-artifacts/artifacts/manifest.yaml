@@ -1,0 +1,7 @@
+artifacts:
+  - path: artifacts/redaction-audit.log
+    type: evidence
+    description: Deterministic grep audit showing no remaining personal path, requested org/name, private-vault, or high-signal secret matches in `.ai` artifacts.
+  - path: artifacts/review-summary.md
+    type: review
+    description: Local review summary explaining why deterministic audit was used instead of external LLM review for sensitive artifacts.

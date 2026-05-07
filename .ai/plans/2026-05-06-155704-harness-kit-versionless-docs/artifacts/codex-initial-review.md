@@ -1,8 +1,8 @@
 **Blocking Issues**
 
-- [docs/harness-kit-lifecycle-design.md](/Users/alex.furrier/git_repositories/harness-toolkit/docs/harness-kit-lifecycle-design.md:490) still has a public “Migration strategy” section, plus “staged migration” frontmatter and a “Phase plan.” This keeps the page framed as a rollout/migration document instead of one current Harness Kit lifecycle. Related public ADR wording remains in [0008](/Users/alex.furrier/git_repositories/harness-toolkit/docs/decisions/0008-harness-kit-ledger-first-local-assistant.md:132) and [0009](/Users/alex.furrier/git_repositories/harness-toolkit/docs/decisions/0009-harness-kit-lifecycle-first-cli.md:141). That conflicts with the goal to avoid implying a migration guide.
+- [docs/harness-kit-lifecycle-design.md](<REPO_ROOT>/docs/harness-kit-lifecycle-design.md:490) still has a public “Migration strategy” section, plus “staged migration” frontmatter and a “Phase plan.” This keeps the page framed as a rollout/migration document instead of one current Harness Kit lifecycle. Related public ADR wording remains in [0008](<REPO_ROOT>/docs/decisions/0008-harness-kit-ledger-first-local-assistant.md:132) and [0009](<REPO_ROOT>/docs/decisions/0009-harness-kit-lifecycle-first-cli.md:141). That conflicts with the goal to avoid implying a migration guide.
 
-- [src/harness_toolkit/kit/cli.py](/Users/alex.furrier/git_repositories/harness-toolkit/src/harness_toolkit/kit/cli.py:54) still exposes “Harness Kit 2” / “HK2” in user-facing CLI help. This is outside the docs-only diff, but it means the public surface still has version framing if users follow docs and explore `hk --help`.
+- [src/harness_toolkit/kit/cli.py](<REPO_ROOT>/src/harness_toolkit/kit/cli.py:54) still exposes “Harness Kit 2” / “HK2” in user-facing CLI help. This is outside the docs-only diff, but it means the public surface still has version framing if users follow docs and explore `hk --help`.
 
 **Non-Blocking**
 

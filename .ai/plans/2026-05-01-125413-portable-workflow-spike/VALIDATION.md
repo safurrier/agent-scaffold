@@ -19,7 +19,7 @@ description: >
 - `uv run agent-workflow plan --help` — passed and showed copyable examples in help output.
 - `uv run pytest tests/unit/test_portable_workflow.py tests/unit/test_cli.py -q` — passed after Cyclopts migration, 17 tests.
 - `uv run agent-workflow profiles --json` — passed and listed built-in profile DSL packages.
-- `uv run agent-workflow checks --profile python --target /Users/alex.furrier/git_repositories/agent-scaffold --json` — passed and returned named check templates without executing validation commands.
+- `uv run agent-workflow checks --profile python --target <OLD_REPO_ROOT> --json` — passed and returned named check templates without executing validation commands.
 - `uv run pytest tests/unit/test_portable_workflow.py -q` — passed after profile DSL implementation, 9 tests.
 - Private/company-specific term scan across public repo docs, source, tests, and this plan — no matches after public-profile cleanup.
 - `uv run ruff format src/harness_toolkit/agent_workflow_cli.py src/harness_toolkit/kit/profiles.py tests/unit/test_portable_workflow.py` — formatted public-profile cleanup.
@@ -53,7 +53,7 @@ description: >
 - `uv run pytest -m "contract or unit" -q` — passed after Cyclopts migration, 427 tests.
 - `mise run sync-check` — passed after Cyclopts migration for this active plan.
 - `mise run check` — passed after Cyclopts migration, including 691 pytest items.
-- Manual smoke: cloned `/Users/alex.furrier/git_repositories/dread` into `/tmp/agent-scaffold-portable-spike/dread`, ran external `workflow plan/status/sync-check`, and confirmed `git status --porcelain` was empty.
+- Manual smoke: cloned `<USER_HOME>/git_repositories/dread` into `/tmp/agent-scaffold-portable-spike/dread`, ran external `workflow plan/status/sync-check`, and confirmed `git status --porcelain` was empty.
 - Manual smoke after Cyclopts migration: cloned `dread` into `/tmp/agent-scaffold-portable-spike-cyclopts/dread`, ran external `agent-workflow plan/status/sync-check`, and confirmed `git status --porcelain` was empty.
 - Manual smoke: ran overlay `workflow attach` against the cloned `dread` repo and confirmed `.git/info/exclude` ignored `/.ai-local/agent-scaffold/` while `git status --porcelain` stayed empty.
 

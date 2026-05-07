@@ -4,7 +4,7 @@ None found.
 
 **Non-Blocking Note**
 
-[src/harness_toolkit/kit/local.py](/Users/alex.furrier/git_repositories/harness-toolkit/src/harness_toolkit/kit/local.py:3) still says “first 2.0 implementation” in an internal module docstring. It does not appear in public docs or CLI help, but it is the only remaining repo-source version-framing hit outside plan artifacts.
+[src/harness_toolkit/kit/local.py](<REPO_ROOT>/src/harness_toolkit/kit/local.py:3) still says “first 2.0 implementation” in an internal module docstring. It does not appear in public docs or CLI help, but it is the only remaining repo-source version-framing hit outside plan artifacts.
 
 **Checks Run**
 

@@ -5,7 +5,7 @@
 Implemented a small user-visible message formatting fix:
 
 - `src/dread/formatting.py`
-  - `message_preview()` now collapses Discord message control whitespace (`tab`, `CR`, `LF`, `form-feed`, `vertical-tab`) into a single space.
+  - `message_preview()` now collapses <REDACTED_ORG> message control whitespace (`tab`, `CR`, `LF`, `form-feed`, `vertical-tab`) into a single space.
   - This preserves ordinary spaces while preventing plain-text CLI rows from being split into extra columns or terminal lines.
 - `tests/test_formatting.py`
   - Added focused formatter coverage for control-whitespace normalization and truncation after normalization.

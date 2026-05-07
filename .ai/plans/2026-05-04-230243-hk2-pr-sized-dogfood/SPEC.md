@@ -12,8 +12,8 @@ description: >
 Run a more realistic HK 2.0 dogfood study using parallel worker subagents on
 PR-sized tasks in:
 
-- Discord monorepo Ads ML area;
-- Discord monorepo Ads API area;
+- <REDACTED_ORG> monorepo Ads ML area;
+- <REDACTED_ORG> monorepo Ads API area;
 - Foreman.
 
 Workers should receive little HK-specific guidance beyond using HK and exploring

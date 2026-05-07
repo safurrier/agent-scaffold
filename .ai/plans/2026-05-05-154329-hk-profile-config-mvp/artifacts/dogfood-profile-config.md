@@ -16,7 +16,7 @@ profile = "foreman"
 
 [profiles.dread]
 title = "Dread"
-summary = "Python Click CLI for reading Discord data."
+summary = "Python Click CLI for reading <REDACTED_ORG> data."
 target_hint = "/tmp/hk-profile-config-dogfood/dread"
 instructions = """
 Use focused pytest while iterating.

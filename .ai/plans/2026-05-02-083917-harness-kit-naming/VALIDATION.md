@@ -45,11 +45,11 @@ description: >
 
 - `mise run sync-check -- --plan-dir .ai/plans/2026-05-02-083917-harness-kit-naming`
   - Result: passed after making the naming plan contract complete.
-- `python3 /Users/alex.furrier/.pi/agent/skills/alex-ai-docs-workflow/scripts/docs_verify.py /Users/alex.furrier/git_repositories/agent-scaffold`
+- `python3 <USER_HOME>/.pi/agent/skills/<USER_SKILL>-docs-workflow/scripts/docs_verify.py <OLD_REPO_ROOT>`
   - Result: passed during context-improve pass.
-- `python3 /Users/alex.furrier/.pi/agent/skills/alex-ai-ai-context-engineering-files/scripts/validate_frontmatter.py /Users/alex.furrier/git_repositories/agent-scaffold`
+- `python3 <USER_HOME>/.pi/agent/skills/<USER_SKILL>-ai-context-engineering-files/scripts/validate_frontmatter.py <OLD_REPO_ROOT>`
   - Result: initially failed on frontmatter index mismatches; passed after updating docs indexes.
-- `python3 /Users/alex.furrier/.pi/agent/skills/alex-ai-ai-context-engineering-files/scripts/verify_references.py /Users/alex.furrier/git_repositories/agent-scaffold`
+- `python3 <USER_HOME>/.pi/agent/skills/<USER_SKILL>-ai-context-engineering-files/scripts/verify_references.py <OLD_REPO_ROOT>`
   - Result: initially failed on a placeholder-style module path in `docs/portable-workflow.md`; passed after wording the example as prose rather than a file reference.
 - `uv run pytest tests/contract/test_task_contract.py tests/unit/test_portable_workflow.py -q`
   - Result: passed after context-improve doc fixes; 166 tests.

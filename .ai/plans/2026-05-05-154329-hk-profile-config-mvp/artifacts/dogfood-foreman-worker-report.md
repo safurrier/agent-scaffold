@@ -47,7 +47,7 @@ Recorded through HK validation:
 
 ## Review Dispatch Outcome
 
-- `codex` was available at `/Users/alex.furrier/.npm-global/bin/codex` (`codex-cli 0.128.0`).
+- `codex` was available at `<USER_HOME>/.npm-global/bin/codex` (`codex-cli 0.128.0`).
 - Ran profile-guided review command: `codex review --uncommitted`.
 - Codex outcome: no blocking findings; it reported the change clarifies existing `--config-path` behavior and adds focused regression coverage, with no correctness, compatibility, or test reliability issues found.
 - Recorded with HK:

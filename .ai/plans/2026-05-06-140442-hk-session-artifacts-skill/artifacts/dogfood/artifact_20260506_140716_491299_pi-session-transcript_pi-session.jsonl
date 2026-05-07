@@ -1,4 +1,4 @@
-{"type":"session","version":3,"id":"019dff1c-f840-77ab-a7d3-d1eeda483d4e","timestamp":"2026-05-06T21:06:21.889Z","cwd":"/Users/alex.furrier/git_repositories/harness-toolkit"}
+{"type":"session","version":3,"id":"019dff1c-f840-77ab-a7d3-d1eeda483d4e","timestamp":"2026-05-06T21:06:21.889Z","cwd":"<REPO_ROOT>"}
 {"type":"model_change","id":"21dd18ac","parentId":null,"timestamp":"2026-05-06T21:06:24.881Z","provider":"anthropic","modelId":"claude-haiku-4-5"}
 {"type":"thinking_level_change","id":"8b0d974d","parentId":"21dd18ac","timestamp":"2026-05-06T21:06:24.881Z","thinkingLevel":"medium"}
 {"type":"custom","customType":"plannotator","data":{"phase":"idle","lastSubmittedPath":null,"savedState":null},"id":"763f6548","parentId":"8b0d974d","timestamp":"2026-05-06T21:06:24.935Z"}

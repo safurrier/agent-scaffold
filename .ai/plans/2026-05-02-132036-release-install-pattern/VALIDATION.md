@@ -10,11 +10,11 @@
   - Result: created this external Harness Kit plan.
 - `hk checks --target . --profile generic --json`
   - Result: directed validation to the repo-native fast gate plus `hk sync-check`.
-- `python3 /Users/alex.furrier/.pi/agent/skills/alex-ai-docs-workflow/scripts/docs_verify.py /Users/alex.furrier/git_repositories/agent-scaffold`
+- `python3 <USER_HOME>/.pi/agent/skills/<USER_SKILL>-docs-workflow/scripts/docs_verify.py <OLD_REPO_ROOT>`
   - Result: passed.
-- `python3 /Users/alex.furrier/.pi/agent/skills/alex-ai-ai-context-engineering-files/scripts/validate_frontmatter.py /Users/alex.furrier/git_repositories/agent-scaffold`
+- `python3 <USER_HOME>/.pi/agent/skills/<USER_SKILL>-ai-context-engineering-files/scripts/validate_frontmatter.py <OLD_REPO_ROOT>`
   - Result: initially failed because `docs/release.md` frontmatter id did not match the generated heading; passed after changing `install-cli` to `install-cli-tools`.
-- `python3 /Users/alex.furrier/.pi/agent/skills/alex-ai-ai-context-engineering-files/scripts/verify_references.py /Users/alex.furrier/git_repositories/agent-scaffold`
+- `python3 <USER_HOME>/.pi/agent/skills/<USER_SKILL>-ai-context-engineering-files/scripts/verify_references.py <OLD_REPO_ROOT>`
   - Result: passed.
 - `uv build`
   - Result: built sdist and wheel successfully; removed local `dist/` afterward.

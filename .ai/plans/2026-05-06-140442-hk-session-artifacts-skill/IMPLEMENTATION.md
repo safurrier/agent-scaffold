@@ -33,4 +33,4 @@ The skill teaches agents to attach exact paths with `hk artifact attach` rather 
 - Added an explicit kind mapping.
 - Added a warning that newest-first helper output is only an inspection aid.
 - Added a count/sanity check to the Pi `--session-dir` recipe before attaching.
-- Fixed Claude project key normalization so `alex.furrier` path segments match Claude's hyphenated project directory.
+- Fixed Claude project key normalization so `<USER>` path segments match Claude's hyphenated project directory.

@@ -16,7 +16,7 @@ uv run ruff check .agent/skills/hk-session-artifacts/scripts/find_session_candid
 Result: passed.
 
 ```bash
-python3 /Users/alex.furrier/.pi/agent/skills/alex-ai-skill-creator/scripts/quick_validate.py .agent/skills/hk-session-artifacts
+python3 <USER_HOME>/.pi/agent/skills/<USER_SKILL>-skill-creator/scripts/quick_validate.py .agent/skills/hk-session-artifacts
 ```
 
 Result: passed; `Skill is valid!`.
