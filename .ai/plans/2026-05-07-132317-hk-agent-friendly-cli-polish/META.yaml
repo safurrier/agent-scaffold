@@ -1,0 +1,17 @@
+slug: hk-agent-friendly-cli-polish
+branch: feat/harness-kit-2-ledger-assistant
+created: 2026-05-07
+pr: 12
+status: complete
+source: user-request
+contract_change: implementation_only
+decision_record: none
+review_mode: external_required
+review_backend: builtin reviewer subagent
+review_rubrics:
+  - core-quality
+evidence_required:
+  - commands
+  - report
+continues_from: 2026-05-07-121141-hk-agent-adoption-dogfood
+supersedes:

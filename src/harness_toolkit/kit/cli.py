@@ -90,7 +90,7 @@ Start by resolving the repo/module workflow:
 {KIT_COMMAND} profile resolve --target . --json
 ```
 
-Use the repo or module that owns the work as `--target`. Then start work with `{KIT_COMMAND} start <slug> --plan "..."`, record validation with `{KIT_COMMAND} validate --why`, and follow `{KIT_COMMAND} status --target .`.
+Use the repo or module that owns the work as `--target`. Profile flags are only for discovery commands such as `{KIT_COMMAND} profile`, `{KIT_COMMAND} checks`, and repo-scope `{KIT_COMMAND} instructions`; do not pass `--profile` or `--profiles-dir` to lifecycle commands unless that command's help shows those options. Then start work with `{KIT_COMMAND} start <slug> --plan "..."`, record validation with `{KIT_COMMAND} validate --why`, and follow `{KIT_COMMAND} status --target .`.
 
 If `{KIT_COMMAND}` is unavailable or you are unfamiliar with the workflow, read the Harness Kit agent adoption guide before proceeding:
 {AGENT_ADOPTION_URL}
@@ -139,7 +139,7 @@ Follow `hk status` next actions when it asks for them:
 {KIT_COMMAND} sync --target . --json
 ```
 
-Important: `{KIT_COMMAND}` is shell-first. It may capture exact native command evidence via `validate`, but it must not hide validation behind `hk run`-style task-runner commands. Use profile/check guidance to choose native commands, then capture the selected command with `validate --why`.
+Important: `{KIT_COMMAND}` is shell-first. It may capture exact native command evidence via `validate`, but it must not hide validation behind `hk run`-style task-runner commands. Use profile/check guidance to choose native commands, then capture the selected command with `validate --why`. Only discovery commands such as `{KIT_COMMAND} checks`, `{KIT_COMMAND} profile`, and repo-scope `{KIT_COMMAND} instructions` use profile flags; do not pass `--profile` or `--profiles-dir` to lifecycle commands unless that command's help shows those options.
 
 {profile.instructions}
 """
@@ -147,6 +147,81 @@ Important: `{KIT_COMMAND}` is shell-first. It may capture exact native command e
 
 def print_error(message: str) -> None:
     print(f"Error: {message}", file=sys.stderr)
+
+
+_PROFILE_ONLY_OPTIONS = {"--profile", "--profiles-dir"}
+_PROFILE_OPTION_COMMANDS = {"checks", "instructions", "profile"}
+_PROFILE_FORBIDDEN_COMMANDS = {
+    "artifact",
+    "brief",
+    "capture",
+    "context",
+    "dangerously-skip",
+    "decide",
+    "evidence",
+    "export",
+    "handoff",
+    "init",
+    "note",
+    "plan",
+    "ready",
+    "review",
+    "spec",
+    "start",
+    "status",
+    "sync",
+    "validate",
+    "work",
+}
+
+
+def _argv_before_native_separator(argv: list[str]) -> list[str]:
+    """Return HK argv before a native-command `--` separator."""
+    if "--" not in argv:
+        return argv
+    return argv[: argv.index("--")]
+
+
+def _profile_option_mistake(argv: list[str]) -> tuple[str, str] | None:
+    """Detect profile flags on lifecycle commands before Cyclopts' generic error.
+
+    Agents often resolve a profile, then incorrectly copy `--profile` or
+    `--profiles-dir` onto lifecycle commands such as `hk start`. Give them a
+    one-hop repair hint instead of an unknown-option error. Ignore arguments
+    after `--` so native validation commands may use their own profile flags.
+    """
+    if not argv:
+        return None
+    command = argv[0]
+    if (
+        command.startswith("-")
+        or command in _PROFILE_OPTION_COMMANDS
+        or command not in _PROFILE_FORBIDDEN_COMMANDS
+    ):
+        return None
+    hk_args = _argv_before_native_separator(argv[1:])
+    for arg in hk_args:
+        option = arg.split("=", 1)[0]
+        if option in _PROFILE_ONLY_OPTIONS:
+            return command, option
+    return None
+
+
+def _preflight_agent_friendly_errors(argv: list[str]) -> None:
+    mistake = _profile_option_mistake(argv)
+    if mistake is None:
+        return
+    command, option = mistake
+    print_error(
+        f"{KIT_COMMAND} {command} does not use {option}. Profile flags are only for "
+        f"discovery commands such as `{KIT_COMMAND} profile`, `{KIT_COMMAND} checks`, "
+        f"and repo-scope `{KIT_COMMAND} instructions`."
+    )
+    print("Try:", file=sys.stderr)
+    print(f"  {KIT_COMMAND} profile resolve --target . --json", file=sys.stderr)
+    print(f"  {KIT_COMMAND} checks --target . --json", file=sys.stderr)
+    print(f"  {KIT_COMMAND} {command} --help", file=sys.stderr)
+    raise SystemExit(1)
 
 
 @app.command(
@@ -1094,7 +1169,14 @@ def review_add(
     print(f"summary={result.summary}")
 
 
-@review_app.command(name="prompt")
+@review_app.command(
+    name="prompt",
+    help_epilogue=(
+        "Examples:\n"
+        "  hk review prompt --target .\n"
+        "  hk review prompt --target . --json\n"
+    ),
+)
 def review_prompt_command(
     *,
     target: Path = Path("."),
@@ -1157,7 +1239,10 @@ def evidence_list(
         print(f"{record.id}: {record.status} {record.command_display}{why}")
 
 
-@app.command(name="ready")
+@app.command(
+    name="ready",
+    help_epilogue=("Examples:\n  hk ready --target .\n  hk ready --target . --json\n"),
+)
 def ready_command(
     *,
     target: Path = Path("."),
@@ -1444,6 +1529,7 @@ def status(
 
 
 def main() -> None:
+    _preflight_agent_friendly_errors(sys.argv[1:])
     app()
 
 

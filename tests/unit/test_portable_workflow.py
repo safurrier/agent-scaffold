@@ -105,6 +105,10 @@ def test_workflow_instructions_default_to_user_level_snippet() -> None:
     assert "hk profile resolve --target . --json" in payload["agents_md"]
     assert "hk start <slug> --plan" in payload["agents_md"]
     assert (
+        "do not pass `--profile` or `--profiles-dir` to lifecycle commands"
+        in payload["agents_md"]
+    )
+    assert (
         "https://safurrier.github.io/harness-toolkit/agent-adoption/"
         in payload["agents_md"]
     )
@@ -131,6 +135,54 @@ def test_workflow_instructions_print_repo_profile_snippet() -> None:
     assert "hk ready --target . --json" in payload["agents_md"]
     assert "agent-generated local state as uncommitted" in payload["agents_md"]
     assert "shell-first" in payload["agents_md"]
+    assert "Only discovery commands" in payload["agents_md"]
+    assert (
+        "do not pass `--profile` or `--profiles-dir` to lifecycle commands"
+        in payload["agents_md"]
+    )
+
+
+def test_profile_flags_on_lifecycle_commands_get_actionable_error() -> None:
+    result = _run_workflow(
+        "start",
+        "demo",
+        "--plan",
+        "Adopted implementation intent",
+        "--profile",
+        "python",
+    )
+
+    assert result.returncode == 1
+    assert "hk start does not use --profile" in result.stderr
+    assert "hk profile resolve --target . --json" in result.stderr
+    assert "hk checks --target . --json" in result.stderr
+    assert "hk start --help" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
+def test_profile_flag_preflight_does_not_mask_unknown_commands() -> None:
+    from harness_toolkit.kit.cli import _profile_option_mistake
+
+    assert _profile_option_mistake(["does-not-exist", "--profile", "python"]) is None
+
+
+def test_profile_flags_after_validate_separator_are_native_command_args() -> None:
+    from harness_toolkit.kit.cli import _profile_option_mistake
+
+    assert (
+        _profile_option_mistake(
+            [
+                "validate",
+                "--why",
+                "Native command accepts profile",
+                "--",
+                "tool",
+                "--profile",
+                "ci",
+            ]
+        )
+        is None
+    )
 
 
 def test_workflow_instructions_profile_implies_repo_scope_for_compatibility() -> None:

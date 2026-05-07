@@ -222,6 +222,12 @@ hk profile resolve --target . --json
 hk checks --target . --json
 ```
 
+Profile flags are discovery inputs, not lifecycle state. Use `--profile` and
+`--profiles-dir` with commands that explicitly document them, such as
+`hk checks`, `hk profile`, and repo-scope `hk instructions`; do not pass those
+flags to lifecycle commands such as `hk start`, `hk validate`, `hk status`,
+`hk ready`, or `hk handoff`.
+
 Resolution uses explicit longest path-prefix matching. If a profile has multiple
 review entries, the agent should dispatch them independently/in parallel when the
 harness supports it, then record accepted reviews with `hk review add`.

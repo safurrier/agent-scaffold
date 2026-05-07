@@ -32,7 +32,7 @@ Start by resolving the repo/module workflow:
 hk profile resolve --target . --json
 ```
 
-Use the repo or module that owns the work as `--target`. Then start work with `hk start <slug> --plan "..."`, record validation with `hk validate --why`, and follow `hk status --target .`.
+Use the repo or module that owns the work as `--target`. Profile flags are only for discovery commands such as `hk profile`, `hk checks`, and repo-scope `hk instructions`; do not pass `--profile` or `--profiles-dir` to lifecycle commands unless that command's help shows those options. Then start work with `hk start <slug> --plan "..."`, record validation with `hk validate --why`, and follow `hk status --target .`.
 
 If `hk` is unavailable or you are unfamiliar with the workflow, read the Harness Kit agent adoption guide before proceeding:
 https://safurrier.github.io/harness-toolkit/agent-adoption/
@@ -94,6 +94,11 @@ Use the path that owns the lifecycle state for the work:
 
 Keep the same target across `hk` commands. If you realize the target was wrong,
 tell the user and restart or repair the HK work item rather than mixing targets.
+
+Do not carry profile flags into lifecycle commands. Use `hk profile ...`,
+`hk checks ...`, or `hk instructions --scope repo ...` to inspect profile guidance,
+then continue with plain lifecycle commands such as `hk start`, `hk validate`,
+`hk status`, `hk ready`, and `hk handoff`.
 
 ## Validation and checks
 
