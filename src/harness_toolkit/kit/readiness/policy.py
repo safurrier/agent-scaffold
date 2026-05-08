@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import dataclass
 
 from harness_toolkit.kit.ledger.models import EventRecord, EvidenceRecord
 from harness_toolkit.kit.readiness.diagnostics import ReadyCheck, ReadyResult
@@ -24,6 +25,13 @@ SELF_REVIEW_GUIDANCE = (
     "review must be independent: preferred independent AI/tool reviewer; "
     "minimum fresh-context subagent; implementation-agent self-review does not count"
 )
+
+
+@dataclass(frozen=True)
+class RequiredProfileItem:
+    name: str
+    purpose: str
+    matched_paths: tuple[str, ...]
 
 
 def notes_by_kind(events: list[EventRecord], kind: str) -> list[str]:
@@ -87,6 +95,24 @@ def dangerous_skip_message(check_id: str, skips: list[dict[str, object]]) -> str
     return f"{check_id} dangerously skipped: {label}{reason_text}{mitigation_text}"
 
 
+def dangerous_skip_for_label(
+    events: list[EventRecord], check_id: str, label: str
+) -> list[dict[str, object]]:
+    return [
+        skip
+        for skip in dangerous_skip_events(events, check_id)
+        if str(skip.get("label") or "") == label
+    ]
+
+
+def _paths_text(paths: tuple[str, ...]) -> str:
+    if not paths:
+        return "changed path matched profile rule"
+    preview = ", ".join(paths[:3])
+    suffix = "" if len(paths) <= 3 else f", +{len(paths) - 3} more"
+    return f"matched {preview}{suffix}"
+
+
 def ready_for_events(
     *,
     work_id: str,
@@ -96,6 +122,8 @@ def ready_for_events(
     agent_local_warning: str = "",
     check_handoff: bool = True,
     handoff_check: Callable[[], None] | None = None,
+    required_profile_checks: tuple[RequiredProfileItem, ...] = (),
+    required_profile_reviews: tuple[RequiredProfileItem, ...] = (),
 ) -> ReadyResult:
     checks: list[ReadyCheck] = []
 
@@ -160,6 +188,41 @@ def ready_for_events(
         if recorded_reviews
         else "missing accepted external-enough review record; run a separate reviewer/subagent with fresh context",
     )
+    for item in required_profile_checks:
+        matching_evidence = [
+            record
+            for record in evidence
+            if getattr(record, "check_name", "") == item.name
+            and record.status == "pass"
+        ]
+        matching_skips = dangerous_skip_for_label(events, "validation", item.name)
+        add_check(
+            f"profile-check:{item.name}",
+            bool(matching_evidence) or bool(matching_skips),
+            f"required profile check recorded: {item.name} ({_paths_text(item.matched_paths)})"
+            if matching_evidence
+            else dangerous_skip_message("validation", matching_skips)
+            if matching_skips
+            else f"missing required profile check `{item.name}` ({_paths_text(item.matched_paths)}); run `hk validate --check {item.name} --why ... -- <native command>` or `hk dangerously-skip validation --label {item.name} --reason ... --mitigation ...`",
+        )
+
+    for item in required_profile_reviews:
+        matching_reviews = [
+            review
+            for review in reviews
+            if str(review.get("review_name") or "") == item.name
+        ]
+        matching_skips = dangerous_skip_for_label(events, "review", item.name)
+        add_check(
+            f"profile-review:{item.name}",
+            bool(matching_reviews) or bool(matching_skips),
+            f"required profile review recorded: {item.name} ({_paths_text(item.matched_paths)})"
+            if matching_reviews
+            else dangerous_skip_message("review", matching_skips)
+            if matching_skips
+            else f"missing required profile review `{item.name}` ({_paths_text(item.matched_paths)}); run `hk review prompt {item.name}` and record with `hk review add --review {item.name} ...`, or `hk dangerously-skip review --label {item.name} --reason ... --mitigation ...`",
+        )
+
     sync_skips = dangerous_skip_events(events, "sync")
     sync_skipped = sync_status == "sync-dangerously-skipped"
     synced = sync_status == "synced" or sync_skipped

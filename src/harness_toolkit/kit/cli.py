@@ -26,6 +26,8 @@ from harness_toolkit.kit.local import (
     LocalWorkflowError,
     active_work_dir,
     brief_markdown,
+    changed_paths,
+    changed_paths_for_work,
     json_dump_dataclass,
     json_dump_object,
     print_capture_and_exit,
@@ -77,10 +79,10 @@ app = App(
     group_commands=LIFECYCLE_GROUP,
     help_epilogue=examples(
         "hk start <slug> --plan 'Adopted implementation intent'",
-        "hk validate --why 'What this proves' -- <native command>",
+        "hk checks --target . --changed --json",
         "hk status --target .",
         "hk ready --target . && hk summary --target .",
-        note="Run `hk instructions` for AGENTS.md guidance and `hk checks --target . --json` for validation hints. Use `hk status` for agent next actions and `hk summary` for a human-readable readiness digest.",
+        note="Run `hk instructions` for AGENTS.md guidance and `hk checks --target . --changed --json` for validation hints. Use `hk status` for agent next actions and `hk summary` for a human-readable readiness digest.",
     ),
 )
 profile_app = App(
@@ -119,6 +121,14 @@ lifecycle_app = LifecycleApp()
 
 def resolve_catalog(profiles_dir: Path | None) -> ProfileCatalog:
     return ProfileCatalog.load(profiles_dir)
+
+
+def changed_paths_for_target(target: Path) -> tuple[str, ...]:
+    state = resolve_local_state(target)
+    work_dir = active_work_dir(state) if state.state_dir.exists() else None
+    if work_dir is not None:
+        return tuple(changed_paths_for_work(state.target_root, work_dir))
+    return tuple(changed_paths(state.target_root))
 
 
 AGENT_ADOPTION_URL = "https://safurrier.github.io/harness-toolkit/agent-adoption/"
@@ -163,6 +173,7 @@ Standard agent loop:
 {KIT_COMMAND} brief --target . --json
 {KIT_COMMAND} start <slug> --plan 'Adopted implementation intent' --target . --json
 # work normally in the repo
+{KIT_COMMAND} checks --target . --changed --json
 {KIT_COMMAND} validate --why 'What this command proves' --target . -- <native command>
 {KIT_COMMAND} status --target . --json
 {KIT_COMMAND} ready --target . --json
@@ -176,9 +187,9 @@ Follow `hk status` next actions when it asks for them:
 # optional context when it prevents rediscovery
 {KIT_COMMAND} context 'Relevant constraints, files, or repo facts' --target . --json
 {KIT_COMMAND} decide 'Decision/spec reflection' --spec-impact none --target . --json
-{KIT_COMMAND} checks --target . --profile {profile.name}{profiles_dir_arg} --json
+{KIT_COMMAND} checks --target . --profile {profile.name}{profiles_dir_arg} --changed --json
 # review is required by default: preferred independent AI/tool reviewer; minimum fresh-context subagent
-{KIT_COMMAND} review prompt --target .
+{KIT_COMMAND} review prompt [REVIEW_NAME] --target .
 # dispatch via your harness if available (Pi subagent tool, Claude Code Agent/Task tool, Codex Shell tool: codex review --uncommitted)
 {KIT_COMMAND} review add --backend subagent --reviewer reviewer-fresh-context --rubric core-quality --summary 'Review summary' --target . --json
 # review tools may create local agent state; check status again before syncing
@@ -186,7 +197,7 @@ Follow `hk status` next actions when it asks for them:
 {KIT_COMMAND} sync --target . --json
 ```
 
-Important: `{KIT_COMMAND}` is shell-first. It may capture exact native command evidence via `validate`, but it must not hide validation behind `hk run`-style task-runner commands. Use profile/check guidance to choose native commands, then capture the selected command with `validate --why`. Use `{KIT_COMMAND} status` for next actions and `{KIT_COMMAND} summary` for a human-readable readiness digest. Only discovery commands such as `{KIT_COMMAND} checks`, `{KIT_COMMAND} profile`, and repo-scope `{KIT_COMMAND} instructions` use profile flags; do not pass `--profile` or `--profiles-dir` to lifecycle commands unless that command's help shows those options.
+Important: `{KIT_COMMAND}` is shell-first. It may capture exact native command evidence via `validate`, but it must not hide validation behind `hk run`-style task-runner commands. Use profile/check guidance to choose native commands, then capture the selected command with `validate --why` or `validate --check NAME --why` when satisfying a named profile check. Use `{KIT_COMMAND} status` for next actions and `{KIT_COMMAND} summary` for a human-readable readiness digest. Only discovery commands such as `{KIT_COMMAND} checks`, `{KIT_COMMAND} profile`, and repo-scope `{KIT_COMMAND} instructions` use profile flags; do not pass `--profile` or `--profiles-dir` to lifecycle commands unless that command's help shows those options.
 
 {profile.instructions}
 """
@@ -460,6 +471,10 @@ def profile_show(
     print("Checks:")
     for check in selected.profile.checks:
         print(f"- {check.name}: {check.command_template}")
+        if check.applies_when:
+            print(f"  applies_when: {', '.join(check.applies_when)}")
+        if check.required_when:
+            print(f"  required_when: {', '.join(check.required_when)}")
     if selected.profile.reviews:
         print()
         print("Reviews:")
@@ -469,6 +484,10 @@ def profile_show(
             )
             if review.dispatch_hint:
                 print(f"  dispatch: {review.dispatch_hint}")
+            if review.applies_when:
+                print(f"  applies_when: {', '.join(review.applies_when)}")
+            if review.required_when:
+                print(f"  required_when: {', '.join(review.required_when)}")
 
 
 @profile_app.command(
@@ -566,7 +585,7 @@ def profile_create(
     group=GUIDANCE_GROUP,
     help_epilogue=examples(
         "hk checks --target /work/my-python-package --json",
-        "hk checks --profile python --target /work/my-python-package --json",
+        "hk checks --target . --changed --json",
         "hk checks --profile api --profiles-dir ./profiles --target api --json",
     ),
 )
@@ -575,6 +594,7 @@ def checks(
     profile: ProfileName | None = None,
     target: Path = Path("."),
     profiles_dir: Path | None = None,
+    changed: bool = False,
     json: bool = False,
 ) -> None:
     """Show named verification checks for a profile without executing them.
@@ -588,6 +608,8 @@ def checks(
         Target repository or scoped path. Used to resolve repo-root guidance.
     profiles_dir
         Optional directory of custom profile TOML files.
+    changed
+        Include diff-based suggestions using profile applies_when/required_when rules.
     json
         Print machine-readable JSON.
     """
@@ -599,6 +621,8 @@ def checks(
             selected_profile,
             target=resolved_target,
             repo_root=git_root(resolved_target),
+            changed_paths=changed_paths_for_target(resolved_target) if changed else (),
+            enforce_required=profile is None and profiles_dir is None,
         )
     except (KeyError, ProfileError, RepoStateError) as e:
         print_error(str(e))
@@ -609,6 +633,43 @@ def checks(
     print(f"Profile: {view.profile}")
     print(f"Target: {view.target}")
     print(view.reminder)
+    if changed:
+        print()
+        print("Changed paths:")
+        for path in view.changed_paths or ("none",):
+            print(f"- {path}")
+        print()
+        print("Suggested checks:")
+        if view.suggested_checks:
+            for item in view.suggested_checks:
+                required = "required" if item.required else "suggested"
+                if item.required and not item.enforced:
+                    required = "required by inspected profile"
+                print(f"- {item.name} ({required}): {item.purpose}")
+                print(
+                    f"  reason: {item.matched_by} matched {', '.join(item.matched_paths)}"
+                )
+                if item.record_command:
+                    print(f"  record: {item.record_command}")
+        else:
+            print("- none")
+        print()
+        print("Suggested reviews:")
+        if view.suggested_reviews:
+            for item in view.suggested_reviews:
+                required = "required" if item.required else "suggested"
+                if item.required and not item.enforced:
+                    required = "required by inspected profile"
+                print(f"- {item.name} ({required}): {item.purpose}")
+                print(
+                    f"  reason: {item.matched_by} matched {', '.join(item.matched_paths)}"
+                )
+                if item.prompt_command:
+                    print(f"  prompt: {item.prompt_command}")
+                if item.record_command:
+                    print(f"  record: {item.record_command}")
+        else:
+            print("- none")
     print()
     for check in view.checks:
         print(f"{check.name}: {check.purpose}")
@@ -616,6 +677,10 @@ def checks(
         print(f"  run from: {check.run_from}")
         if check.required_inputs:
             print(f"  inputs: {', '.join(check.required_inputs)}")
+        if check.applies_when:
+            print(f"  applies_when: {', '.join(check.applies_when)}")
+        if check.required_when:
+            print(f"  required_when: {', '.join(check.required_when)}")
     if view.reviews:
         print()
         print("Reviews:")
@@ -629,6 +694,10 @@ def checks(
                 print(f"  prompt: {review.prompt}")
             if review.prompt_file:
                 print(f"  prompt_file: {review.prompt_file}")
+            if review.applies_when:
+                print(f"  applies_when: {', '.join(review.applies_when)}")
+            if review.required_when:
+                print(f"  required_when: {', '.join(review.required_when)}")
 
 
 @app.command(
@@ -1037,7 +1106,7 @@ def sync(
     group=LIFECYCLE_GROUP,
     help_epilogue=examples(
         "hk validate --why 'Focused test' -- uv run pytest -q",
-        "hk validate --why 'Lint/typecheck' --shell 'pnpm lint && pnpm typecheck'",
+        "hk validate --check repo-native-fast-gate --why 'Fast gate' -- mise run check",
     ),
 )
 def validate(
@@ -1048,6 +1117,7 @@ def validate(
     kind: Literal[
         "test", "lint", "typecheck", "build", "check", "e2e", "other"
     ] = "other",
+    check: str = "",
     shell: str = "",
     no_log: bool = False,
     raw_log: bool = False,
@@ -1066,6 +1136,7 @@ def validate(
                 shell_command=shell,
                 kind=kind,
                 why=why.strip(),
+                check_name=check,
                 no_log=no_log,
                 raw_log=raw_log,
                 stream_to_stderr=json,
@@ -1080,6 +1151,8 @@ def validate(
     print(f"evidence_id={result.evidence_id}")
     print(f"status={result.status}")
     print(f"why={result.why}")
+    if result.check_name:
+        print(f"check={result.check_name}")
     print(f"transcript_path={result.transcript_path}")
     if result.exit_code != 0:
         raise SystemExit(result.exit_code)
@@ -1178,7 +1251,7 @@ def artifact_attach(
 @review_app.command(
     name="add",
     help_epilogue=examples(
-        "hk review add --backend subagent --reviewer fresh --rubric core --summary OK",
+        "hk review add --review cli-review --backend subagent --reviewer fresh --rubric core --summary OK",
         "hk review add --backend codex --reviewer bug-hunter --rubric bugs --summary OK",
         "hk dangerously-skip review --label no-review --reason unavailable --mitigation follow-up --json",
         note=(
@@ -1196,6 +1269,7 @@ def review_add(
     rubric: tuple[str, ...],
     summary: str,
     disposition: str = "accepted",
+    review: str = "",
     target: Path = Path("."),
     no_local_files: bool = False,
     json: bool = False,
@@ -1217,6 +1291,7 @@ def review_add(
                 rubrics=rubric,
                 summary=summary,
                 disposition=disposition,
+                review_name=review,
             )
         )
     except LocalWorkflowError as e:
@@ -1226,6 +1301,8 @@ def review_add(
         print(json_dump_dataclass(result))
         return
     print(f"review={result.backend}/{result.reviewer}")
+    if result.review_name:
+        print(f"profile_review={result.review_name}")
     print(f"rubrics={', '.join(result.rubrics)}")
     print(f"summary={result.summary}")
 
@@ -1233,10 +1310,13 @@ def review_add(
 @review_app.command(
     name="prompt",
     help_epilogue=examples(
-        "hk review prompt --target .", "hk review prompt --target . --json"
+        "hk review prompt --target .",
+        "hk review prompt cli-review --target .",
+        "hk review prompt cli-review --target . --json",
     ),
 )
 def review_prompt_command(
+    name: str = "",
     *,
     target: Path = Path("."),
     no_local_files: bool = False,
@@ -1244,7 +1324,9 @@ def review_prompt_command(
 ) -> None:
     """Print a fresh-context reviewer prompt for the active work."""
     try:
-        result = lifecycle_app.review_prompt(TargetRequest(target, no_local_files))
+        result = lifecycle_app.review_prompt(
+            TargetRequest(target, no_local_files), review_name=name
+        )
     except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e

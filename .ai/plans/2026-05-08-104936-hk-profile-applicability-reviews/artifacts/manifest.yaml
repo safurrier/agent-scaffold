@@ -1,0 +1,7 @@
+artifacts:
+  - path: artifacts/profile-applicability-dogfood.log
+    type: dogfood
+    description: Synthetic rollout covering changed-path suggestions, named review prompt, required check/review readiness, and final summary.
+  - path: artifacts/review-summary.md
+    type: review
+    description: Fresh-context reviewer and agent-friendly CLI review findings, fixes, and disposition.

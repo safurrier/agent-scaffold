@@ -72,6 +72,51 @@ def _git_status(path: Path) -> str:
     ).stdout
 
 
+def _write_profile_config(tmp_path: Path, repo: Path) -> Path:
+    prompt = tmp_path / "agent-friendly-cli-review.md"
+    prompt.write_text(
+        "Review CLI changes for non-interactive defaults, JSON output, "
+        "idempotency, actionable errors, and copyable help examples.\n"
+    )
+    config = tmp_path / "harness.toml"
+    config.write_text(
+        f'''
+version = 1
+default_profile = "hk-dogfood"
+
+[[targets]]
+name = "repo"
+path = "{repo}"
+profile = "hk-dogfood"
+
+[profiles.hk-dogfood]
+title = "HK dogfood"
+summary = "Dogfood profile with command-specific guidance."
+target_hint = "Use --target {repo}."
+instructions = "Run native commands and record HK evidence."
+
+[[profiles.hk-dogfood.checks]]
+name = "unit-tests"
+purpose = "Run focused unit tests for command behavior."
+command_template = "uv run pytest tests/unit/test_portable_workflow.py -q"
+run_from = "repo-root"
+applies_when = ["src/**/cli.py"]
+required_when = ["src/**/cli.py"]
+
+[[profiles.hk-dogfood.reviews]]
+name = "agent-friendly-cli-review"
+purpose = "Review CLI changes against agent-facing CLI design principles."
+backend = "fresh-context-subagent"
+rubric = "agent-friendly-cli"
+dispatch_hint = "Use a fresh-context reviewer."
+prompt_file = "{prompt}"
+applies_when = ["src/**/cli.py", "docs/**"]
+required_when = ["src/**/cli.py"]
+'''.lstrip()
+    )
+    return config
+
+
 def test_workflow_help_includes_agent_copyable_examples() -> None:
     result = _run_workflow("plan", "--help")
 
@@ -149,7 +194,9 @@ def test_workflow_instructions_print_repo_profile_snippet() -> None:
         in payload["agents_md"]
     )
     assert "hk status --target . --json" in payload["agents_md"]
-    assert "hk checks --target . --profile python --json" in payload["agents_md"]
+    assert (
+        "hk checks --target . --profile python --changed --json" in payload["agents_md"]
+    )
     assert "hk validate --why" in payload["agents_md"]
     assert "hk ready --target . --json" in payload["agents_md"]
     assert "agent-generated local state as uncommitted" in payload["agents_md"]
@@ -202,6 +249,180 @@ def test_profile_flags_after_validate_separator_are_native_command_args() -> Non
         )
         is None
     )
+
+
+def test_profile_applicability_globs_are_segment_aware() -> None:
+    from harness_toolkit.kit.profiles import _matches_pattern
+
+    assert _matches_pattern("README.md", "*.md") is True
+    assert _matches_pattern("docs/portable-workflow.md", "*.md") is False
+    assert _matches_pattern("docs/portable-workflow.md", "docs/**") is True
+    assert _matches_pattern(".github/workflows/ci.yml", "github/**") is False
+
+
+def test_checks_changed_suggests_applicable_profile_items(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+    (repo / "src" / "harness_toolkit" / "kit").mkdir(parents=True)
+    (repo / "src" / "harness_toolkit" / "kit" / "cli.py").write_text(
+        "print('changed')\n"
+    )
+    monkeypatch.setenv("HARNESS_KIT_CONFIG", str(_write_profile_config(tmp_path, repo)))
+
+    result = _run_workflow("checks", "--target", str(repo), "--changed", "--json")
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["changed_paths"] == ["src/harness_toolkit/kit/cli.py"]
+    assert payload["suggested_checks"][0]["name"] == "unit-tests"
+    assert payload["suggested_checks"][0]["required"] is True
+    assert payload["suggested_checks"][0]["enforced"] is True
+    assert (
+        "hk validate --check unit-tests"
+        in payload["suggested_checks"][0]["record_command"]
+    )
+    assert payload["suggested_reviews"][0]["name"] == "agent-friendly-cli-review"
+    assert payload["suggested_reviews"][0]["required"] is True
+    assert payload["suggested_reviews"][0]["enforced"] is True
+    assert (
+        "hk review prompt agent-friendly-cli-review"
+        in payload["suggested_reviews"][0]["prompt_command"]
+    )
+    assert "prompt_file_text" not in json.dumps(payload)
+    assert "Review CLI changes for non-interactive defaults" not in result.stdout
+
+    inspected = _run_workflow(
+        "checks",
+        "--profile",
+        "hk-dogfood",
+        "--target",
+        str(repo),
+        "--changed",
+        "--json",
+    )
+    inspected_payload = json.loads(inspected.stdout)
+    assert inspected_payload["suggested_checks"][0]["required"] is True
+    assert inspected_payload["suggested_checks"][0]["enforced"] is False
+
+
+def test_named_profile_review_prompt_uses_prompt_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+    monkeypatch.setenv("HARNESS_KIT_CONFIG", str(_write_profile_config(tmp_path, repo)))
+    assert (
+        _run_workflow(
+            "start",
+            "cli-review",
+            "--plan",
+            "Touch CLI command behavior.",
+            "--target",
+            str(repo),
+        ).returncode
+        == 0
+    )
+    (repo / "src" / "harness_toolkit" / "kit").mkdir(parents=True)
+    (repo / "src" / "harness_toolkit" / "kit" / "cli.py").write_text(
+        "print('changed')\n"
+    )
+
+    result = _run_workflow(
+        "review",
+        "prompt",
+        "agent-friendly-cli-review",
+        "--target",
+        str(repo),
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "Profile review: agent-friendly-cli-review" in result.stdout
+    assert "Review CLI changes for non-interactive defaults" in result.stdout
+    assert "hk review add --review agent-friendly-cli-review" in result.stdout
+    assert "src/harness_toolkit/kit/cli.py" in result.stdout
+
+
+def test_ready_requires_matching_profile_check_and_review(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+    monkeypatch.setenv("HARNESS_KIT_CONFIG", str(_write_profile_config(tmp_path, repo)))
+    assert (
+        _run_workflow(
+            "start",
+            "profile-required",
+            "--plan",
+            "Touch CLI command behavior.",
+            "--target",
+            str(repo),
+        ).returncode
+        == 0
+    )
+    (repo / "src" / "harness_toolkit" / "kit").mkdir(parents=True)
+    (repo / "src" / "harness_toolkit" / "kit" / "cli.py").write_text(
+        "print('changed')\n"
+    )
+    _run_workflow(
+        "decide",
+        "No spec impact for synthetic CLI dogfood.",
+        "--spec-impact",
+        "none",
+        "--target",
+        str(repo),
+    )
+    missing = _run_workflow("ready", "--target", str(repo), "--json")
+    assert missing.returncode == 1
+    missing_payload = json.loads(missing.stdout)
+    missing_checks = {check["id"]: check for check in missing_payload["checks"]}
+    assert missing_checks["profile-check:unit-tests"]["status"] == "fail"
+    assert (
+        missing_checks["profile-review:agent-friendly-cli-review"]["status"] == "fail"
+    )
+
+    _run_workflow(
+        "validate",
+        "--check",
+        "unit-tests",
+        "--why",
+        "Focused synthetic check.",
+        "--target",
+        str(repo),
+        "--",
+        "python3",
+        "-c",
+        "print('ok')",
+    )
+    _run_workflow(
+        "review",
+        "add",
+        "--review",
+        "agent-friendly-cli-review",
+        "--backend",
+        "subagent",
+        "--reviewer",
+        "fresh-context",
+        "--rubric",
+        "agent-friendly-cli",
+        "--summary",
+        "No blockers.",
+        "--target",
+        str(repo),
+    )
+    _run_workflow("sync", "--target", str(repo))
+
+    result = _run_workflow("ready", "--target", str(repo), "--json")
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    checks = {check["id"]: check for check in payload["checks"]}
+    assert checks["profile-check:unit-tests"]["status"] == "pass"
+    assert checks["profile-review:agent-friendly-cli-review"]["status"] == "pass"
 
 
 def test_start_retries_resume_active_work_with_same_slug(tmp_path: Path) -> None:
@@ -273,7 +494,9 @@ def test_workflow_instructions_profile_implies_repo_scope_for_compatibility() ->
     payload = json.loads(result.stdout)
     assert payload["scope"] == "repo"
     assert payload["profile"] == "python"
-    assert "hk checks --target . --profile python --json" in payload["agents_md"]
+    assert (
+        "hk checks --target . --profile python --changed --json" in payload["agents_md"]
+    )
 
 
 def test_workflow_instructions_reject_user_scope_with_profile() -> None:
@@ -340,7 +563,7 @@ prompt_file = "{prompt_file.name}"
     assert payload["checks"][0]["command_template"] == "cargo test --test cli_config"
     assert payload["reviews"][0]["backend"] == "codex"
     assert payload["reviews"][0]["dispatch_hint"] == "codex review --uncommitted"
-    assert "Review CLI config behavior" in payload["reviews"][0]["prompt_file_text"]
+    assert "prompt_file_text" not in payload["reviews"][0]
 
 
 def test_user_harness_config_uses_longest_target_prefix(

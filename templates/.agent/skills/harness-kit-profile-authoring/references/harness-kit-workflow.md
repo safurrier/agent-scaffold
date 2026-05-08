@@ -31,9 +31,11 @@ Omit `--profiles-dir` only when intentionally using built-in profiles only.
 
 - `hk` manages planning and handoff state. It does **not** run validation commands.
 - Run profile-suggested validation commands directly in the shell.
-- Record exact command/result evidence with `hk validate --why`.
+- Record exact command/result evidence with `hk validate --why`; use
+  `hk validate --check NAME --why` when satisfying a named profile check.
 - Use the same `--target`, `--profile`, and `--profiles-dir` consistently for
-  profile/check commands. Lifecycle status/ready state is target-scoped.
+  profile/check discovery commands. Lifecycle status/ready state is target-scoped
+  and does not accept profile flags.
 - Do not commit `.ai/`, `.agent/`, `.mise/`, or `.gitignore` workflow files
   unless explicitly asked. Harness Kit local state lives under `.harness-local/`.
 - For repos that already have committed scaffold/task-contract infrastructure
@@ -103,7 +105,8 @@ Rules to remember:
 
 - `hk` manages planning/handoff state; it does not run validation commands.
 - Run validation directly and record exact command/result evidence with `hk validate --why`.
-- Keep `--target`, `--profile`, and `--profiles-dir` consistent across `hk` commands.
+- Use `hk checks --changed` to see path-based check/review suggestions when profiles define them.
+- Keep profile flags on discovery commands (`hk profile`, `hk checks`, repo-scope `hk instructions`); lifecycle commands do not accept `--profile` or `--profiles-dir`.
 - If no good profile exists, use the profile-authoring workflow to propose one;
   do not create profiles silently.
 ````

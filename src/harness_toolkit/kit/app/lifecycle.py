@@ -48,6 +48,7 @@ class CaptureRequest(TargetRequest):
     shell_command: str = ""
     kind: EvidenceKind = "other"
     why: str = ""
+    check_name: str = ""
     no_log: bool = False
     raw_log: bool = False
     stream_to_stderr: bool = False
@@ -69,6 +70,7 @@ class ReviewRequest(TargetRequest):
     rubrics: tuple[str, ...] = ()
     summary: str = ""
     disposition: str = "accepted"
+    review_name: str = ""
 
 
 @dataclass(frozen=True)
@@ -177,6 +179,7 @@ class LifecycleApp:
             shell_command=request.shell_command,
             kind=request.kind,
             why=request.why,
+            check_name=request.check_name,
             no_log=request.no_log,
             raw_log=request.raw_log,
             no_local_files=request.no_local_files,
@@ -202,12 +205,17 @@ class LifecycleApp:
             rubrics=request.rubrics,
             summary=request.summary,
             disposition=request.disposition,
+            review_name=request.review_name,
             no_local_files=request.no_local_files,
         )
 
-    def review_prompt(self, request: TargetRequest) -> local.ReviewPromptResult:
+    def review_prompt(
+        self, request: TargetRequest, *, review_name: str = ""
+    ) -> local.ReviewPromptResult:
         return local.review_prompt(
-            request.target, no_local_files=request.no_local_files
+            request.target,
+            review_name=review_name,
+            no_local_files=request.no_local_files,
         )
 
     def dangerously_skip(

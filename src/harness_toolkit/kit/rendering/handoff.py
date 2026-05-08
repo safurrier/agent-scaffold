@@ -32,6 +32,15 @@ def artifact_display_path(artifact: dict[str, object]) -> str:
     return path or "<unrecorded>"
 
 
+def evidence_label(record: EvidenceRecord) -> str:
+    return f" [{record.check_name}]" if record.check_name else ""
+
+
+def review_label(review: dict[str, object]) -> str:
+    name = str(review.get("review_name") or "")
+    return f" [{name}]" if name else ""
+
+
 def render_handoff_pr_markdown(
     *,
     work_id: str,
@@ -68,7 +77,7 @@ def render_handoff_pr_markdown(
         for record in evidence:
             why = f" — {record.why}" if record.why else ""
             lines.append(
-                f"- `{record.command_display}`: {record.status} (exit {record.exit_code}){why}"
+                f"- `{record.command_display}`{evidence_label(record)}: {record.status} (exit {record.exit_code}){why}"
             )
     else:
         lines.append("- No validation evidence recorded in HK.")
@@ -126,7 +135,7 @@ def render_summary_markdown(
             )
             why = f" — {record.why}" if record.why else ""
             lines.append(
-                f"- {record.status}: `{record.command_display}` (exit {record.exit_code}{transcript}){why}"
+                f"- {record.status}: `{record.command_display}`{evidence_label(record)} (exit {record.exit_code}{transcript}){why}"
             )
     else:
         lines.append("- None recorded.")
@@ -140,7 +149,7 @@ def render_summary_markdown(
             rubrics_list = raw_rubrics if isinstance(raw_rubrics, list) else []
             rubrics = ", ".join(str(item) for item in rubrics_list)
             lines.append(
-                f"- {review.get('backend')} / {review.get('reviewer')} ({rubrics}): {review.get('summary')} [{review.get('disposition')}]"
+                f"- {review.get('backend')} / {review.get('reviewer')}{review_label(review)} ({rubrics}): {review.get('summary')} [{review.get('disposition')}]"
             )
     elif review_skips:
         lines.append("- No review recorded; see dangerous review skip below.")
@@ -244,7 +253,7 @@ def render_handoff_markdown(
             rubrics_list = raw_rubrics if isinstance(raw_rubrics, list) else []
             rubrics = ", ".join(str(item) for item in rubrics_list)
             lines.append(
-                f"- {review.get('backend')} / {review.get('reviewer')} ({rubrics}): {review.get('summary')} [{review.get('disposition')}]"
+                f"- {review.get('backend')} / {review.get('reviewer')}{review_label(review)} ({rubrics}): {review.get('summary')} [{review.get('disposition')}]"
             )
     else:
         lines.append("- None recorded.")

@@ -383,6 +383,9 @@ def parse_evidence(
             data, "redaction", path=path, line_number=line_number, kind=kind
         ),
         why=_optional_str(data, "why", path=path, line_number=line_number, kind=kind),
+        check_name=_optional_str(
+            data, "check_name", path=path, line_number=line_number, kind=kind
+        ),
     )
 
 

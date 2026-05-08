@@ -37,10 +37,11 @@ from harness_toolkit.kit.ledger.store import (
 from harness_toolkit.kit.ledger.store import (
     read_evidence as ledger_read_evidence,
 )
-from harness_toolkit.kit.profiles import ProfileError, profile_names
+from harness_toolkit.kit.profiles import ProfileCatalog, ProfileError, profile_names
 from harness_toolkit.kit.readiness.diagnostics import ReadyCheck, ReadyResult
 from harness_toolkit.kit.readiness.policy import (
     SELF_REVIEW_GUIDANCE,
+    RequiredProfileItem,
     dangerous_skip_events,
     dangerous_skip_message,
     is_self_review_identity,
@@ -185,6 +186,7 @@ class CaptureResult:
     status: str
     transcript_path: str
     why: str = ""
+    check_name: str = ""
 
 
 @dataclass(frozen=True)
@@ -196,6 +198,7 @@ class ReviewResult:
     rubrics: list[str]
     summary: str
     disposition: str
+    review_name: str = ""
 
 
 @dataclass(frozen=True)
@@ -832,6 +835,7 @@ def capture_command(
     shell_command: str = "",
     kind: str = "other",
     why: str = "",
+    check_name: str = "",
     no_log: bool = False,
     raw_log: bool = False,
     no_local_files: bool = False,
@@ -847,6 +851,18 @@ def capture_command(
         valid = ", ".join(VALID_EVIDENCE_KINDS)
         raise LocalWorkflowError(f"invalid evidence kind '{kind}'. Valid: {valid}")
     state = ensure_state(target, no_local_files=no_local_files)
+    clean_check_name = check_name.strip()
+    if clean_check_name:
+        try:
+            catalog = ProfileCatalog.load()
+            profile = catalog.get(catalog.resolve(state.target_scope).profile)
+        except (KeyError, ProfileError) as e:
+            raise LocalWorkflowError(str(e)) from e
+        if clean_check_name not in {check.name for check in profile.checks}:
+            valid = ", ".join(check.name for check in profile.checks) or "none"
+            raise LocalWorkflowError(
+                f"unknown profile check '{clean_check_name}'. Valid checks: {valid}"
+            )
     work_dir = active_work_dir(state)
     if work_dir is None:
         created = create_work(target, "implicit-work", no_local_files=no_local_files)
@@ -908,6 +924,7 @@ def capture_command(
         transcript_path=str(transcript if not no_log else ""),
         redaction="raw" if raw_log else "builtin",
         why=why,
+        check_name=clean_check_name,
     )
     with (work_dir / "evidence.jsonl").open("a") as file:
         file.write(json.dumps(asdict(record), sort_keys=True) + "\n")
@@ -919,6 +936,7 @@ def capture_command(
             "exit_code": exit_code,
             "status": status,
             "why": why,
+            "check_name": clean_check_name,
         },
     )
     return CaptureResult(
@@ -928,6 +946,7 @@ def capture_command(
         status=status,
         transcript_path=str(transcript if not no_log else ""),
         why=why,
+        check_name=clean_check_name,
     )
 
 
@@ -1180,7 +1199,7 @@ def render_handoff(
     )
 
 
-def changed_paths(root: Path) -> list[str]:
+def _status_changed_paths(root: Path) -> list[str]:
     result = subprocess.run(
         ["git", "status", "--porcelain"],
         cwd=root,
@@ -1194,20 +1213,96 @@ def changed_paths(root: Path) -> list[str]:
     for line in result.stdout.splitlines():
         if not line.strip():
             continue
-        paths.append(line[3:] if len(line) > 3 else line.strip())
+        path = line[3:] if len(line) > 3 else line.strip()
+        if " -> " in path:
+            path = path.split(" -> ", 1)[1]
+        if path.endswith("/"):
+            continue
+        paths.append(path)
     return paths
 
 
-def review_prompt(target: Path, *, no_local_files: bool = False) -> ReviewPromptResult:
+def _diff_changed_paths(root: Path, base_sha: str) -> list[str]:
+    if not base_sha.strip():
+        return []
+    result = subprocess.run(
+        ["git", "diff", "--name-only", base_sha, "--"],
+        cwd=root,
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+    if result.returncode != 0:
+        return []
+    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+
+
+def _untracked_paths(root: Path) -> list[str]:
+    result = subprocess.run(
+        ["git", "ls-files", "--others", "--exclude-standard"],
+        cwd=root,
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+    if result.returncode != 0:
+        return []
+    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+
+
+def work_start_git_sha(events: list[EventRecord]) -> str:
+    for event in events:
+        if event.type == "work_started":
+            return str(event.data.get("git_sha") or "")
+    return ""
+
+
+def changed_paths(root: Path, *, base_sha: str = "") -> list[str]:
+    paths = [
+        *_diff_changed_paths(root, base_sha),
+        *_status_changed_paths(root),
+        *_untracked_paths(root),
+    ]
+    return list(dict.fromkeys(path.replace("\\", "/") for path in paths if path))
+
+
+def changed_paths_for_work(root: Path, work_dir: Path) -> list[str]:
+    return changed_paths(root, base_sha=work_start_git_sha(read_events(work_dir)))
+
+
+def review_prompt(
+    target: Path, *, review_name: str = "", no_local_files: bool = False
+) -> ReviewPromptResult:
     state = ensure_state(target, no_local_files=no_local_files)
     work_dir = require_work(state)
+    profile_review = None
+    if review_name.strip():
+        try:
+            catalog = ProfileCatalog.load()
+            profile = catalog.get(catalog.resolve(state.target_scope).profile)
+        except (KeyError, ProfileError) as e:
+            raise LocalWorkflowError(str(e)) from e
+        profile_review = next(
+            (
+                review
+                for review in profile.reviews
+                if review.name == review_name.strip()
+            ),
+            None,
+        )
+        if profile_review is None:
+            valid = ", ".join(review.name for review in profile.reviews) or "none"
+            raise LocalWorkflowError(
+                f"unknown profile review '{review_name}'. Valid reviews: {valid}"
+            )
     prompt = render_review_prompt(
         work_id=work_dir.name,
         target_root=str(state.target_root),
         branch=git_branch(state.target_root),
         events=read_events(work_dir),
         evidence=read_evidence(work_dir),
-        changed_paths=changed_paths(state.target_root),
+        changed_paths=changed_paths_for_work(state.target_root, work_dir),
+        profile_review=profile_review,
     )
     return ReviewPromptResult(work_id=work_dir.name, prompt=prompt)
 
@@ -1220,6 +1315,7 @@ def add_review(
     rubrics: tuple[str, ...],
     summary: str,
     disposition: str = "accepted",
+    review_name: str = "",
     no_local_files: bool = False,
 ) -> ReviewResult:
     if not backend.strip():
@@ -1235,17 +1331,28 @@ def add_review(
         raise LocalWorkflowError("review requires at least one --rubric")
     state = ensure_state(target, no_local_files=no_local_files)
     work_dir = require_work(state)
-    record = append_event(
-        work_dir,
-        "review_added",
-        {
-            "backend": backend.strip(),
-            "reviewer": reviewer.strip(),
-            "rubrics": clean_rubrics,
-            "summary": summary.strip(),
-            "disposition": disposition.strip() or "accepted",
-        },
-    )
+    clean_review_name = review_name.strip()
+    if clean_review_name:
+        try:
+            catalog = ProfileCatalog.load()
+            profile = catalog.get(catalog.resolve(state.target_scope).profile)
+        except (KeyError, ProfileError) as e:
+            raise LocalWorkflowError(str(e)) from e
+        if clean_review_name not in {review.name for review in profile.reviews}:
+            valid = ", ".join(review.name for review in profile.reviews) or "none"
+            raise LocalWorkflowError(
+                f"unknown profile review '{clean_review_name}'. Valid reviews: {valid}"
+            )
+    record_data: dict[str, object] = {
+        "backend": backend.strip(),
+        "reviewer": reviewer.strip(),
+        "rubrics": clean_rubrics,
+        "summary": summary.strip(),
+        "disposition": disposition.strip() or "accepted",
+    }
+    if clean_review_name:
+        record_data["review_name"] = clean_review_name
+    record = append_event(work_dir, "review_added", record_data)
     return ReviewResult(
         work_id=work_dir.name,
         seq=record.seq,
@@ -1254,6 +1361,7 @@ def add_review(
         rubrics=clean_rubrics,
         summary=summary.strip(),
         disposition=disposition.strip() or "accepted",
+        review_name=clean_review_name,
     )
 
 
@@ -1312,11 +1420,47 @@ def ready(target: Path, *, no_local_files: bool = False) -> ReadyResult:
     return ready_for_work(work_dir, state, check_handoff=True)
 
 
+def required_profile_items_for_work(
+    state: LocalState, work_dir: Path
+) -> tuple[tuple[RequiredProfileItem, ...], tuple[RequiredProfileItem, ...]]:
+    try:
+        catalog = ProfileCatalog.load()
+        profile_name = catalog.resolve(state.target_scope).profile
+        view = catalog.checks_view(
+            profile_name,
+            target=state.target_scope,
+            repo_root=state.target_root,
+            changed_paths=tuple(changed_paths_for_work(state.target_root, work_dir)),
+        )
+    except (KeyError, ProfileError) as e:
+        raise LocalWorkflowError(str(e)) from e
+    required_checks = tuple(
+        RequiredProfileItem(
+            name=item.name,
+            purpose=item.purpose,
+            matched_paths=item.matched_paths,
+        )
+        for item in view.suggested_checks
+        if item.required
+    )
+    required_reviews = tuple(
+        RequiredProfileItem(
+            name=item.name,
+            purpose=item.purpose,
+            matched_paths=item.matched_paths,
+        )
+        for item in view.suggested_reviews
+        if item.required
+    )
+    return required_checks, required_reviews
+
+
 def ready_for_work(
     work_dir: Path, state: LocalState, *, check_handoff: bool = True
 ) -> ReadyResult:
     events = read_events(work_dir)
     evidence = read_evidence(work_dir)
+    required_checks, required_reviews = required_profile_items_for_work(state, work_dir)
     return ready_for_events(
         work_id=work_dir.name,
         events=events,
@@ -1325,6 +1469,8 @@ def ready_for_work(
         agent_local_warning=agent_local_state_warning(state.target_root),
         check_handoff=check_handoff,
         handoff_check=lambda: render_handoff(work_dir, state),
+        required_profile_checks=required_checks,
+        required_profile_reviews=required_reviews,
     )
 
 
@@ -1376,6 +1522,11 @@ def status(target: Path, *, no_local_files: bool = False) -> StatusResult:
         actions.append(
             "review required: preferred independent AI/tool reviewer; minimum fresh-context subagent. Run `hk review prompt`; dispatch it via your harness if available (Pi `subagent` tool, Claude Code `Agent` tool/`Task` alias, Codex Shell tool running `codex review --uncommitted`); record with `hk review add ...`, then re-run `hk status`; or explicitly `hk dangerously-skip review --label no-review --reason ... --mitigation ...`; self-review does not count"
         )
+    for check in readiness.checks:
+        if check.status == "fail" and check.id.startswith("profile-check:"):
+            actions.append(f"validation: {check.message}")
+        if check.status == "fail" and check.id.startswith("profile-review:"):
+            actions.append(f"review: {check.message}")
     if check_map.get("sync") and check_map["sync"].status == "fail":
         sync_action = "sync: hk sync after reconciling changes"
         warning = agent_local_state_warning(state.target_root)

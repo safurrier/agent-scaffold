@@ -26,6 +26,8 @@ class CheckDefinition:
     required_inputs: tuple[str, ...] = ()
     notes: tuple[str, ...] = ()
     agent_should_run_directly: bool = True
+    applies_when: tuple[str, ...] = ()
+    required_when: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -38,6 +40,20 @@ class ReviewDefinition:
     prompt: str = ""
     prompt_file: str | None = None
     prompt_file_text: str = ""
+    applies_when: tuple[str, ...] = ()
+    required_when: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class ProfileSuggestion:
+    name: str
+    purpose: str
+    required: bool
+    matched_by: str
+    matched_paths: tuple[str, ...]
+    enforced: bool = False
+    record_command: str = ""
+    prompt_command: str = ""
 
 
 @dataclass(frozen=True)
@@ -91,6 +107,9 @@ class ProfileCheckView:
     checks: tuple[CheckDefinition, ...]
     reviews: tuple[ReviewDefinition, ...]
     reminder: str
+    changed_paths: tuple[str, ...] = ()
+    suggested_checks: tuple[ProfileSuggestion, ...] = ()
+    suggested_reviews: tuple[ProfileSuggestion, ...] = ()
 
 
 class ProfileError(ValueError):

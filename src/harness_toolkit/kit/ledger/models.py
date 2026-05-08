@@ -38,3 +38,4 @@ class EvidenceRecord:
     transcript_path: str
     redaction: str
     why: str = ""
+    check_name: str = ""

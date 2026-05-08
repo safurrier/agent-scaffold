@@ -113,7 +113,7 @@ To choose validation, inspect:
 - repo `AGENTS.md` and nested `AGENTS.md` files
 - README and docs
 - CI config, task runners, package manifests, and Makefiles
-- `hk checks --target . --json`
+- `hk checks --target . --changed --json`
 
 Run the native command directly, then record it with `hk validate --why`.
 
@@ -123,12 +123,17 @@ Review is required by default before handoff. Prefer an independent AI/tool
 reviewer. A fresh-context subagent is the minimum fallback. Same-context
 implementation-agent self-review does not satisfy readiness.
 
-Useful flow:
+Useful flows:
 
 ```bash
+# Generic review when no profile-specific review applies.
 hk review prompt --target .
-# Dispatch the prompt using the current harness if available.
+# Dispatch the prompt using the current harness if available, then record it.
 hk review add --backend subagent --reviewer reviewer-fresh-context --rubric core-quality --summary "Review summary" --target .
+
+# Profile-named review suggested by hk checks --changed.
+hk review prompt REVIEW_NAME --target .
+hk review add --review REVIEW_NAME --backend subagent --reviewer reviewer-fresh-context --rubric core-quality --summary "Review summary" --target .
 hk status --target .
 ```
 

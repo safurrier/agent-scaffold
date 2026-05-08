@@ -212,23 +212,36 @@ name = "cli-config-tests"
 purpose = "Run CLI config tests."
 command_template = "cargo test --test cli_config"
 run_from = "repo-root"
+applies_when = ["src/cli/**", "tests/cli/**"]
+required_when = ["src/cli/**"]
 
 [[profiles.foreman.reviews]]
-name = "core-quality"
-purpose = "Fresh-context review before handoff."
-backend = "codex"
-rubric = "core-quality"
-dispatch_hint = "codex review --uncommitted"
-prompt = "Focus on correctness, regression risk, and test adequacy."
-# Optional for longer prompts, resolved relative to harness.toml:
-# prompt_file = "prompts/foreman-core-review.md"
+name = "agent-friendly-cli-review"
+purpose = "Review CLI changes against agent-facing CLI design principles."
+backend = "fresh-context-subagent"
+rubric = "agent-friendly-cli"
+dispatch_hint = "Use a fresh-context reviewer."
+prompt_file = "prompts/agent-friendly-cli-review.md"
+applies_when = ["src/cli/**", "docs/**"]
+required_when = ["src/cli/**"]
 ```
+
+`applies_when` makes `hk checks --changed` suggest an item for matching changed
+paths. `required_when` makes readiness expect that named check/review when the
+path rule matches **when that profile is the target's resolved user-config
+profile**. Profiles inspected with `--profile` / `--profiles-dir` are discovery
+only unless they are also bound through user config. Agents satisfy required
+checks with `hk validate --check NAME --why ... -- <native command>` and required
+reviews with `hk review add --review NAME ...`. If the required item is genuinely
+impossible, record an auditable skip whose `--label` matches the check or review
+name.
 
 Use:
 
 ```bash
 hk profile resolve --target . --json
-hk checks --target . --json
+hk checks --target . --changed --json
+hk review prompt agent-friendly-cli-review --target .
 ```
 
 Profile flags are discovery inputs, not lifecycle state. Use `--profile` and
@@ -238,8 +251,9 @@ flags to lifecycle commands such as `hk start`, `hk validate`, `hk status`,
 `hk ready`, or `hk handoff`.
 
 Resolution uses explicit longest path-prefix matching. If a profile has multiple
-review entries, the agent should dispatch them independently/in parallel when the
-harness supports it, then record accepted reviews with `hk review add`.
+review entries, the agent should dispatch the applicable ones independently/in
+parallel when the harness supports it, then record accepted reviews with
+`hk review add --review NAME ...`.
 
 Repo-level `.harness/harness.toml`, structured review backend adapters, and
 persistent sync ignore config are deferred.
@@ -257,7 +271,7 @@ persistent sync ignore config are deferred.
 | `hk sync` | Record or check a freshness checkpoint for the active work snapshot; use `--exclude PATH --reason TEXT` for explicit one-shot untracked local-state exclusions; HK records/revalidates excluded path metadata instead of using a tiny hardcoded allowlist |
 | `hk capture` | Advanced: run a native command and record exact evidence |
 | `hk artifact attach` | Attach a real harness/tool-produced file such as an agent session transcript, Codex review transcript, HAR file, or validation artifact; HK copies/references it, hashes it, and renders metadata in handoff |
-| `hk review prompt` | Print a reviewer prompt to dispatch to an independent AI/tool or fresh-context reviewer, e.g. Pi `subagent`, Claude Code `Agent`/`Task` alias, or Codex via Shell tool running `codex review --uncommitted`; re-run `hk status` after review tools run |
+| `hk review prompt [REVIEW_NAME]` | Print a generic or profile-named reviewer prompt to dispatch to an independent AI/tool or fresh-context reviewer, e.g. Pi `subagent`, Claude Code `Agent`/`Task` alias, or Codex via Shell tool running `codex review --uncommitted`; re-run `hk status` after review tools run |
 | `hk summary` | Render a concise human-readable readiness digest for PRs/review |
 | `hk handoff` | Render a longer transfer artifact from the work ledger |
 | `hk spec` | Manage optional local/external spec drafts |
@@ -266,18 +280,19 @@ persistent sync ignore config are deferred.
 | `hk profile resolve` | Resolve the configured profile for a target using explicit user config bindings |
 | `hk profile show <name>` | Show one profile's instructions, checks, and review guidance |
 | `hk profile create <name>` | Create an editable custom profile TOML template |
-| `hk checks [--profile <name>]` | Show named verification loops and review guidance without executing them; resolves user config when `--profile` is omitted |
+| `hk checks [--profile <name>] [--changed]` | Show named verification loops and review guidance without executing them; `--changed` adds path-rule suggestions and required items |
 | `hk plan <text>` | Record or refine the lifecycle implementation plan for active Harness Kit work |
 | `hk dangerously-skip review\|validation\|sync --label <name> --reason <text> --mitigation <text>` | Explicitly record an auditable dangerous skip when a lifecycle guarantee cannot be satisfied; skips render in summary, handoff, and PR handoff |
 
 Portable plan-artifact commands have been removed from `hk`. Use scaffold `mise run
 plan` and `mise run sync-check` for committed plan packages.
 
-Profiles are small workflow contracts for agentic engineering checks. They
-describe the checks that exist for an environment; they do **not** run those
-checks. Agents should run the suggested validation command directly so the raw
-output stays visible in the normal shell loop, then record the exact
-command/result with `hk validate --why` for Harness Kit lifecycle work.
+Profiles are small workflow contracts for agentic engineering checks and
+reviews. They describe what exists for an environment; they do **not** run those
+checks or reviews. Agents should run the suggested validation command directly so
+the raw output stays visible in the normal shell loop, then record the exact
+command/result with `hk validate --why` for Harness Kit lifecycle work. When a
+profile check is named, record it with `hk validate --check NAME --why ...`.
 
 Initial built-in profiles:
 
@@ -291,7 +306,7 @@ Example discovery:
 
 ```bash
 hk profile list --target /path/to/repo --json
-hk checks --profile python --target /path/to/python-project --json
+hk checks --profile python --target /path/to/python-project --changed --json
 ```
 
 `profile list --target` does not score, rank, or implicitly choose a profile. It

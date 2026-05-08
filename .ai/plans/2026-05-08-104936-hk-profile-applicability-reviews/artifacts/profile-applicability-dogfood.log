@@ -1,0 +1,303 @@
+## start
+{
+  "resumed": false,
+  "state_dir": "/private/tmp/hk-profile-applicability-dogfood/repo/.harness-local/harness-kit/root",
+  "work_dir": "/private/tmp/hk-profile-applicability-dogfood/repo/.harness-local/harness-kit/root/work/2026-05-08-114448-cli-review",
+  "work_id": "2026-05-08-114448-cli-review"
+}
+## change cli
+## checks changed
+{
+  "changed_paths": [
+    "src/demo/cli.py"
+  ],
+  "checks": [
+    {
+      "agent_should_run_directly": true,
+      "applies_when": [
+        "src/**/cli.py"
+      ],
+      "command_template": "python3 -m pytest tests/test_cli.py",
+      "name": "cli-unit-tests",
+      "notes": [],
+      "purpose": "Run focused CLI unit tests.",
+      "required_inputs": [],
+      "required_when": [
+        "src/**/cli.py"
+      ],
+      "run_from": "repo-root"
+    }
+  ],
+  "profile": "demo",
+  "reminder": "Run validation commands directly in the agent shell loop, then record the exact command/result with `hk validate --why ... -- <command>`. Dispatch profile review guidance yourself and record accepted reviews with `hk review add ...`; HK does not run checks or reviews. When changed-path suggestions name a check or review, use the shown `hk validate --check NAME` or `hk review add --review NAME` form.",
+  "repo_root": "/private/tmp/hk-profile-applicability-dogfood/repo",
+  "reviews": [
+    {
+      "applies_when": [
+        "src/**/cli.py",
+        "docs/**"
+      ],
+      "backend": "fresh-context-subagent",
+      "dispatch_hint": "Use a fresh-context reviewer.",
+      "name": "agent-friendly-cli-review",
+      "prompt": "",
+      "prompt_file": "/tmp/hk-profile-applicability-dogfood/prompts/agent-friendly-cli-review.md",
+      "purpose": "Review CLI command changes for agent-facing usability.",
+      "required_when": [
+        "src/**/cli.py"
+      ],
+      "rubric": "agent-friendly-cli"
+    }
+  ],
+  "suggested_checks": [
+    {
+      "enforced": true,
+      "matched_by": "required_when",
+      "matched_paths": [
+        "src/demo/cli.py"
+      ],
+      "name": "cli-unit-tests",
+      "prompt_command": "",
+      "purpose": "Run focused CLI unit tests.",
+      "record_command": "hk validate --check cli-unit-tests --why '...' -- <native command>",
+      "required": true
+    }
+  ],
+  "suggested_reviews": [
+    {
+      "enforced": true,
+      "matched_by": "required_when",
+      "matched_paths": [
+        "src/demo/cli.py"
+      ],
+      "name": "agent-friendly-cli-review",
+      "prompt_command": "hk review prompt agent-friendly-cli-review --target /private/tmp/hk-profile-applicability-dogfood/repo",
+      "purpose": "Review CLI command changes for agent-facing usability.",
+      "record_command": "hk review add --review agent-friendly-cli-review ...",
+      "required": true
+    }
+  ],
+  "target": "/private/tmp/hk-profile-applicability-dogfood/repo"
+}
+## named review prompt
+You are an independent AI/tool reviewer or fresh-context subagent reviewer for this HK lifecycle work.
+Do not rely on the implementation agent's self-review; review independently.
+Preferred review is a separate AI/tool reviewer, ideally a different model/runtime or context.
+Minimum fallback is a fresh-context subagent review. Implementation-agent self-review does not count.
+If your harness has a fresh-context review mechanism, dispatch this prompt to that reviewer now.
+
+Work: 2026-05-08-114448-cli-review
+Target: /private/tmp/hk-profile-applicability-dogfood/repo
+Branch: feat/cli-review
+
+Plan:
+- Exercise profile applicability and named review prompts.
+
+Context:
+- None recorded.
+
+Decisions and spec reflection:
+- None recorded.
+
+Validation evidence:
+- None recorded.
+
+Changed paths:
+- src/demo/cli.py
+
+Profile review: agent-friendly-cli-review
+Purpose: Review CLI command changes for agent-facing usability.
+Backend: fresh-context-subagent
+Rubric: agent-friendly-cli
+Dispatch hint: Use a fresh-context reviewer.
+Prompt file: /tmp/hk-profile-applicability-dogfood/prompts/agent-friendly-cli-review.md
+
+Profile review instructions:
+Review CLI changes using the agent-friendly CLI principles: non-interactive defaults, progressive help, copyable examples, actionable errors, idempotency, and structured output where useful.
+
+Review task:
+1. Inspect the changed files and relevant tests.
+2. Check correctness, missed edge cases, docs/spec impact, validation adequacy, and HK handoff quality.
+3. Return blocking findings, non-blocking findings, and final disposition.
+4. If accepted, the implementation agent must record you with `hk review add --review agent-friendly-cli-review --backend fresh-context-subagent --reviewer reviewer-fresh-context --rubric agent-friendly-cli --summary '...'`.
+
+Dispatch hint for implementation agents:
+- If you have a fresh-context review mechanism, send this whole prompt to it now.
+- Examples: Pi `subagent` tool; Claude Code `Agent` tool (`Task` alias); Codex via Shell tool running `codex review --uncommitted`.
+- Do not answer this prompt yourself as the implementation agent.
+- After review tooling runs, re-run `hk status`; review tools may create agent-local state that must be removed or handled with `hk sync --exclude PATH --reason ...`.
+- If no independent AI/tool or fresh-context subagent is available, record `hk dangerously-skip review --label no-review --reason ... --mitigation ...`.
+## ready before required evidence
+{
+  "checks": [
+    {
+      "id": "context",
+      "message": "no context recorded; okay for trivial work, add hk context if it prevents rediscovery",
+      "status": "info"
+    },
+    {
+      "id": "plan",
+      "message": "plan recorded",
+      "status": "pass"
+    },
+    {
+      "id": "decision",
+      "message": "decision and spec reflection recorded",
+      "status": "fail"
+    },
+    {
+      "id": "validation",
+      "message": "missing validation evidence with --why",
+      "status": "fail"
+    },
+    {
+      "id": "review",
+      "message": "missing accepted external-enough review record; run a separate reviewer/subagent with fresh context",
+      "status": "fail"
+    },
+    {
+      "id": "profile-check:cli-unit-tests",
+      "message": "missing required profile check `cli-unit-tests` (matched src/demo/cli.py); run `hk validate --check cli-unit-tests --why ... -- <native command>` or `hk dangerously-skip validation --label cli-unit-tests --reason ... --mitigation ...`",
+      "status": "fail"
+    },
+    {
+      "id": "profile-review:agent-friendly-cli-review",
+      "message": "missing required profile review `agent-friendly-cli-review` (matched src/demo/cli.py); run `hk review prompt agent-friendly-cli-review` and record with `hk review add --review agent-friendly-cli-review ...`, or `hk dangerously-skip review --label agent-friendly-cli-review --reason ... --mitigation ...`",
+      "status": "fail"
+    },
+    {
+      "id": "sync",
+      "message": "sync checkpoint stale",
+      "status": "fail"
+    },
+    {
+      "id": "handoff",
+      "message": "handoff renders",
+      "status": "pass"
+    }
+  ],
+  "ready": false,
+  "status": "not-ready",
+  "work_id": "2026-05-08-114448-cli-review"
+}
+## record lifecycle evidence
+{
+  "kind": "decision",
+  "seq": 3,
+  "text": "Synthetic CLI command change has no product spec impact.",
+  "work_id": "2026-05-08-114448-cli-review"
+}
+ok
+evidence_id=ev_20260508_114452_652930
+status=pass
+why=Synthetic focused CLI check passes.
+check=cli-unit-tests
+transcript_path=/private/tmp/hk-profile-applicability-dogfood/repo/.harness-local/harness-kit/root/work/2026-05-08-114448-cli-review/artifacts/ev_20260508_114452_652930.transcript.log
+{
+  "backend": "subagent",
+  "disposition": "accepted",
+  "review_name": "agent-friendly-cli-review",
+  "reviewer": "fresh-context",
+  "rubrics": [
+    "agent-friendly-cli"
+  ],
+  "seq": 6,
+  "summary": "No blockers in synthetic CLI review.",
+  "work_id": "2026-05-08-114448-cli-review"
+}
+{
+  "guidance": [
+    "Plan: did you record the agreed implementation intent?",
+    "Evidence: did you capture or explain validation?",
+    "Learning: did you record anything future agents should know?",
+    "Decisions: did you record non-obvious choices?",
+    "Gaps: did you disclose missing validation or follow-up work?",
+    "Spec/docs: did behavior or product intent change?"
+  ],
+  "message": "recorded sync checkpoint",
+  "synced": true,
+  "work_id": "2026-05-08-114448-cli-review"
+}
+## ready after required evidence
+{
+  "checks": [
+    {
+      "id": "context",
+      "message": "no context recorded; okay for trivial work, add hk context if it prevents rediscovery",
+      "status": "info"
+    },
+    {
+      "id": "plan",
+      "message": "plan recorded",
+      "status": "pass"
+    },
+    {
+      "id": "decision",
+      "message": "decision and spec reflection recorded",
+      "status": "pass"
+    },
+    {
+      "id": "validation",
+      "message": "validation evidence with rationale recorded",
+      "status": "pass"
+    },
+    {
+      "id": "review",
+      "message": "external-enough review recorded",
+      "status": "pass"
+    },
+    {
+      "id": "profile-check:cli-unit-tests",
+      "message": "required profile check recorded: cli-unit-tests (matched src/demo/cli.py)",
+      "status": "pass"
+    },
+    {
+      "id": "profile-review:agent-friendly-cli-review",
+      "message": "required profile review recorded: agent-friendly-cli-review (matched src/demo/cli.py)",
+      "status": "pass"
+    },
+    {
+      "id": "sync",
+      "message": "sync checkpoint fresh",
+      "status": "pass"
+    },
+    {
+      "id": "handoff",
+      "message": "handoff renders",
+      "status": "pass"
+    }
+  ],
+  "ready": true,
+  "status": "ready",
+  "work_id": "2026-05-08-114448-cli-review"
+}
+## summary
+# HK Readiness Summary
+
+- Work: `2026-05-08-114448-cli-review`
+- Branch: `feat/cli-review` at `0f65f75`
+- Readiness: `ready`
+- Sync: `synced`
+- Dirty: `true`
+
+## Plan
+- Exercise profile applicability and named review prompts.
+
+## Validation
+- pass: `python3 -c 'print("ok")'` [cli-unit-tests] (exit 0; transcript: `/private/tmp/hk-profile-applicability-dogfood/repo/.harness-local/harness-kit/root/work/2026-05-08-114448-cli-review/artifacts/ev_20260508_114452_652930.transcript.log`) — Synthetic focused CLI check passes.
+
+## Review
+- subagent / fresh-context [agent-friendly-cli-review] (agent-friendly-cli): No blockers in synthetic CLI review. [accepted]
+
+## Dangerous skips
+- None recorded.
+
+## Readiness checks
+- context: info — no context recorded; okay for trivial work, add hk context if it prevents rediscovery
+- plan: pass — plan recorded
+- decision: pass — decision and spec reflection recorded
+- validation: pass — validation evidence with rationale recorded
+- review: pass — external-enough review recorded
+- profile-check:cli-unit-tests: pass — required profile check recorded: cli-unit-tests (matched src/demo/cli.py)
+- profile-review:agent-friendly-cli-review: pass — required profile review recorded: agent-friendly-cli-review (matched src/demo/cli.py)
+- sync: pass — sync checkpoint fresh

@@ -7,9 +7,11 @@ visible in the normal agent shell loop.
 
 from __future__ import annotations
 
+import fnmatch
 import json
 import os
 import re
+import shlex
 import tomllib
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -26,6 +28,7 @@ from harness_toolkit.kit.profiles.models import (
     ProfileError,
     ProfileName,
     ProfileResolution,
+    ProfileSuggestion,
     ReviewDefinition,
     RunFrom,
     TargetBinding,
@@ -68,9 +71,22 @@ class ProfileCatalog:
         return profile_to_json(loaded.profile, source=loaded.source, path=loaded.path)
 
     def checks_view(
-        self, name: str, *, target: Path, repo_root: Path
+        self,
+        name: str,
+        *,
+        target: Path,
+        repo_root: Path,
+        changed_paths: tuple[str, ...] = (),
+        enforce_required: bool = True,
     ) -> ProfileCheckView:
-        return checks_view(name, target, repo_root, catalog=self.profiles)
+        return checks_view(
+            name,
+            target,
+            repo_root,
+            catalog=self.profiles,
+            changed_paths=changed_paths,
+            enforce_required=enforce_required,
+        )
 
     def resolve(self, target: Path) -> ProfileResolution:
         return resolve_profile(target, catalog=self.profiles, config=self.config)
@@ -278,6 +294,7 @@ def parse_profile_data(
         )
 
     checks: list[CheckDefinition] = []
+    check_names: set[str] = set()
     for index, raw_check in enumerate(checks_data, start=1):
         if not isinstance(raw_check, dict):
             raise ProfileError(f"profile {source} check #{index} must be a TOML table")
@@ -293,9 +310,16 @@ def parse_profile_data(
             raise ProfileError(
                 f"profile {source} check #{index} field 'agent_should_run_directly' must be boolean"
             )
+        check_name = _required_str(raw_check, "name", source=source)
+        validate_item_name(check_name, kind="check", source=source)
+        if check_name in check_names:
+            raise ProfileError(
+                f"profile {source} has duplicate check name '{check_name}'"
+            )
+        check_names.add(check_name)
         checks.append(
             CheckDefinition(
-                name=_required_str(raw_check, "name", source=source),
+                name=check_name,
                 purpose=_required_str(raw_check, "purpose", source=source),
                 command_template=_required_str(
                     raw_check, "command_template", source=source
@@ -306,6 +330,12 @@ def parse_profile_data(
                 ),
                 notes=_optional_str_tuple(raw_check, "notes", source=source),
                 agent_should_run_directly=agent_should_run_directly,
+                applies_when=_optional_str_tuple(
+                    raw_check, "applies_when", source=source
+                ),
+                required_when=_optional_str_tuple(
+                    raw_check, "required_when", source=source
+                ),
             )
         )
 
@@ -315,6 +345,7 @@ def parse_profile_data(
     if not isinstance(reviews_data, list):
         raise ProfileError(f"profile {source} field 'reviews' must be an array")
     reviews: list[ReviewDefinition] = []
+    review_names: set[str] = set()
     for index, raw_review in enumerate(reviews_data, start=1):
         if not isinstance(raw_review, dict):
             raise ProfileError(f"profile {source} review #{index} must be a TOML table")
@@ -336,9 +367,16 @@ def parse_profile_data(
                     raise ProfileError(
                         f"profile {source} review #{index} could not read prompt_file {prompt_file}: {e}"
                     ) from e
+        review_name = _required_str(raw_review, "name", source=source)
+        validate_item_name(review_name, kind="review", source=source)
+        if review_name in review_names:
+            raise ProfileError(
+                f"profile {source} has duplicate review name '{review_name}'"
+            )
+        review_names.add(review_name)
         reviews.append(
             ReviewDefinition(
-                name=_required_str(raw_review, "name", source=source),
+                name=review_name,
                 purpose=_required_str(raw_review, "purpose", source=source),
                 backend=_required_str(raw_review, "backend", source=source),
                 rubric=_required_str(raw_review, "rubric", source=source),
@@ -346,6 +384,12 @@ def parse_profile_data(
                 prompt=_optional_str(raw_review, "prompt", source=source),
                 prompt_file=prompt_file,
                 prompt_file_text=prompt_file_text,
+                applies_when=_optional_str_tuple(
+                    raw_review, "applies_when", source=source
+                ),
+                required_when=_optional_str_tuple(
+                    raw_review, "required_when", source=source
+                ),
             )
         )
 
@@ -367,6 +411,13 @@ def validate_profile_name(name: str) -> None:
         )
 
 
+def validate_item_name(name: str, *, kind: str, source: str) -> None:
+    if not re.fullmatch(r"[a-z0-9][a-z0-9._-]*", name):
+        raise ProfileError(
+            f"profile {source} {kind} name must be lowercase and contain only letters, numbers, '.', '_', or '-'"
+        )
+
+
 def get_loaded_profile(
     name: str, catalog: dict[str, LoadedProfile] | None = None
 ) -> LoadedProfile:
@@ -383,10 +434,22 @@ def get_profile(
     return get_loaded_profile(name, catalog).profile
 
 
+def _without_prompt_file_text(value: object) -> object:
+    if isinstance(value, dict):
+        return {
+            key: _without_prompt_file_text(item)
+            for key, item in value.items()
+            if key != "prompt_file_text"
+        }
+    if isinstance(value, list | tuple):
+        return [_without_prompt_file_text(item) for item in value]
+    return value
+
+
 def profile_to_json(
     profile: WorkflowProfile, *, source: str = "built-in", path: str | None = None
 ) -> str:
-    payload = asdict(profile)
+    payload = cast("dict[str, object]", _without_prompt_file_text(asdict(profile)))
     payload["source"] = source
     if path is not None:
         payload["path"] = path
@@ -419,13 +482,145 @@ def profiles_to_json(
     return json.dumps(payload, indent=2, sort_keys=True)
 
 
+def _normalize_changed_path(path: str) -> str:
+    clean = path.strip().replace("\\", "/")
+    while clean.startswith("./"):
+        clean = clean[2:]
+    return clean.strip("/")
+
+
+def _match_segments(
+    path_parts: tuple[str, ...], pattern_parts: tuple[str, ...]
+) -> bool:
+    if not pattern_parts:
+        return not path_parts
+    head, *tail = pattern_parts
+    tail_tuple = tuple(tail)
+    if head == "**":
+        return _match_segments(path_parts, tail_tuple) or bool(
+            path_parts and _match_segments(path_parts[1:], pattern_parts)
+        )
+    if not path_parts:
+        return False
+    return fnmatch.fnmatchcase(path_parts[0], head) and _match_segments(
+        path_parts[1:], tail_tuple
+    )
+
+
+def _matches_pattern(path: str, pattern: str) -> bool:
+    clean_path = _normalize_changed_path(path)
+    clean_pattern = _normalize_changed_path(pattern)
+    if not clean_path or not clean_pattern:
+        return False
+    return _match_segments(
+        tuple(part for part in clean_path.split("/") if part),
+        tuple(part for part in clean_pattern.split("/") if part),
+    )
+
+
+def _matched_paths(
+    patterns: tuple[str, ...], changed_paths: tuple[str, ...]
+) -> tuple[str, ...]:
+    matches: list[str] = []
+    for path in changed_paths:
+        if any(_matches_pattern(path, pattern) for pattern in patterns):
+            matches.append(_normalize_changed_path(path))
+    return tuple(dict.fromkeys(matches))
+
+
+def _check_suggestions(
+    profile: WorkflowProfile, changed_paths: tuple[str, ...], *, enforce_required: bool
+) -> tuple[ProfileSuggestion, ...]:
+    suggestions: list[ProfileSuggestion] = []
+    for check in profile.checks:
+        record_command = (
+            f"hk validate --check {shlex.quote(check.name)} "
+            "--why '...' -- <native command>"
+        )
+        required_matches = _matched_paths(check.required_when, changed_paths)
+        applies_matches = _matched_paths(check.applies_when, changed_paths)
+        if required_matches:
+            suggestions.append(
+                ProfileSuggestion(
+                    name=check.name,
+                    purpose=check.purpose,
+                    required=True,
+                    matched_by="required_when",
+                    matched_paths=required_matches,
+                    enforced=enforce_required,
+                    record_command=record_command,
+                )
+            )
+        elif applies_matches:
+            suggestions.append(
+                ProfileSuggestion(
+                    name=check.name,
+                    purpose=check.purpose,
+                    required=False,
+                    matched_by="applies_when",
+                    matched_paths=applies_matches,
+                    record_command=record_command,
+                )
+            )
+    return tuple(suggestions)
+
+
+def _review_suggestions(
+    profile: WorkflowProfile,
+    changed_paths: tuple[str, ...],
+    *,
+    enforce_required: bool,
+    target: Path,
+) -> tuple[ProfileSuggestion, ...]:
+    suggestions: list[ProfileSuggestion] = []
+    for review in profile.reviews:
+        prompt_command = (
+            f"hk review prompt {shlex.quote(review.name)} "
+            f"--target {shlex.quote(str(target))}"
+        )
+        record_command = f"hk review add --review {shlex.quote(review.name)} ..."
+        required_matches = _matched_paths(review.required_when, changed_paths)
+        applies_matches = _matched_paths(review.applies_when, changed_paths)
+        if required_matches:
+            suggestions.append(
+                ProfileSuggestion(
+                    name=review.name,
+                    purpose=review.purpose,
+                    required=True,
+                    matched_by="required_when",
+                    matched_paths=required_matches,
+                    enforced=enforce_required,
+                    record_command=record_command,
+                    prompt_command=prompt_command,
+                )
+            )
+        elif applies_matches:
+            suggestions.append(
+                ProfileSuggestion(
+                    name=review.name,
+                    purpose=review.purpose,
+                    required=False,
+                    matched_by="applies_when",
+                    matched_paths=applies_matches,
+                    record_command=record_command,
+                    prompt_command=prompt_command,
+                )
+            )
+    return tuple(suggestions)
+
+
 def checks_view(
     profile_name: str,
     target: Path,
     repo_root: Path,
     catalog: dict[str, LoadedProfile] | None = None,
+    changed_paths: tuple[str, ...] = (),
+    enforce_required: bool = True,
 ) -> ProfileCheckView:
     profile = get_profile(profile_name, catalog)
+    normalized_changed_paths = tuple(
+        dict.fromkeys(_normalize_changed_path(path) for path in changed_paths if path)
+    )
     return ProfileCheckView(
         profile=profile.name,
         target=str(target),
@@ -436,13 +631,25 @@ def checks_view(
             "Run validation commands directly in the agent shell loop, then record "
             "the exact command/result with `hk validate --why ... -- <command>`. "
             "Dispatch profile review guidance yourself and record accepted reviews "
-            "with `hk review add ...`; HK does not run checks or reviews."
+            "with `hk review add ...`; HK does not run checks or reviews. "
+            "When changed-path suggestions name a check or review, use the shown "
+            "`hk validate --check NAME` or `hk review add --review NAME` form."
+        ),
+        changed_paths=normalized_changed_paths,
+        suggested_checks=_check_suggestions(
+            profile, normalized_changed_paths, enforce_required=enforce_required
+        ),
+        suggested_reviews=_review_suggestions(
+            profile,
+            normalized_changed_paths,
+            enforce_required=enforce_required,
+            target=target,
         ),
     )
 
 
 def checks_to_json(view: ProfileCheckView) -> str:
-    return json.dumps(asdict(view), indent=2, sort_keys=True)
+    return json.dumps(_without_prompt_file_text(asdict(view)), indent=2, sort_keys=True)
 
 
 def resolution_to_json(resolution: ProfileResolution) -> str:

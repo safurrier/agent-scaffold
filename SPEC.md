@@ -100,7 +100,7 @@ slice-workflow CLI instead.
 ```
 hk profile list --target <repo-or-module> --json
 hk profile resolve --target <repo-or-module> --json
-hk checks --target <repo-or-module> [--profile <profile>] --json
+hk checks --target <repo-or-module> [--profile <profile>] [--changed] --json
 ```
 
 The public shape is lifecycle-first rather than generic-note-first:
@@ -115,9 +115,9 @@ hk plan --from-file <path> --target <repo-or-module> --json
 hk context "TEXT" --target <repo-or-module> --json
 hk context --from-file <path|-> --target <repo-or-module> --json
 hk decide "TEXT" --spec-impact none|updated|not-needed --spec-ref <path> --target <repo-or-module> --json
-hk validate --why "WHAT THIS VALIDATES" --target <repo-or-module> -- <command...>
-hk review prompt --target <repo-or-module> --json
-hk review add --backend <independent-tool> --reviewer <independent-reviewer-or-fresh-context-subagent> --rubric <name> --summary "TEXT" --target <repo-or-module> --json
+hk validate [--check <profile-check>] --why "WHAT THIS VALIDATES" --target <repo-or-module> -- <command...>
+hk review prompt [profile-review] --target <repo-or-module> --json
+hk review add [--review <profile-review>] --backend <independent-tool> --reviewer <independent-reviewer-or-fresh-context-subagent> --rubric <name> --summary "TEXT" --target <repo-or-module> --json
 hk artifact attach --path <file> --kind <kind> --label "TEXT" --target <repo-or-module> --json
 hk sync --exclude <path> --reason "TEXT" --target <repo-or-module> --json
 hk sync --target <repo-or-module> --json

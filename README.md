@@ -113,7 +113,7 @@ The happy-path agent loop is intentionally short:
 hk profile resolve --target . --json   # optional; uses explicit user config if present
 hk start <slug> --plan 'Adopted implementation intent'
 # work normally in the repo
-hk checks --target . --json            # shows configured checks/reviews, does not run them
+hk checks --target . --changed --json  # suggests configured checks/reviews, does not run them
 hk validate --why 'What this command proves' -- <native command>
 hk status
 hk ready
@@ -123,8 +123,10 @@ hk summary
 `hk status` is the coach. It tells the agent when to add optional context, record
 a decision/spec reflection, dispatch review, reconcile sync state, or use a
 scary explicit bypass. Agents should not memorize a long command checklist.
-User-level `harness.toml` can bind known repo/module paths to inline profiles so
-agents do not need validation/review conventions re-explained every session.
+User-level `harness.toml` can bind known repo/module paths to profiles so agents
+do not need validation/review conventions re-explained every session. Profiles
+can suggest checks/reviews for changed paths and mark specific path matches as
+required while still leaving execution and reviewer dispatch to the agent.
 
 ### Agent command index
 
@@ -138,9 +140,9 @@ are the common commands to reach for when the coach asks for something specific:
 | Record useful framing | `hk context "..."` |
 | Record or refine the adopted plan | `hk plan "..."` / `hk plan --from-file FILE` |
 | Record decisions and spec impact | `hk decide "..." --spec-impact none\|updated\|not-needed` |
-| See configured guidance without running it | `hk profile ...`, `hk checks --target . --json` |
-| Capture validation evidence | `hk validate --why "..." -- <native command>` |
-| Record external-enough review | `hk review prompt`, `hk review add --backend ... --reviewer ... --rubric ... --summary ...` |
+| See configured guidance without running it | `hk profile ...`, `hk checks --target . --changed --json` |
+| Capture validation evidence | `hk validate --why "..." -- <native command>`, `hk validate --check NAME --why "..." -- <native command>` |
+| Record external-enough review | `hk review prompt [NAME]`, `hk review add --review NAME --backend ... --reviewer ... --rubric ... --summary ...` |
 | Attach real tool/harness files | `hk artifact attach --path FILE --kind KIND` |
 | Reconcile local changes before handoff | `hk sync`, `hk sync --exclude PATH --reason "..."` |
 | Check readiness or explain it to humans | `hk ready`, `hk status`, `hk summary`, `hk handoff`, `hk export` |

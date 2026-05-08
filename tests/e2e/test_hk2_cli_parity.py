@@ -136,7 +136,7 @@ prompt_file = {str(prompt)!r}
     payload = json.loads(checks.stdout)
     assert payload["profile"] == "module"
     assert payload["checks"][0]["name"] == "module-tests"
-    assert payload["reviews"][0]["prompt_file_text"] == "Review prompt from file.\n"
+    assert "prompt_file_text" not in payload["reviews"][0]
 
 
 def test_removed_legacy_surfaces_are_not_in_root_help() -> None:
