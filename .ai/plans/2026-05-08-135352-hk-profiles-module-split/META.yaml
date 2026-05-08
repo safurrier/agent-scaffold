@@ -1,0 +1,17 @@
+slug: hk-profiles-module-split
+branch: feat/harness-kit-2-ledger-assistant
+created: 2026-05-08
+pr:
+status: complete
+source: architecture review after profile applicability changes
+contract_change: implementation_only
+decision_record: none
+review_mode: external_required
+review_backend: Pi subagent tool
+review_rubrics:
+  - core-quality
+evidence_required:
+  - commands
+  - review
+continues_from: .ai/plans/2026-05-08-104936-hk-profile-applicability-reviews
+supersedes:

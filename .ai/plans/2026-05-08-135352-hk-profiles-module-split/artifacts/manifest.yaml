@@ -1,0 +1,4 @@
+artifacts:
+  - path: artifacts/review-summary.md
+    type: review
+    description: Fresh-context review findings, fixes, and re-review disposition.
