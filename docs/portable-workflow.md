@@ -213,7 +213,7 @@ purpose = "Run CLI config tests."
 command_template = "cargo test --test cli_config"
 run_from = "repo-root"
 applies_when = ["src/cli/**", "tests/cli/**"]
-required_when = ["src/cli/**"]
+required_when = ["src/cli/**", "!src/cli/generated/**"]
 
 [[profiles.foreman.reviews]]
 name = "agent-friendly-cli-review"
@@ -223,7 +223,7 @@ rubric = "agent-friendly-cli"
 dispatch_hint = "Use a fresh-context reviewer."
 prompt_file = "prompts/agent-friendly-cli-review.md"
 applies_when = ["src/cli/**", "docs/**"]
-required_when = ["src/cli/**"]
+required_when = ["src/cli/**", "!src/cli/generated/**"]
 ```
 
 `applies_when` makes `hk checks --changed` suggest an item for matching changed
@@ -235,6 +235,15 @@ checks with `hk validate --check NAME --why ... -- <native command>` and require
 reviews with `hk review add --review NAME ...`. If the required item is genuinely
 impossible, record an auditable skip whose `--label` matches the check or review
 name.
+
+Path rules use gitignore-style patterns evaluated against repo-root-relative
+changed paths. Important examples:
+
+- `*.md` matches Markdown files at any depth, including `docs/guide.md`.
+- `/*.md` matches Markdown files only at the repo root.
+- `docs/**` matches everything under `docs/`.
+- `.github/**` is required for dot-directories; `github/**` does not match `.github/`.
+- Later negated patterns can remove matches, e.g. `required_when = ["src/**", "!src/generated/**"]`.
 
 Use:
 

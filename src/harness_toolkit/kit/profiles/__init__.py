@@ -7,7 +7,6 @@ visible in the normal agent shell loop.
 
 from __future__ import annotations
 
-import fnmatch
 import json
 import os
 import re
@@ -16,6 +15,8 @@ import tomllib
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import cast
+
+from pathspec import PathSpec
 
 from harness_toolkit.kit.profiles.builtins import BUILTIN_PROFILES, loaded_builtins
 from harness_toolkit.kit.profiles.models import (
@@ -489,42 +490,34 @@ def _normalize_changed_path(path: str) -> str:
     return clean.strip("/")
 
 
-def _match_segments(
-    path_parts: tuple[str, ...], pattern_parts: tuple[str, ...]
-) -> bool:
-    if not pattern_parts:
-        return not path_parts
-    head, *tail = pattern_parts
-    tail_tuple = tuple(tail)
-    if head == "**":
-        return _match_segments(path_parts, tail_tuple) or bool(
-            path_parts and _match_segments(path_parts[1:], pattern_parts)
-        )
-    if not path_parts:
-        return False
-    return fnmatch.fnmatchcase(path_parts[0], head) and _match_segments(
-        path_parts[1:], tail_tuple
-    )
+def _normalize_pattern(pattern: str) -> str:
+    clean = pattern.strip().replace("\\", "/")
+    while clean.startswith("./"):
+        clean = clean[2:]
+    return clean.rstrip("/") if clean != "/" else clean
 
 
 def _matches_pattern(path: str, pattern: str) -> bool:
     clean_path = _normalize_changed_path(path)
-    clean_pattern = _normalize_changed_path(pattern)
+    clean_pattern = _normalize_pattern(pattern)
     if not clean_path or not clean_pattern:
         return False
-    return _match_segments(
-        tuple(part for part in clean_path.split("/") if part),
-        tuple(part for part in clean_pattern.split("/") if part),
-    )
+    spec = PathSpec.from_lines("gitignore", [clean_pattern])
+    return bool(spec.match_file(clean_path))
 
 
 def _matched_paths(
     patterns: tuple[str, ...], changed_paths: tuple[str, ...]
 ) -> tuple[str, ...]:
+    clean_patterns = tuple(_normalize_pattern(pattern) for pattern in patterns)
+    if not clean_patterns:
+        return ()
+    spec = PathSpec.from_lines("gitignore", clean_patterns)
     matches: list[str] = []
     for path in changed_paths:
-        if any(_matches_pattern(path, pattern) for pattern in patterns):
-            matches.append(_normalize_changed_path(path))
+        clean_path = _normalize_changed_path(path)
+        if clean_path and spec.match_file(clean_path):
+            matches.append(clean_path)
     return tuple(dict.fromkeys(matches))
 
 

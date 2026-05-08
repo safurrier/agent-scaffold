@@ -22,8 +22,8 @@ Non-blocking findings:
 
 ## Fixes applied
 
-- Replaced path matching with segment-aware glob semantics where `*` stays within a path segment and `**` crosses directories; stopped stripping leading dots except literal `./` prefixes.
-- Added tests proving `*.md` does not match `docs/foo.md` and `github/**` does not match `.github/**`.
+- Replaced custom path matching with `pathspec` gitignore-style matching after a precedent check; stopped stripping leading dots except literal `./` prefixes.
+- Added tests proving gitignore-style behavior: `*.md` matches nested Markdown, `/*.md` is root-only, `github/**` does not match `.github/**`, and negation removes prior matches.
 - Added unique, shell-safe validation for profile check/review names.
 - Added `enforced` plus `record_command` / `prompt_command` fields to suggestions.
 - `hk checks --changed` now marks required items from discovery-only profile inspection as `enforced=false`; readiness-enforced required items come from the target's resolved user-config profile.

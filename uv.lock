@@ -182,6 +182,7 @@ source = { editable = "." }
 dependencies = [
     { name = "cyclopts" },
     { name = "jinja2" },
+    { name = "pathspec" },
 ]
 
 [package.optional-dependencies]
@@ -199,6 +200,7 @@ requires-dist = [
     { name = "cyclopts", specifier = ">=3.0" },
     { name = "jinja2", specifier = ">=3.0" },
     { name = "mkdocs-material", marker = "extra == 'dev'", specifier = ">=9.5" },
+    { name = "pathspec", specifier = ">=0.12" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
     { name = "pytest-timeout", marker = "extra == 'dev'", specifier = ">=2.3" },
     { name = "pytest-xdist", marker = "extra == 'dev'", specifier = ">=3.6" },

@@ -12,11 +12,11 @@ description: >
 - `uv run pytest tests/unit/test_portable_workflow.py -q`
   - Result: passed, 24 tests.
 - `uv run pytest tests/unit/test_harness_kit_2.py tests/unit/test_hk2_lifecycle_parity.py tests/unit/test_portable_workflow.py tests/e2e/test_hk2_cli_parity.py::test_profile_config_cli_parity -q`
-  - Result: passed, 102 tests.
+  - Result: passed, 103 tests.
 - `uv run ruff check src/harness_toolkit/kit/cli.py src/harness_toolkit/kit/local.py src/harness_toolkit/kit/profiles tests/unit/test_portable_workflow.py src/harness_toolkit/kit/readiness/policy.py src/harness_toolkit/kit/rendering/review_prompt.py src/harness_toolkit/kit/ledger/models.py src/harness_toolkit/kit/ledger/store.py`
   - Result: passed.
 - `mise run check`
-  - Result: passed, 840 tests.
+  - Result: passed, 841 tests.
 - `uv run mkdocs build --strict --site-dir /tmp/harness-toolkit-profile-applicability-docs`
   - Result: passed with existing MkDocs Material warning and existing `docs/AGENTS.md` nav notice.
 

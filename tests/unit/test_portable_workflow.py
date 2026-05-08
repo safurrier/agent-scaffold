@@ -101,7 +101,7 @@ purpose = "Run focused unit tests for command behavior."
 command_template = "uv run pytest tests/unit/test_portable_workflow.py -q"
 run_from = "repo-root"
 applies_when = ["src/**/cli.py"]
-required_when = ["src/**/cli.py"]
+required_when = ["src/**/cli.py", "!src/**/generated/**"]
 
 [[profiles.hk-dogfood.reviews]]
 name = "agent-friendly-cli-review"
@@ -251,13 +251,25 @@ def test_profile_flags_after_validate_separator_are_native_command_args() -> Non
     )
 
 
-def test_profile_applicability_globs_are_segment_aware() -> None:
+def test_profile_applicability_uses_gitignore_style_patterns() -> None:
     from harness_toolkit.kit.profiles import _matches_pattern
 
     assert _matches_pattern("README.md", "*.md") is True
-    assert _matches_pattern("docs/portable-workflow.md", "*.md") is False
+    assert _matches_pattern("docs/portable-workflow.md", "*.md") is True
+    assert _matches_pattern("README.md", "/*.md") is True
+    assert _matches_pattern("docs/portable-workflow.md", "/*.md") is False
     assert _matches_pattern("docs/portable-workflow.md", "docs/**") is True
     assert _matches_pattern(".github/workflows/ci.yml", "github/**") is False
+    assert _matches_pattern(".github/workflows/ci.yml", ".github/**") is True
+
+
+def test_profile_applicability_supports_gitignore_negation() -> None:
+    from harness_toolkit.kit.profiles import _matched_paths
+
+    assert _matched_paths(
+        ("src/**/cli.py", "!src/**/generated/**"),
+        ("src/demo/cli.py", "src/demo/generated/cli.py"),
+    ) == ("src/demo/cli.py",)
 
 
 def test_checks_changed_suggests_applicable_profile_items(

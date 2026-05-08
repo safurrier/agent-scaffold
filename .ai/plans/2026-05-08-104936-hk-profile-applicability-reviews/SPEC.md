@@ -16,7 +16,7 @@ Harness Kit profiles can list useful checks and reviews, but they do not yet hel
 
 ### MUST
 
-- Profiles support optional `applies_when` and `required_when` path-glob arrays on `[[checks]]` and `[[reviews]]`.
+- Profiles support optional `applies_when` and `required_when` gitignore-style path pattern arrays on `[[checks]]` and `[[reviews]]`.
 - `hk checks --changed` reports changed paths and suggested checks/reviews, including matched paths and whether the item is required.
 - Suggestions are advisory; HK must not execute checks or reviews.
 - `hk validate --check NAME` records which profile check a validation evidence item satisfies.

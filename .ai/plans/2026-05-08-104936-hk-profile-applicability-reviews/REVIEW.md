@@ -29,7 +29,7 @@ description: >
 
 Initial blockers were found and fixed:
 
-- Segment glob matching was too broad.
+- Initial custom glob matching was too broad and was replaced with documented gitignore-style `pathspec` matching.
 - Discovery-only custom profile suggestions could look lifecycle-enforced.
 - Required suggestion output did not show `--check` / `--review` follow-ups.
 - Named review prompt hardcoded the backend in its copyable record command.

@@ -11,11 +11,12 @@ description: >
 
 - Extended profile dataclasses and TOML parsing with optional `applies_when` and `required_when` fields on checks and reviews.
 - Added unique shell-safe validation for check/review names because these names are durable identifiers used by `--check`, `--review`, readiness, and dangerous-skip labels.
-- Added segment-aware path glob matching:
-  - `*` matches within one path segment;
-  - `**` spans directories;
-  - only literal `./` prefixes are stripped;
-  - leading dots are preserved, so `github/**` does not match `.github/**`.
+- Switched profile applicability matching to `pathspec` gitignore-style rules:
+  - patterns match repo-root-relative changed paths;
+  - `*.md` matches Markdown files at any depth;
+  - `/*.md` anchors Markdown files to the repo root;
+  - leading dots are preserved, so `github/**` does not match `.github/**`;
+  - later negated patterns can remove matches.
 - Added changed-path collection from the active work-start SHA plus current worktree/untracked changes.
 - Extended `hk checks --changed` to render changed paths, suggested checks, suggested reviews, matched paths, required status, lifecycle enforcement status, and copyable follow-up commands.
 - Added `hk validate --check NAME` and persisted `check_name` on evidence records.

@@ -2,8 +2,8 @@
 {
   "resumed": false,
   "state_dir": "/private/tmp/hk-profile-applicability-dogfood/repo/.harness-local/harness-kit/root",
-  "work_dir": "/private/tmp/hk-profile-applicability-dogfood/repo/.harness-local/harness-kit/root/work/2026-05-08-114448-cli-review",
-  "work_id": "2026-05-08-114448-cli-review"
+  "work_dir": "/private/tmp/hk-profile-applicability-dogfood/repo/.harness-local/harness-kit/root/work/2026-05-08-132748-cli-review",
+  "work_id": "2026-05-08-132748-cli-review"
 }
 ## change cli
 ## checks changed
@@ -23,7 +23,8 @@
       "purpose": "Run focused CLI unit tests.",
       "required_inputs": [],
       "required_when": [
-        "src/**/cli.py"
+        "src/**/cli.py",
+        "!src/**/generated/**"
       ],
       "run_from": "repo-root"
     }
@@ -86,7 +87,7 @@ Preferred review is a separate AI/tool reviewer, ideally a different model/runti
 Minimum fallback is a fresh-context subagent review. Implementation-agent self-review does not count.
 If your harness has a fresh-context review mechanism, dispatch this prompt to that reviewer now.
 
-Work: 2026-05-08-114448-cli-review
+Work: 2026-05-08-132748-cli-review
 Target: /private/tmp/hk-profile-applicability-dogfood/repo
 Branch: feat/cli-review
 
@@ -178,21 +179,21 @@ Dispatch hint for implementation agents:
   ],
   "ready": false,
   "status": "not-ready",
-  "work_id": "2026-05-08-114448-cli-review"
+  "work_id": "2026-05-08-132748-cli-review"
 }
 ## record lifecycle evidence
 {
   "kind": "decision",
   "seq": 3,
   "text": "Synthetic CLI command change has no product spec impact.",
-  "work_id": "2026-05-08-114448-cli-review"
+  "work_id": "2026-05-08-132748-cli-review"
 }
 ok
-evidence_id=ev_20260508_114452_652930
+evidence_id=ev_20260508_132752_465083
 status=pass
 why=Synthetic focused CLI check passes.
 check=cli-unit-tests
-transcript_path=/private/tmp/hk-profile-applicability-dogfood/repo/.harness-local/harness-kit/root/work/2026-05-08-114448-cli-review/artifacts/ev_20260508_114452_652930.transcript.log
+transcript_path=/private/tmp/hk-profile-applicability-dogfood/repo/.harness-local/harness-kit/root/work/2026-05-08-132748-cli-review/artifacts/ev_20260508_132752_465083.transcript.log
 {
   "backend": "subagent",
   "disposition": "accepted",
@@ -203,7 +204,7 @@ transcript_path=/private/tmp/hk-profile-applicability-dogfood/repo/.harness-loca
   ],
   "seq": 6,
   "summary": "No blockers in synthetic CLI review.",
-  "work_id": "2026-05-08-114448-cli-review"
+  "work_id": "2026-05-08-132748-cli-review"
 }
 {
   "guidance": [
@@ -216,7 +217,7 @@ transcript_path=/private/tmp/hk-profile-applicability-dogfood/repo/.harness-loca
   ],
   "message": "recorded sync checkpoint",
   "synced": true,
-  "work_id": "2026-05-08-114448-cli-review"
+  "work_id": "2026-05-08-132748-cli-review"
 }
 ## ready after required evidence
 {
@@ -269,13 +270,13 @@ transcript_path=/private/tmp/hk-profile-applicability-dogfood/repo/.harness-loca
   ],
   "ready": true,
   "status": "ready",
-  "work_id": "2026-05-08-114448-cli-review"
+  "work_id": "2026-05-08-132748-cli-review"
 }
 ## summary
 # HK Readiness Summary
 
-- Work: `2026-05-08-114448-cli-review`
-- Branch: `feat/cli-review` at `0f65f75`
+- Work: `2026-05-08-132748-cli-review`
+- Branch: `feat/cli-review` at `dfd5694`
 - Readiness: `ready`
 - Sync: `synced`
 - Dirty: `true`
@@ -284,7 +285,7 @@ transcript_path=/private/tmp/hk-profile-applicability-dogfood/repo/.harness-loca
 - Exercise profile applicability and named review prompts.
 
 ## Validation
-- pass: `python3 -c 'print("ok")'` [cli-unit-tests] (exit 0; transcript: `/private/tmp/hk-profile-applicability-dogfood/repo/.harness-local/harness-kit/root/work/2026-05-08-114448-cli-review/artifacts/ev_20260508_114452_652930.transcript.log`) — Synthetic focused CLI check passes.
+- pass: `python3 -c 'print("ok")'` [cli-unit-tests] (exit 0; transcript: `/private/tmp/hk-profile-applicability-dogfood/repo/.harness-local/harness-kit/root/work/2026-05-08-132748-cli-review/artifacts/ev_20260508_132752_465083.transcript.log`) — Synthetic focused CLI check passes.
 
 ## Review
 - subagent / fresh-context [agent-friendly-cli-review] (agent-friendly-cli): No blockers in synthetic CLI review. [accepted]
