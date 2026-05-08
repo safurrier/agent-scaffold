@@ -4,8 +4,9 @@
 
 This package contains two related CLIs:
 
-- **`hk` / `harness-kit`** — portable planning, validation, and handoff workflow
-  for existing repositories without committing scaffold files.
+- **`hk` / `harness-kit`** — portable planning, validation, local work-ledger,
+  command-evidence, sync-checkpoint, and handoff workflow for existing
+  repositories without committing scaffold files.
 - **`harness-scaffold`** — starter-template CLI for creating new agent-ready
   repositories with a stable task contract, docs structure, CI wiring, and slice
   workflow defaults.
@@ -57,12 +58,13 @@ harness-scaffold --version
 ```
 
 See [Release and Installation](docs/release.md) for release tags, upgrade commands,
-and the current no-PyPI-yet policy.
+and the current no-PyPI-yet policy. See [Harness Kit Design](docs/harness-kit-lifecycle-design.md)
+for the lifecycle-first local assistant direction backed by ledger state.
 
 To make Harness Kit the default workflow for your AI tools, add a compact
-instruction block to your user-level `AGENTS.md` and point agents at a fuller
-reference only when they are unfamiliar with the workflow. See
-[Portable Workflow](docs/portable-workflow.md#user-level-agentsmd-bootstrap).
+instruction block to your user-level `AGENTS.md`. See
+[Agent Adoption](docs/agent-adoption.md) for the snippet and agent-facing first
+steps.
 
 ## Getting Started
 
@@ -80,6 +82,106 @@ mise run init
 # 4. Or non-interactively
 mise run init -- --non-interactive --name my-project --shape single --stack python
 ```
+
+## Harness Kit Agent Workflow
+
+To have agents use Harness Kit across repos, add the short directive from
+[Agent Adoption](docs/agent-adoption.md) to your user-level `AGENTS.md`.
+
+Harness Kit is a **readiness ledger for serious agent-driven changes**. It is
+primarily an agent-facing lifecycle, not a task runner or human task manager.
+The usual adoption story is that a human shapes the work in normal conversation,
+issues, or scratch docs, then asks an implementation agent to use `hk` so the
+agent leaves behind plan, evidence, review, and handoff state. The ceremony pays
+for itself when the work is risky, broad, multi-step, likely to span context
+compaction, or when skipped validation needs to be explicit rather than implied.
+
+The docs follow that journey: first explain what the tool is for, then give
+agents a small path that works, then let `hk status` reveal the deeper lifecycle
+only when needed.
+
+1. Add a small Harness Kit directive to repo or user `AGENTS.md`.
+2. Research and shape the idea in chat, issues, or scratch docs with normal
+   human/agent back-and-forth.
+3. Hand the agreed intent to an implementation agent and tell it to use `hk`.
+4. The agent records enough lifecycle evidence for handoff without committing
+   workflow ceremony.
+
+The happy-path agent loop is intentionally short:
+
+```bash
+hk profile resolve --target . --json   # optional; uses explicit user config if present
+hk start <slug> --plan 'Adopted implementation intent'
+# work normally in the repo
+hk checks --target . --changed --json  # suggests configured checks/reviews, does not run them
+hk validate --why 'What this command proves' -- <native command>
+hk status
+hk ready
+hk summary
+```
+
+`hk status` is the coach. It tells the agent when to add optional context, record
+a decision/spec reflection, dispatch review, reconcile sync state, or use a
+scary explicit bypass. Agents should not memorize a long command checklist.
+User-level `harness.toml` can bind known repo/module paths to profiles so agents
+do not need validation/review conventions re-explained every session. Profiles
+can suggest checks/reviews for changed paths and mark specific path matches as
+required while still leaving execution and reviewer dispatch to the agent.
+
+### Agent command index
+
+Most agents should start with the short loop above and follow `hk status`. These
+are the common commands to reach for when the coach asks for something specific:
+
+| Need | Command |
+|---|---|
+| Read repo shape without mutating state | `hk brief --target . --json` |
+| Start or inspect active work | `hk start <slug> --plan "..."`, `hk status`, `hk work status` |
+| Record useful framing | `hk context "..."` |
+| Record or refine the adopted plan | `hk plan "..."` / `hk plan --from-file FILE` |
+| Record decisions and spec impact | `hk decide "..." --spec-impact none\|updated\|not-needed` |
+| See configured guidance without running it | `hk profile ...`, `hk checks --target . --changed --json` |
+| Capture validation evidence | `hk validate --why "..." -- <native command>`, `hk validate --check NAME --why "..." -- <native command>` |
+| Record external-enough review | `hk review prompt [NAME]`, `hk review add --review NAME --backend ... --reviewer ... --rubric ... --summary ...` |
+| Attach real tool/harness files | `hk artifact attach --path FILE --kind KIND` |
+| Reconcile local changes before handoff | `hk sync`, `hk sync --exclude PATH --reason "..."` |
+| Check readiness or explain it to humans | `hk ready`, `hk status`, `hk summary`, `hk handoff`, `hk export` |
+| Make an explicit exception | `hk dangerously-skip review\|validation\|sync --label LABEL --reason "..." --mitigation "..."` |
+
+Lower-level commands such as `hk note`, `hk evidence`, `hk capture`, and `hk spec`
+are inspection/escape hatches, not the promoted path.
+
+`hk` now exposes the Harness Kit lifecycle only: local agent memory, compact adopted
+plans, exact command evidence with rationale, review records, readiness checks,
+and generated handoffs without committed ceremony. Use `hk start --plan`,
+`hk validate`, `hk status`, and then follow the next actions. Removed portable plan-artifact commands (`hk attach`, `hk legacy plan`, and
+`hk legacy sync-check`) are no longer part of `hk`. Scaffolded repos still use
+`mise run plan` and `mise run sync-check` through the separate slice-workflow CLI.
+
+Planning can happen outside HK; agents translate the agreed intent into compact
+HK context/plan/decision records rather than asking HK to infer it. `hk start
+--plan` seeds the first lifecycle plan when work starts; `hk start` can also be
+used without a plan followed by repeated `hk plan "..."` calls as a living plan
+when the implementation shape emerges progressively. `hk artifact attach` can attach real harness/tool
+files such as agent session transcripts or Codex review transcripts by copying or
+referencing the file, hashing it, and rendering the metadata in handoff. Slugs should be short human-readable task names;
+HK-generated work IDs provide chronological ordering. Review is required by
+default: prefer an independent AI/tool reviewer (ideally different model,
+runtime, or context) and use a fresh-context subagent as the minimum fallback.
+Implementation-agent self-review does not satisfy readiness. If the harness has a
+fresh-context review mechanism, dispatch `hk review prompt` to it before handoff.
+Examples include Pi `subagent`, Claude Code `Agent`/legacy `Task`, and Codex via
+the Shell tool running `codex review --uncommitted`. Re-run `hk status` after
+review because review tools may create agent-local state. If review is impossible,
+record an explicit dangerous review skip with a label, reason, and mitigation.
+Use `hk status` for the agent next-action loop, `hk summary` for a concise
+human-readable readiness digest, and `hk handoff` for the longer transfer
+artifact. Explicit untracked local-only state can
+be handled with recorded one-shot sync exclusions rather than silent ignores;
+`hk sync --exclude` is not limited to a hardcoded `.pi`/`.claude` allowlist, but
+it still rejects root, pathspec, tracked, staged, or missing paths. Today,
+scaffolded plan artifacts represent that lifecycle as Markdown/YAML files. The current direction is to make the ledger canonical and export durable handoff views
+only when needed.
 
 ## Task Contract
 

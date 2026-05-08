@@ -1,0 +1,12 @@
+{
+  "artifact_path": "/private/tmp/hk-session-artifacts-dogfood/repo/.harness-local/harness-kit/root/work/2026-05-06-140714-session-artifacts/artifacts/artifact_20260506_140721_040286_claude-session-transcript_claude-stream.jsonl",
+  "copied": true,
+  "kind": "claude-session-transcript",
+  "label": "Claude stream JSONL captured to known path",
+  "redaction": "external",
+  "seq": 6,
+  "sha256": "sha256:d9d3cd62be464c9513274a16a81aa63d812508b584073bfe6e983e161e2a13b9",
+  "size_bytes": 5402,
+  "source_path": "/private/tmp/hk-session-artifacts-dogfood/claude-stream.jsonl",
+  "work_id": "2026-05-06-140714-session-artifacts"
+}

@@ -1,0 +1,18 @@
+slug: harness-kit-versionless-docs
+branch: feat/harness-kit-2-ledger-assistant
+created: 2026-05-06
+pr: 12
+status: complete
+source: user feedback to remove HK1/HK2 product framing from docs and help text
+contract_change: implementation_only
+decision_record: none
+review_mode: external_required
+review_backend: codex
+review_rubrics:
+  - docs-clarity
+  - product-framing
+evidence_required:
+  - commands
+  - review
+continues_from: .ai/plans/2026-05-06-151739-hk2-docs-ux-followups
+supersedes:

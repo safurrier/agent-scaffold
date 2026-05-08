@@ -1,0 +1,5 @@
+version: 1
+artifacts:
+  - path: artifacts/pr-sized-dogfood-plan.md
+    type: report
+    description: Proposed setup for the next PR-sized HK 2.0 dogfood replay trial

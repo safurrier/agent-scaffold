@@ -1,0 +1,6 @@
+{
+  "kind": "context",
+  "seq": 3,
+  "text": "Used exact transcript files produced by headless Pi, Codex, and Claude smoke commands; no latest-session attach heuristic was used.",
+  "work_id": "2026-05-06-140714-session-artifacts"
+}

@@ -1,0 +1,5 @@
+.harness-local/harness-kit/root/work/2026-05-06-115834-artifact-attach/events.jsonl
+evidence_id=ev_20260506_115843_700913
+status=pass
+why=Verify attached artifact metadata is present in the HK lifecycle event ledger.
+transcript_path=/private/tmp/hk-artifact-dogfood.K0vW7c/repo/.harness-local/harness-kit/root/work/2026-05-06-115834-artifact-attach/artifacts/ev_20260506_115843_700913.transcript.log

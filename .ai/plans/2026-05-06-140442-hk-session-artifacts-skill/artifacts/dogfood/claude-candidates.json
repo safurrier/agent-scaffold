@@ -1,0 +1,24 @@
+{
+  "candidates": [
+    {
+      "confidence": "medium",
+      "mtime": 1778101612.6770875,
+      "path": "<USER_HOME>/.claude/projects/-Users-<USER>-git-repositories-harness-toolkit/8bd6bdd7-439c-4aa2-8c77-57f0b6535e2f.jsonl",
+      "reason": "repo-scoped Claude project session; verify session id or timestamp before attaching",
+      "size_bytes": 4373
+    },
+    {
+      "confidence": "medium",
+      "mtime": 1778098416.6715124,
+      "path": "<USER_HOME>/.claude/projects/-Users-<USER>-git-repositories-harness-toolkit/fcc06f93-79a8-42db-9ec2-3bbeb03b2dcd.jsonl",
+      "reason": "repo-scoped Claude project session; verify session id or timestamp before attaching",
+      "size_bytes": 5896
+    }
+  ],
+  "source": "claude",
+  "target": "<REPO_ROOT>",
+  "warnings": [
+    "Discovery is heuristic. Prefer an exact transcript path provided by the harness/tool when available.",
+    "Do not attach global latest sessions without confirming timestamp, repo scope, prompt, or session id."
+  ]
+}

@@ -1,0 +1,17 @@
+slug: hk2-lifecycle-recenter
+branch: feat/harness-kit-2-ledger-assistant
+created: 2026-05-04
+pr:
+status: complete
+source: product-direction review after HK 2.0 visual explainer
+contract_change: docs_only
+decision_record: none
+review_mode: external_required
+review_backend: manual_external
+review_rubrics:
+  - core-quality
+evidence_required:
+  - commands
+  - report
+continues_from:
+supersedes:

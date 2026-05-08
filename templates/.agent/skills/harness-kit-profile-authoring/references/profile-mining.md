@@ -19,7 +19,7 @@ when, while leaving execution in the normal shell loop.
    `justfile`, `Makefile`, `package.json`, `pyproject.toml`, `tox.ini`, and
    language-specific task definitions.
 5. **Recent evidence** — what actually worked. Check recent PR descriptions,
-   plan `VALIDATION.md`, release docs, or CI debug docs when available.
+   existing validation logs, release docs, or CI debug docs when available.
 
 When sources conflict, report the conflict and prefer CI for merge parity, then
 repo AGENTS for the local fast loop. When a repo spans multiple stacks, preserve
@@ -52,7 +52,7 @@ Use names that describe the decision the agent must make.
 | `heavy-gate` | Broad confidence before merge, release, or risky runtime changes. |
 | `apply` | Applies generated/local config when source changes need deployment. |
 | `drift-check` | Detects generated/config drift after template changes. |
-| `handoff` | Runs `hk sync-check`; verifies recorded evidence, not validation execution. |
+| `handoff` | Runs `hk sync && hk ready` for Harness Kit lifecycle state; verifies recorded evidence, not validation execution. |
 
 ## TOML Draft Pattern
 
@@ -62,7 +62,7 @@ title = "<Repo Or Module> Root"
 summary = "Validation contract for <repo/module>."
 target_hint = "Use --target <repo-or-module-path>."
 
-instructions = "Use this profile for work under <repo/module>. Run validation commands directly and record exact command/result evidence in VALIDATION.md before handoff."
+instructions = "Use this profile for work under <repo/module>. Run validation commands directly and record exact command/result evidence with hk validate --why before handoff."
 
 [[checks]]
 name = "fast-gate"
@@ -70,6 +70,9 @@ purpose = "Run the repo's fast local validation gate before handoff."
 command_template = "<command>"
 run_from = "repo-root"
 notes = ["Source: <file or CI job>."]
+applies_when = ["src/**", "tests/**"]
+# Use required_when only when this check must be recorded for matching paths.
+required_when = ["src/**"]
 
 [[checks]]
 name = "focused-tests"
@@ -77,11 +80,23 @@ purpose = "Run the smallest focused test that covers the change."
 command_template = "<command with placeholder>"
 run_from = "repo-root"
 required_inputs = ["test_path_or_selector"]
+applies_when = ["src/<area>/**", "tests/<area>/**"]
+
+[[reviews]]
+name = "domain-review"
+purpose = "Review changes from a repo-specific risk perspective."
+backend = "fresh-context-subagent"
+rubric = "domain-risk"
+dispatch_hint = "Use an independent AI/tool or fresh-context subagent."
+prompt_file = "prompts/domain-review.md"
+applies_when = ["src/<area>/**"]
+# Use required_when only for review perspectives that must be recorded.
+required_when = ["src/<area>/critical/**"]
 
 [[checks]]
 name = "handoff"
 purpose = "Validate portable workflow evidence and review state."
-command_template = "hk sync-check --target <target> --profile <profile> --profiles-dir <profiles-dir> --json"
+command_template = "hk sync --target <target> --json && hk ready --target <target> --json"
 run_from = "current-directory"
 notes = ["This checks recorded evidence; it does not rerun validation."]
 ```
@@ -95,8 +110,11 @@ notes = ["This checks recorded evidence; it does not rerun validation."]
 - For Python/Rust, Python/Node, or other mixed-stack repos, cite the closest
   built-in profile only as a fallback and draft a repo-specific profile when CI
   or task runners define recurring checks for more than one stack.
-- For custom profiles, include `--profiles-dir <profiles-dir>` in handoff commands;
-  `hk` only loads built-ins when the flag is omitted.
+- Prefer `prompt_file` for non-trivial review instructions; keep TOML concise.
+- Use `applies_when` for suggestions and `required_when` only for checks/reviews
+  that readiness should require when matching files change.
+- For custom profiles, include `--profiles-dir <profiles-dir>` in discovery
+  commands; lifecycle commands resolve user config and do not accept profile flags.
 - Do not silently create profiles. Ask before writing the TOML file.
 - If the user declines profile creation, continue with the closest built-in
   profile and note the limitation once.

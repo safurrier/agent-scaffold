@@ -1,0 +1,218 @@
+== start without plan ==
+{
+  "resumed": false,
+  "state_dir": "/private/tmp/hk-summary-skip-dogfood/repo/.harness-local/harness-kit/root",
+  "work_dir": "/private/tmp/hk-summary-skip-dogfood/repo/.harness-local/harness-kit/root/work/2026-05-08-095814-summary-skip",
+  "work_id": "2026-05-08-095814-summary-skip"
+}
+== same-slug retry ==
+{
+  "resumed": true,
+  "state_dir": "/private/tmp/hk-summary-skip-dogfood/repo/.harness-local/harness-kit/root",
+  "work_dir": "/private/tmp/hk-summary-skip-dogfood/repo/.harness-local/harness-kit/root/work/2026-05-08-095814-summary-skip",
+  "work_id": "2026-05-08-095814-summary-skip"
+}
+== progressive plan ==
+{
+  "kind": "plan",
+  "seq": 2,
+  "text": "Implement tiny README update",
+  "work_id": "2026-05-08-095814-summary-skip"
+}
+{
+  "kind": "plan",
+  "seq": 3,
+  "text": "Record validation and risky review skip",
+  "work_id": "2026-05-08-095814-summary-skip"
+}
+== validation ==
+ok
+evidence_id=ev_20260508_095817_458789
+status=pass
+why=Smoke command proves HK command capture works
+transcript_path=/private/tmp/hk-summary-skip-dogfood/repo/.harness-local/harness-kit/root/work/2026-05-08-095814-summary-skip/artifacts/ev_20260508_095817_458789.transcript.log
+== dangerous review skip ==
+{
+  "check": "review",
+  "label": "no-review",
+  "mitigation": "Focused unit tests and local CLI dogfood cover this change",
+  "reason": "Synthetic dogfood has no separate reviewer",
+  "seq": 5,
+  "work_id": "2026-05-08-095814-summary-skip"
+}
+== sync/ready/summary ==
+{
+  "guidance": [
+    "Plan: did you record the agreed implementation intent?",
+    "Evidence: did you capture or explain validation?",
+    "Learning: did you record anything future agents should know?",
+    "Decisions: did you record non-obvious choices?",
+    "Gaps: did you disclose missing validation or follow-up work?",
+    "Spec/docs: did behavior or product intent change?"
+  ],
+  "message": "recorded sync checkpoint",
+  "synced": true,
+  "work_id": "2026-05-08-095814-summary-skip"
+}
+{
+  "checks": [
+    {
+      "id": "context",
+      "message": "no context recorded; okay for trivial work, add hk context if it prevents rediscovery",
+      "status": "info"
+    },
+    {
+      "id": "plan",
+      "message": "plan recorded",
+      "status": "pass"
+    },
+    {
+      "id": "decision",
+      "message": "decision and spec reflection recorded",
+      "status": "fail"
+    },
+    {
+      "id": "validation",
+      "message": "validation evidence with rationale recorded",
+      "status": "pass"
+    },
+    {
+      "id": "review",
+      "message": "review dangerously skipped: no-review; mitigation: Focused unit tests and local CLI dogfood cover this change",
+      "status": "pass"
+    },
+    {
+      "id": "sync",
+      "message": "sync checkpoint fresh",
+      "status": "pass"
+    },
+    {
+      "id": "handoff",
+      "message": "handoff renders",
+      "status": "pass"
+    }
+  ],
+  "ready": false,
+  "status": "not-ready",
+  "work_id": "2026-05-08-095814-summary-skip"
+}
+== decision/spec reflection ==
+{
+  "kind": "decision",
+  "seq": 7,
+  "text": "Synthetic dogfood only; no product behavior change",
+  "work_id": "2026-05-08-095814-summary-skip"
+}
+== final sync/ready/summary ==
+{
+  "guidance": [
+    "Plan: did you record the agreed implementation intent?",
+    "Evidence: did you capture or explain validation?",
+    "Learning: did you record anything future agents should know?",
+    "Decisions: did you record non-obvious choices?",
+    "Gaps: did you disclose missing validation or follow-up work?",
+    "Spec/docs: did behavior or product intent change?"
+  ],
+  "message": "recorded sync checkpoint",
+  "synced": true,
+  "work_id": "2026-05-08-095814-summary-skip"
+}
+{
+  "checks": [
+    {
+      "id": "context",
+      "message": "no context recorded; okay for trivial work, add hk context if it prevents rediscovery",
+      "status": "info"
+    },
+    {
+      "id": "plan",
+      "message": "plan recorded",
+      "status": "pass"
+    },
+    {
+      "id": "decision",
+      "message": "decision and spec reflection recorded",
+      "status": "pass"
+    },
+    {
+      "id": "validation",
+      "message": "validation evidence with rationale recorded",
+      "status": "pass"
+    },
+    {
+      "id": "review",
+      "message": "review dangerously skipped: no-review; mitigation: Focused unit tests and local CLI dogfood cover this change",
+      "status": "pass"
+    },
+    {
+      "id": "sync",
+      "message": "sync checkpoint fresh",
+      "status": "pass"
+    },
+    {
+      "id": "handoff",
+      "message": "handoff renders",
+      "status": "pass"
+    }
+  ],
+  "ready": true,
+  "status": "ready-with-dangerous-skips",
+  "work_id": "2026-05-08-095814-summary-skip"
+}
+# HK Readiness Summary
+
+- Work: `2026-05-08-095814-summary-skip`
+- Branch: `feat/demo` at `4278f80`
+- Readiness: `ready-with-dangerous-skips`
+- Sync: `synced`
+- Dirty: `false`
+
+## Plan
+- Implement tiny README update
+- Record validation and risky review skip
+
+## Validation
+- pass: `python3 -c 'print("ok")'` (exit 0; transcript: `/private/tmp/hk-summary-skip-dogfood/repo/.harness-local/harness-kit/root/work/2026-05-08-095814-summary-skip/artifacts/ev_20260508_095817_458789.transcript.log`) — Smoke command proves HK command capture works
+
+## Review
+- None recorded.
+
+## Dangerous skips
+- review: no-review — reason: Synthetic dogfood has no separate reviewer; mitigation: Focused unit tests and local CLI dogfood cover this change
+
+## Readiness checks
+- context: info — no context recorded; okay for trivial work, add hk context if it prevents rediscovery
+- plan: pass — plan recorded
+- decision: pass — decision and spec reflection recorded
+- validation: pass — validation evidence with rationale recorded
+- review: pass — review dangerously skipped: no-review; mitigation: Focused unit tests and local CLI dogfood cover this change
+- sync: pass — sync checkpoint fresh
+== final summary after copy tweak ==
+# HK Readiness Summary
+
+- Work: `2026-05-08-095814-summary-skip`
+- Branch: `feat/demo` at `4278f80`
+- Readiness: `ready-with-dangerous-skips`
+- Sync: `synced`
+- Dirty: `false`
+
+## Plan
+- Implement tiny README update
+- Record validation and risky review skip
+
+## Validation
+- pass: `python3 -c 'print("ok")'` (exit 0; transcript: `/private/tmp/hk-summary-skip-dogfood/repo/.harness-local/harness-kit/root/work/2026-05-08-095814-summary-skip/artifacts/ev_20260508_095817_458789.transcript.log`) — Smoke command proves HK command capture works
+
+## Review
+- No review recorded; see dangerous review skip below.
+
+## Dangerous skips
+- review: no-review — reason: Synthetic dogfood has no separate reviewer; mitigation: Focused unit tests and local CLI dogfood cover this change
+
+## Readiness checks
+- context: info — no context recorded; okay for trivial work, add hk context if it prevents rediscovery
+- plan: pass — plan recorded
+- decision: pass — decision and spec reflection recorded
+- validation: pass — validation evidence with rationale recorded
+- review: pass — review dangerously skipped: no-review; mitigation: Focused unit tests and local CLI dogfood cover this change
+- sync: pass — sync checkpoint fresh

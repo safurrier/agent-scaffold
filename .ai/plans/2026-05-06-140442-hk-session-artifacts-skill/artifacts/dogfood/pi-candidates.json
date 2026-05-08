@@ -1,0 +1,45 @@
+{
+  "candidates": [
+    {
+      "confidence": "medium",
+      "mtime": 1778101631.124297,
+      "path": "<USER_HOME>/.pi/agent/sessions/--Users-<USER>-git_repositories-harness-toolkit--/2026-05-03T19-41-06-705Z_019def5b-d711-710e-9285-06c785a17f7a.jsonl",
+      "reason": "repo-scoped Pi session directory; verify this is the intended session before attaching",
+      "size_bytes": 16017843
+    },
+    {
+      "confidence": "medium",
+      "mtime": 1778087697.1198204,
+      "path": "<USER_HOME>/.pi/agent/sessions/--Users-<USER>-git_repositories-harness-toolkit--/2026-05-03T19-41-06-705Z_019def5b-d711-710e-9285-06c785a17f7a/0530a485/run-0/session.jsonl",
+      "reason": "repo-scoped Pi session directory; verify this is the intended session before attaching",
+      "size_bytes": 211474
+    },
+    {
+      "confidence": "medium",
+      "mtime": 1778043871.6082876,
+      "path": "<USER_HOME>/.pi/agent/sessions/--Users-<USER>-git_repositories-harness-toolkit--/2026-05-03T19-41-06-705Z_019def5b-d711-710e-9285-06c785a17f7a/447fb901/run-0/session.jsonl",
+      "reason": "repo-scoped Pi session directory; verify this is the intended session before attaching",
+      "size_bytes": 641809
+    },
+    {
+      "confidence": "medium",
+      "mtime": 1778043693.3238752,
+      "path": "<USER_HOME>/.pi/agent/sessions/--Users-<USER>-git_repositories-harness-toolkit--/2026-05-03T19-41-06-705Z_019def5b-d711-710e-9285-06c785a17f7a/447fb901/run-1/session.jsonl",
+      "reason": "repo-scoped Pi session directory; verify this is the intended session before attaching",
+      "size_bytes": 71248
+    },
+    {
+      "confidence": "medium",
+      "mtime": 1778043671.9658906,
+      "path": "<USER_HOME>/.pi/agent/sessions/--Users-<USER>-git_repositories-harness-toolkit--/2026-05-03T19-41-06-705Z_019def5b-d711-710e-9285-06c785a17f7a/447fb901/run-3/session.jsonl",
+      "reason": "repo-scoped Pi session directory; verify this is the intended session before attaching",
+      "size_bytes": 67284
+    }
+  ],
+  "source": "pi",
+  "target": "<REPO_ROOT>",
+  "warnings": [
+    "Discovery is heuristic. Prefer an exact transcript path provided by the harness/tool when available.",
+    "Do not attach global latest sessions without confirming timestamp, repo scope, prompt, or session id."
+  ]
+}

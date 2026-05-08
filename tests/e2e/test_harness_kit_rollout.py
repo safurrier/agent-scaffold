@@ -1,9 +1,9 @@
-"""E2E rollout checks for Harness Kit portable workflow.
+"""E2E rollout checks for Harness Kit lifecycle behavior.
 
 These tests use synthetic repositories instead of cloning a real external project.
-They prove the rollout contract we dogfooded manually: ``hk`` can attach to an
-existing repo, create native-shaped plan state outside or beside the checkout,
-and leave the target repository clean.
+They prove the rollout contract we dogfooded manually: ``hk`` can run the Harness Kit
+lifecycle in an existing repo, keep Harness Kit state local/ignored, and produce
+readiness plus handoff output without legacy plan-artifact commands.
 """
 
 from __future__ import annotations
@@ -15,7 +15,6 @@ from pathlib import Path
 
 import pytest
 
-from tests._docs_helpers import PLAN_REQUIRED_FILES
 from tests._support import SCAFFOLD_ROOT
 
 pytestmark = pytest.mark.e2e
@@ -85,25 +84,9 @@ def _git_status(path: Path) -> str:
     ).stdout
 
 
-def _complete_portable_plan(plan_dir: Path) -> None:
-    (plan_dir / "TODO.md").write_text("# TODO\n\n- [x] Prove portable rollout parity\n")
-    (plan_dir / "DECISIONS.md").write_text(
-        "# Decisions\n\n- Used Harness Kit portable workflow in a synthetic existing repo.\n"
-    )
-    (plan_dir / "VALIDATION.md").write_text(
-        "# Validation\n\n- `git status --porcelain`\n  - Result: clean target repo.\n"
-    )
-    (plan_dir / "REVIEW.md").write_text(
-        "# Review\n\n- External reviewer found no rollout parity blockers.\n"
-    )
-
-
-def test_harness_kit_external_mode_rollout_matches_plan_contract(
-    tmp_path: Path,
-) -> None:
+def test_harness_kit_lifecycle_rollout_reaches_ready(tmp_path: Path) -> None:
     target = tmp_path / "existing-repo"
     _git_init(target)
-    state_root = tmp_path / "hk-state"
 
     profiles = _run_hk("profile", "list", "--target", str(target), "--json")
     assert profiles.returncode == 0, profiles.stderr
@@ -112,93 +95,86 @@ def test_harness_kit_external_mode_rollout_matches_plan_contract(
         row["name"] for row in profile_payload["profiles"]
     }
 
-    plan = _run_hk(
-        "plan",
-        "rollout-parity",
-        "--target",
-        str(target),
-        "--state-root",
-        str(state_root),
-        "--profile",
-        "generic",
-        "--json",
-    )
-    assert plan.returncode == 0, plan.stderr
-    plan_payload = json.loads(plan.stdout)
-    plan_dir = Path(plan_payload["plan_dir"])
-    state_dir = Path(plan_payload["state_dir"])
+    commands = [
+        (
+            "start",
+            "rollout-parity",
+            "--plan",
+            "Exercise Harness Kit lifecycle rollout parity.",
+            "--target",
+            str(target),
+        ),
+        (
+            "context",
+            "Synthetic existing repo rollout; Harness Kit state must stay local.",
+            "--target",
+            str(target),
+        ),
+        (
+            "decide",
+            "No committed spec impact for synthetic rollout.",
+            "--spec-impact",
+            "not-needed",
+            "--target",
+            str(target),
+        ),
+        (
+            "validate",
+            "--why",
+            "Native command evidence records rollout validation.",
+            "--target",
+            str(target),
+            "--",
+            "python3",
+            "-c",
+            "print('ok')",
+        ),
+        (
+            "review",
+            "add",
+            "--backend",
+            "subagent",
+            "--reviewer",
+            "rollout-fresh-context",
+            "--rubric",
+            "core-quality",
+            "--summary",
+            "Rollout parity accepted.",
+            "--target",
+            str(target),
+        ),
+        ("sync", "--target", str(target)),
+    ]
+    for command in commands:
+        result = _run_hk(*command)
+        assert result.returncode == 0, (command, result.stdout, result.stderr)
 
-    assert state_dir.is_relative_to(state_root)
+    ready = _run_hk("ready", "--target", str(target), "--json")
+    assert ready.returncode == 0, ready.stderr
+    assert json.loads(ready.stdout)["status"] == "ready"
+
+    handoff = _run_hk("handoff", "--target", str(target))
+    assert handoff.returncode == 0, handoff.stderr
+    assert "## Validation evidence" in handoff.stdout
+    assert "## Review" in handoff.stdout
     assert not (target / ".ai").exists()
     assert not (target / ".agent").exists()
-    assert not (target / ".mise").exists()
-    assert not (target / ".ai-local").exists()
-
-    for required in PLAN_REQUIRED_FILES:
-        assert (plan_dir / required).exists(), f"missing portable plan file: {required}"
-        assert (
-            SCAFFOLD_ROOT / "templates" / ".ai" / "plans" / "_templates" / required
-        ).exists(), f"portable plan file lacks native template peer: {required}"
-
-    checks = _run_hk(
-        "checks", "--target", str(target), "--profile", "generic", "--json"
-    )
-    assert checks.returncode == 0, checks.stderr
-    checks_payload = json.loads(checks.stdout)
-    assert checks_payload["profile"] == "generic"
-    assert any(check["command_template"] for check in checks_payload["checks"])
-    assert _git_status(target) == ""
-
-    _complete_portable_plan(plan_dir)
-    sync = _run_hk(
-        "sync-check",
-        "--target",
-        str(target),
-        "--state-root",
-        str(state_root),
-        "--profile",
-        "generic",
-        "--json",
-    )
-    assert sync.returncode == 0, sync.stderr
-    assert json.loads(sync.stdout)["checks"] == [
-        "plan",
-        "decisions",
-        "validation",
-        "review",
-    ]
     assert _git_status(target) == ""
 
 
-def test_harness_kit_overlay_mode_uses_local_exclude_without_tracked_files(
-    tmp_path: Path,
-) -> None:
+def test_legacy_hk1_command_surfaces_are_removed(tmp_path: Path) -> None:
     target = tmp_path / "existing-repo"
     _git_init(target)
 
-    attach = _run_hk("attach", "--target", str(target), "--mode", "overlay", "--json")
+    root = _run_hk("--help")
+    legacy = _run_hk("legacy", "plan", "rollout", "--target", str(target))
+    attach = _run_hk("attach", "--target", str(target))
+    status_mode = _run_hk("status", "--target", str(target), "--mode", "overlay")
 
-    assert attach.returncode == 0, attach.stderr
-    payload = json.loads(attach.stdout)
-    state_dir = Path(payload["state_dir"])
-    assert state_dir == target / ".ai-local" / "harness-kit" / "root"
-    assert payload["ignored_by_local_git"] is True
-    assert (
-        "/.ai-local/harness-kit/" in (target / ".git" / "info" / "exclude").read_text()
-    )
-    assert _git_status(target) == ""
-
-    plan = _run_hk(
-        "plan",
-        "overlay-parity",
-        "--target",
-        str(target),
-        "--mode",
-        "overlay",
-        "--json",
-    )
-    assert plan.returncode == 0, plan.stderr
-    plan_dir = Path(json.loads(plan.stdout)["plan_dir"])
-    for required in PLAN_REQUIRED_FILES:
-        assert (plan_dir / required).exists(), f"missing overlay plan file: {required}"
+    assert root.returncode == 0
+    assert "legacy" not in root.stdout.lower()
+    assert "│ attach" not in root.stdout.lower()
+    assert legacy.returncode != 0
+    assert attach.returncode != 0
+    assert status_mode.returncode != 0
     assert _git_status(target) == ""

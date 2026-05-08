@@ -1,0 +1,6 @@
+{
+  "kind": "context",
+  "seq": 3,
+  "text": "Pi session candidate discovered as latest session JSONL under ~/.pi/agent/sessions for this repo; dogfood references it with --no-copy to avoid committing private transcript contents.",
+  "work_id": "2026-05-06-115834-artifact-attach"
+}

@@ -1,0 +1,17 @@
+slug: hk2-pr-sized-dogfood
+branch: feat/harness-kit-2-ledger-assistant
+created: 2026-05-04
+pr:
+status: complete
+source: user request for parallel PR-sized HK 2.0 dogfood trials
+contract_change: docs_only
+decision_record: none
+review_mode: external_required
+review_backend: user-directed dogfood review
+review_rubrics:
+  - core-quality
+evidence_required:
+  - commands
+  - report
+continues_from:
+supersedes:

@@ -1,0 +1,7 @@
+artifacts:
+  - type: report
+    path: artifacts/plan-note-summary.md
+    description: Summary of the plan note/from-file implementation and design boundary.
+  - type: review
+    path: artifacts/codex-review-summary.md
+    description: External review summary and disposition.

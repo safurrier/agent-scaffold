@@ -1,0 +1,19 @@
+slug: hk-artifact-attach
+branch: feat/harness-kit-2-ledger-assistant
+created: 2026-05-06
+pr: 12
+status: complete
+source: user request for programmatic generic artifact attach for session/review transcripts
+contract_change: implementation_only
+decision_record: none
+review_mode: external_required
+review_backend: codex
+review_rubrics:
+  - core-quality
+  - artifact-lifecycle-semantics
+evidence_required:
+  - commands
+  - dogfood
+  - handoff
+continues_from: .ai/plans/2026-05-06-100730-hk-sync-exclude-literal-paths
+supersedes:

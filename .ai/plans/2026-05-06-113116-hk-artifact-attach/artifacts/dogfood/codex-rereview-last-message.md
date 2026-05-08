@@ -1,0 +1,1 @@
+No blocking issues were found in the changed code. The new artifact attach flow is covered by unit tests, CLI behavior checks, and the repo quality gate passed locally.

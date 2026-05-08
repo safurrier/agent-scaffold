@@ -1,0 +1,19 @@
+slug: hk-sync-exclude-literal-paths
+branch: feat/harness-kit-2-ledger-assistant
+created: 2026-05-06
+pr: 12
+status: complete
+source: user correction during PR review; sync exclusions should be explicit recorded literal local paths, not .pi/.claude allowlist only
+contract_change: implementation_only
+decision_record: none
+review_mode: external_required
+review_backend: pi-subagent
+review_rubrics:
+  - core-quality
+  - sync-exclusion-safety
+evidence_required:
+  - commands
+  - dogfood
+  - handoff
+continues_from: .ai/plans/2026-05-05-194606-hk2-architecture-parity-refactor
+supersedes:

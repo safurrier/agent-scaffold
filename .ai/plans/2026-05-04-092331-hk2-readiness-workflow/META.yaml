@@ -1,0 +1,18 @@
+slug: hk2-readiness-workflow
+branch: feat/harness-kit-2-ledger-assistant
+created: 2026-05-04
+pr: 12
+status: complete
+source: user-feedback
+contract_change: docs_only
+decision_record: none
+review_mode: external_required
+review_backend: codex
+review_rubrics:
+  - core-quality
+  - product-workflow-fit
+evidence_required:
+  - commands
+  - report
+continues_from: 2026-05-03-131749-harness-kit-2-ledger-assistant
+supersedes:

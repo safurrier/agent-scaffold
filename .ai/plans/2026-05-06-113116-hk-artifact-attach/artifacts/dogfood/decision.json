@@ -1,0 +1,6 @@
+{
+  "kind": "decision",
+  "seq": 6,
+  "text": "Use generic artifact attach for programmatic tool/harness files instead of a session-specific transcript command.",
+  "work_id": "2026-05-06-115834-artifact-attach"
+}

@@ -1,0 +1,17 @@
+slug: hk2-dogfood-ux-fixes
+branch: feat/harness-kit-2-ledger-assistant
+created: 2026-05-05
+pr:
+status: complete
+source: PR-sized HK 2.0 dogfood findings and user follow-up
+contract_change: contract_changed
+decision_record: none
+review_mode: external_required
+review_backend: subagent-reviewer
+review_rubrics:
+  - core-quality
+evidence_required:
+  - commands
+  - report
+continues_from:
+supersedes:

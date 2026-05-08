@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Run the HK CLI from this checkout while preserving the caller's working
+# directory. Unlike `uv --directory <repo> run hk`, `uv --project <repo> run hk`
+# uses this project's environment without changing cwd, so `--target .` still
+# means the caller's repo.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+exec uv --project "$PROJECT_ROOT" run hk "$@"

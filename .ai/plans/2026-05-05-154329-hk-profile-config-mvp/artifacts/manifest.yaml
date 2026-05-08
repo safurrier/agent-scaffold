@@ -1,0 +1,25 @@
+artifacts:
+  - path: artifacts/design-questionnaire-summary.md
+    type: report
+    description: User decisions for HK profile/config MVP scope and schema.
+  - path: artifacts/profile-config-dogfood-study.md
+    type: dogfood-rerun
+    description: Dogfood results for user-level config with inline profiles/checks/reviews in dread and foreman temp clones.
+  - path: artifacts/dogfood-profile-config.md
+    type: config
+    description: User-level harness config used for dogfood, wrapped in Markdown for reviewable artifact tracking.
+  - path: artifacts/dogfood-hk-commands.log
+    type: log
+    description: Raw HK command log from profile/config dogfood.
+  - path: artifacts/dogfood-dread-worker-report.md
+    type: report
+    description: Dread worker report from profile/config dogfood.
+  - path: artifacts/dogfood-foreman-worker-report.md
+    type: report
+    description: Foreman worker report from profile/config dogfood.
+  - path: artifacts/dogfood-dread-handoff.md
+    type: report
+    description: Dread generated HK handoff after parent sync remediation.
+  - path: artifacts/dogfood-foreman-handoff.md
+    type: report
+    description: Foreman generated HK handoff after parent sync remediation.

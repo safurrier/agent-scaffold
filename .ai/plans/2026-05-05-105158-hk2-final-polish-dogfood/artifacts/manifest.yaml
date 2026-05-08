@@ -1,0 +1,86 @@
+version: 1
+artifacts:
+  - path: artifacts/design-questionnaire-summary.md
+    type: report
+    description: User questionnaire decisions for the HK2 final polish slice.
+  - path: artifacts/review-harness-mechanisms.md
+    type: report
+    description: Quick research notes on Claude Code and Codex fresh-context review mechanisms.
+  - path: artifacts/less-guided-dogfood-v4-study.md
+    type: dogfood-rerun
+    description: Less-guided three-worker PR-sized dogfood rollout for HK2 final polish.
+  - path: artifacts/hk2-dogfood-readout.md
+    type: report
+    description: Cross-run dogfood readout table with expected workflow, per-agent behavior, and improvements made.
+  - path: artifacts/review-default-on-dogfood-v5-study.md
+    type: dogfood-rerun
+    description: Review-default-on dogfood rerun after strengthening independent AI/tool review guidance.
+  - path: artifacts/dogfood-v5-hk-commands.log
+    type: log
+    description: Raw HK command log from review-default-on dogfood v5.
+  - path: artifacts/dogfood-v5-dread-worker-report.md
+    type: report
+    description: Dread worker report from dogfood v5.
+  - path: artifacts/dogfood-v5-dread-handoff.md
+    type: report
+    description: Dread generated HK handoff from dogfood v5.
+  - path: artifacts/dogfood-v5-foreman-worker-report.md
+    type: report
+    description: Foreman worker report from dogfood v5.
+  - path: artifacts/dogfood-v5-foreman-handoff.md
+    type: report
+    description: Foreman generated HK handoff from dogfood v5.
+  - path: artifacts/dogfood-v5-obsidian-sync-worker-report.md
+    type: report
+    description: Obsidian-sync worker report from dogfood v5.
+  - path: artifacts/dogfood-v5-obsidian-sync-handoff.md
+    type: report
+    description: Obsidian-sync generated HK handoff from dogfood v5.
+  - path: artifacts/review-dispatch-hint-dogfood-v6-study.md
+    type: dogfood-rerun
+    description: Single-worker dogfood after adding explicit fresh-context review dispatch guidance.
+  - path: artifacts/dogfood-v6-hk-commands.log
+    type: log
+    description: Raw HK command log from review dispatch hint dogfood v6.
+  - path: artifacts/dogfood-v6-foreman-worker-report.md
+    type: report
+    description: Foreman worker report from dogfood v6.
+  - path: artifacts/dogfood-v6-foreman-handoff.md
+    type: report
+    description: Foreman generated HK handoff from dogfood v6.
+  - path: artifacts/codex-review-tool-dogfood-v7-study.md
+    type: dogfood-rerun
+    description: Single-worker dogfood after replacing slash-command guidance with tool-callable Codex review guidance.
+  - path: artifacts/dogfood-v7-hk-commands.log
+    type: log
+    description: Raw HK command log from Codex review tool dogfood v7.
+  - path: artifacts/dogfood-v7-dread-worker-report.md
+    type: report
+    description: Dread worker report from dogfood v7.
+  - path: artifacts/dogfood-v7-dread-handoff-before-parent-sync.md
+    type: report
+    description: Dread generated HK handoff from dogfood v7 before parent sync remediation.
+  - path: artifacts/dogfood-v7-dread-handoff-after-sync.md
+    type: report
+    description: Dread generated HK handoff from dogfood v7 after parent sync remediation.
+  - path: artifacts/dogfood-v4-hk-commands.log
+    type: log
+    description: Raw HK command log from less-guided dogfood v4.
+  - path: artifacts/dogfood-v4-dread-worker-report.md
+    type: report
+    description: Dread worker report from dogfood v4.
+  - path: artifacts/dogfood-v4-dread-handoff.md
+    type: report
+    description: Dread generated HK handoff from dogfood v4.
+  - path: artifacts/dogfood-v4-foreman-worker-report.md
+    type: report
+    description: Foreman worker report from dogfood v4.
+  - path: artifacts/dogfood-v4-foreman-handoff.md
+    type: report
+    description: Foreman generated HK handoff from dogfood v4.
+  - path: artifacts/dogfood-v4-obsidian-sync-worker-report.md
+    type: report
+    description: Obsidian-sync worker report from dogfood v4.
+  - path: artifacts/dogfood-v4-obsidian-sync-handoff.md
+    type: report
+    description: Obsidian-sync generated HK handoff from dogfood v4.

@@ -1,0 +1,16 @@
+artifacts:
+  - path: artifacts/change-summary.md
+    type: report
+    description: Summary of the agent adoption doc and hk instructions changes.
+  - path: artifacts/missing-hk-dogfood.log
+    type: evidence
+    description: Shell simulation showing the missing-hk preflight branch exits with command-not-found and should prompt the documented install guidance.
+  - path: artifacts/codex-review.md
+    type: review
+    description: Initial Codex review finding the profile/scope compatibility blocker.
+  - path: artifacts/codex-final-review.md
+    type: review
+    description: Final Codex review confirming no blocking findings after the compatibility fix.
+  - path: artifacts/review-summary.md
+    type: review
+    description: Local review summary for the docs and hk instructions output changes.

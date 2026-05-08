@@ -1,0 +1,7 @@
+artifacts:
+  - type: report
+    path: artifacts/background-note-summary.md
+    description: Summary of the background note-kind rename and compatibility behavior.
+  - type: review
+    path: artifacts/codex-review-summary.md
+    description: External review summary and disposition.

@@ -1,0 +1,13 @@
+artifacts:
+  - path: artifacts/hk-help-checks.txt
+    type: evidence
+    description: Help output used to verify README command-index examples against the implemented CLI surface.
+  - path: artifacts/codex-initial-review.md
+    type: review
+    description: Initial focused Codex review of the docs/UX pass.
+  - path: artifacts/codex-rereview.md
+    type: review
+    description: Codex rereview after the first round of command-index fixes.
+  - path: artifacts/codex-final-review.md
+    type: review
+    description: Final Codex review reporting no blocking findings.

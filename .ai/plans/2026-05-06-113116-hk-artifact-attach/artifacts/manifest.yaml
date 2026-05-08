@@ -1,0 +1,46 @@
+artifacts:
+  - path: artifacts/dogfood-summary.md
+    type: dogfood
+    description: Summary of the temp-repo dogfood for HK artifact attachment.
+  - path: artifacts/dogfood/README.md
+    type: report
+    description: Dogfood setup notes, temp repo path, and transcript attachment scenario.
+  - path: artifacts/dogfood/hk-commands.jsonl
+    type: evidence
+    description: Complete logged HK command sequence from the dogfood wrapper.
+  - path: artifacts/dogfood/events.jsonl
+    type: evidence
+    description: HK lifecycle event ledger copied from the dogfood repo.
+  - path: artifacts/dogfood/evidence.jsonl
+    type: evidence
+    description: HK captured command evidence ledger copied from the dogfood repo.
+  - path: artifacts/dogfood/ev_20260506_115843_700913.transcript.log
+    type: evidence
+    description: Transcript for the captured dogfood validation command.
+  - path: artifacts/dogfood/handoff.md
+    type: handoff
+    description: Full HK handoff rendered from the artifact-attach dogfood repo.
+  - path: artifacts/dogfood/pr-handoff.md
+    type: handoff
+    description: PR-format HK handoff rendered from the artifact-attach dogfood repo.
+  - path: artifacts/dogfood/ready.json
+    type: evidence
+    description: Machine-readable ready result from the dogfood repo.
+  - path: artifacts/dogfood/artifact-codex.json
+    type: evidence
+    description: JSON output from attaching the copied Codex rereview transcript.
+  - path: artifacts/dogfood/artifact-pi-session.json
+    type: evidence
+    description: JSON output from attaching the current Pi session transcript with --no-copy.
+  - path: artifacts/dogfood/artifact_20260506_115838_243386_codex-review-transcript_codex-rereview-events.jsonl
+    type: evidence
+    description: Copied Codex rereview transcript artifact produced by HK artifact attach.
+  - path: artifacts/dogfood/codex-review-last-message-with-initial-finding.md
+    type: review
+    description: Initial Codex review finding about legacy attach help checks.
+  - path: artifacts/dogfood/codex-rereview-last-message.md
+    type: review
+    description: Codex rereview result after addressing the finding.
+  - path: artifacts/dogfood/codex-rereview-events.jsonl
+    type: review
+    description: Codex rereview JSONL transcript source used in the dogfood.

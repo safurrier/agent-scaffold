@@ -1,0 +1,31 @@
+artifacts:
+  - path: artifacts/dogfood-summary.md
+    type: dogfood
+    description: Summary of the temp-repo HK dogfood for arbitrary literal untracked sync exclusions.
+  - path: artifacts/dogfood/README.md
+    type: report
+    description: Dogfood setup, temp repo path, and scenario notes.
+  - path: artifacts/dogfood/hk-commands.jsonl
+    type: evidence
+    description: Complete logged HK command sequence from the dogfood wrapper.
+  - path: artifacts/dogfood/events.jsonl
+    type: evidence
+    description: HK lifecycle event ledger copied from the dogfood repo.
+  - path: artifacts/dogfood/evidence.jsonl
+    type: evidence
+    description: HK captured command evidence ledger copied from the dogfood repo.
+  - path: artifacts/dogfood/ev_20260506_101108_788162.transcript.log
+    type: evidence
+    description: Transcript for the captured dogfood `git status --short` validation.
+  - path: artifacts/dogfood/handoff.md
+    type: handoff
+    description: Full HK handoff rendered from the dogfood repo.
+  - path: artifacts/dogfood/pr-handoff.md
+    type: handoff
+    description: PR-format HK handoff rendered from the dogfood repo.
+  - path: artifacts/dogfood/ready.json
+    type: evidence
+    description: Machine-readable ready result from the dogfood repo.
+  - path: artifacts/dogfood/sync-check.json
+    type: evidence
+    description: Machine-readable sync check result after recorded literal-path exclusions.

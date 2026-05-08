@@ -1,0 +1,12 @@
+{
+  "artifact_path": "/private/tmp/hk-session-artifacts-dogfood/repo/.harness-local/harness-kit/root/work/2026-05-06-140714-session-artifacts/artifacts/artifact_20260506_140716_491299_pi-session-transcript_pi-session.jsonl",
+  "copied": true,
+  "kind": "pi-session-transcript",
+  "label": "Pi child session JSONL from explicit --session-dir",
+  "redaction": "unknown",
+  "seq": 4,
+  "sha256": "sha256:4117429acac197c5dc7be5d97096715492f079a09a2b9bc902251906aebb3b02",
+  "size_bytes": 2459,
+  "source_path": "/private/tmp/hk-session-artifacts-dogfood/pi-session.jsonl",
+  "work_id": "2026-05-06-140714-session-artifacts"
+}

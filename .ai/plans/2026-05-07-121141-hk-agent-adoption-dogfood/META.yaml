@@ -1,0 +1,18 @@
+slug: hk-agent-adoption-dogfood
+branch: feat/harness-kit-2-ledger-assistant
+created: 2026-05-07
+pr: 12
+status: complete
+source: user requested adding and running an agent-adoption snippet dogfood variant
+contract_change: implementation_only
+decision_record: none
+review_mode: external_required
+review_backend: codex exec
+review_rubrics:
+  - core-quality
+  - dogfood-validity
+evidence_required:
+  - commands
+  - report
+continues_from:
+supersedes:

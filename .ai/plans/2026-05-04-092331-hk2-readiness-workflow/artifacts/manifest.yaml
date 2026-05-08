@@ -1,0 +1,7 @@
+artifacts:
+  - type: report
+    path: artifacts/readiness-parity-summary.md
+    description: Mapping of current sync-check contract to HK 2.0 readiness parity target.
+  - type: review
+    path: artifacts/codex-review-summary.md
+    description: External review summary and disposition for docs/plan changes.

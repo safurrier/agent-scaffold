@@ -1,0 +1,42 @@
+{
+  "checks": [
+    {
+      "id": "context",
+      "message": "context recorded",
+      "status": "info"
+    },
+    {
+      "id": "plan",
+      "message": "plan recorded",
+      "status": "pass"
+    },
+    {
+      "id": "decision",
+      "message": "decision and spec reflection recorded",
+      "status": "pass"
+    },
+    {
+      "id": "validation",
+      "message": "validation evidence with rationale recorded",
+      "status": "pass"
+    },
+    {
+      "id": "review",
+      "message": "external-enough review recorded",
+      "status": "pass"
+    },
+    {
+      "id": "sync",
+      "message": "sync checkpoint fresh",
+      "status": "pass"
+    },
+    {
+      "id": "handoff",
+      "message": "handoff renders",
+      "status": "pass"
+    }
+  ],
+  "ready": true,
+  "status": "ready",
+  "work_id": "2026-05-06-115834-artifact-attach"
+}

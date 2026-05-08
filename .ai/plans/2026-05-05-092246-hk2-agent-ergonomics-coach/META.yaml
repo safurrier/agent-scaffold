@@ -1,0 +1,20 @@
+slug: hk2-agent-ergonomics-coach
+branch: feat/harness-kit-2-ledger-assistant
+created: 2026-05-05
+pr:
+status: complete
+source: questionnaire + hk2 dogfood rerun findings
+contract_change: implementation_only
+decision_record: none
+review_mode: external_required
+review_backend: pi subagent
+review_rubrics:
+  - core-quality
+  - cli-ergonomics
+  - dogfood-evidence
+evidence_required:
+  - commands
+  - report
+  - dogfood-rerun
+continues_from: .ai/plans/2026-05-05-072708-hk2-dogfood-ux-fixes
+supersedes:

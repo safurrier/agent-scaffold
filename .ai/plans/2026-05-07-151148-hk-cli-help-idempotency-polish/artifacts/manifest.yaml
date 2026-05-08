@@ -1,0 +1,4 @@
+artifacts:
+  - path: artifacts/review-summary.md
+    type: review
+    description: Fresh-context review summary for CLI help/idempotency polish.

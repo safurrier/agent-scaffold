@@ -5,6 +5,8 @@ import os
 import subprocess
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -59,16 +61,6 @@ def _git_init(path: Path) -> None:
     )
 
 
-def _active_plan(state_dir: Path) -> Path:
-    plans = sorted(
-        path
-        for path in (state_dir / ".ai" / "plans").iterdir()
-        if path.is_dir() and path.name.startswith("20")
-    )
-    assert len(plans) == 1
-    return plans[0]
-
-
 def _git_status(path: Path) -> str:
     return subprocess.run(
         ["git", "status", "--porcelain"],
@@ -80,12 +72,78 @@ def _git_status(path: Path) -> str:
     ).stdout
 
 
+def _write_profile_config(tmp_path: Path, repo: Path) -> Path:
+    prompt = tmp_path / "agent-friendly-cli-review.md"
+    prompt.write_text(
+        "Review CLI changes for non-interactive defaults, JSON output, "
+        "idempotency, actionable errors, and copyable help examples.\n"
+    )
+    config = tmp_path / "harness.toml"
+    config.write_text(
+        f'''
+version = 1
+default_profile = "hk-dogfood"
+
+[[targets]]
+name = "repo"
+path = "{repo}"
+profile = "hk-dogfood"
+
+[profiles.hk-dogfood]
+title = "HK dogfood"
+summary = "Dogfood profile with command-specific guidance."
+target_hint = "Use --target {repo}."
+instructions = "Run native commands and record HK evidence."
+
+[[profiles.hk-dogfood.checks]]
+name = "unit-tests"
+purpose = "Run focused unit tests for command behavior."
+command_template = "uv run pytest tests/unit/test_portable_workflow.py -q"
+run_from = "repo-root"
+applies_when = ["src/**/cli.py"]
+required_when = ["src/**/cli.py", "!src/**/generated/**"]
+
+[[profiles.hk-dogfood.reviews]]
+name = "agent-friendly-cli-review"
+purpose = "Review CLI changes against agent-facing CLI design principles."
+backend = "fresh-context-subagent"
+rubric = "agent-friendly-cli"
+dispatch_hint = "Use a fresh-context reviewer."
+prompt_file = "{prompt}"
+applies_when = ["src/**/cli.py", "docs/**"]
+required_when = ["src/**/cli.py"]
+'''.lstrip()
+    )
+    return config
+
+
 def test_workflow_help_includes_agent_copyable_examples() -> None:
     result = _run_workflow("plan", "--help")
 
     assert result.returncode == 0, result.stderr
     assert "Examples:" in result.stdout
-    assert "hk plan investigate-cache-bug" in result.stdout
+    assert "hk plan" in result.stdout
+    assert "hk start my-slice --plan" in result.stdout
+    assert "hk legacy" not in result.stdout
+
+
+def test_root_help_groups_primary_lifecycle_before_advanced_commands() -> None:
+    result = _run_workflow("--help")
+
+    assert result.returncode == 0, result.stderr
+    assert "1. Primary lifecycle" in result.stdout
+    assert "4. Advanced/local state" in result.stdout
+    assert result.stdout.index("1. Primary lifecycle") < result.stdout.index(
+        "4. Advanced/local state"
+    )
+
+
+def test_help_examples_preserve_short_copyable_command_lines() -> None:
+    result = _run_workflow("validate", "--help")
+
+    assert result.returncode == 0, result.stderr
+    assert "hk validate --why 'Focused test' -- uv run pytest -q" in result.stdout
+    assert "tests/test_example.py" not in result.stdout
 
 
 def test_harness_kit_long_command_is_available() -> None:
@@ -101,18 +159,480 @@ def test_legacy_agent_workflow_command_is_not_registered() -> None:
     assert result.returncode != 0
 
 
-def test_workflow_instructions_prints_minimal_agents_snippet() -> None:
+def test_workflow_instructions_default_to_user_level_snippet() -> None:
+    result = _run_workflow("instructions", "--json")
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["scope"] == "user"
+    assert "## Harness Kit" in payload["agents_md"]
+    assert "hk profile resolve --target . --json" in payload["agents_md"]
+    assert "hk start <slug> --plan" in payload["agents_md"]
+    assert (
+        "do not pass `--profile` or `--profiles-dir` to lifecycle commands"
+        in payload["agents_md"]
+    )
+    assert (
+        "https://safurrier.github.io/harness-toolkit/agent-adoption/"
+        in payload["agents_md"]
+    )
+    assert "--profile generic" not in payload["agents_md"]
+
+
+def test_workflow_instructions_print_repo_profile_snippet() -> None:
+    result = _run_workflow(
+        "instructions", "--scope", "repo", "--profile", "python", "--json"
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["scope"] == "repo"
+    assert payload["profile"] == "python"
+    assert "hk brief --target . --json" in payload["agents_md"]
+    assert (
+        "hk start <slug> --plan 'Adopted implementation intent' --target . --json"
+        in payload["agents_md"]
+    )
+    assert "hk status --target . --json" in payload["agents_md"]
+    assert (
+        "hk checks --target . --profile python --changed --json" in payload["agents_md"]
+    )
+    assert "hk validate --why" in payload["agents_md"]
+    assert "hk ready --target . --json" in payload["agents_md"]
+    assert "agent-generated local state as uncommitted" in payload["agents_md"]
+    assert "shell-first" in payload["agents_md"]
+    assert "Only discovery commands" in payload["agents_md"]
+    assert (
+        "do not pass `--profile` or `--profiles-dir` to lifecycle commands"
+        in payload["agents_md"]
+    )
+
+
+def test_profile_flags_on_lifecycle_commands_get_actionable_error() -> None:
+    result = _run_workflow(
+        "start",
+        "demo",
+        "--plan",
+        "Adopted implementation intent",
+        "--profile",
+        "python",
+    )
+
+    assert result.returncode == 1
+    assert "hk start does not use --profile" in result.stderr
+    assert "hk profile resolve --target . --json" in result.stderr
+    assert "hk checks --target . --json" in result.stderr
+    assert "hk start --help" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
+def test_profile_flag_preflight_does_not_mask_unknown_commands() -> None:
+    from harness_toolkit.kit.cli import _profile_option_mistake
+
+    assert _profile_option_mistake(["does-not-exist", "--profile", "python"]) is None
+
+
+def test_profile_flags_after_validate_separator_are_native_command_args() -> None:
+    from harness_toolkit.kit.cli import _profile_option_mistake
+
+    assert (
+        _profile_option_mistake(
+            [
+                "validate",
+                "--why",
+                "Native command accepts profile",
+                "--",
+                "tool",
+                "--profile",
+                "ci",
+            ]
+        )
+        is None
+    )
+
+
+def test_profile_applicability_uses_gitignore_style_patterns() -> None:
+    from harness_toolkit.kit.profiles import _matches_pattern
+
+    assert _matches_pattern("README.md", "*.md") is True
+    assert _matches_pattern("docs/portable-workflow.md", "*.md") is True
+    assert _matches_pattern("README.md", "/*.md") is True
+    assert _matches_pattern("docs/portable-workflow.md", "/*.md") is False
+    assert _matches_pattern("docs/portable-workflow.md", "docs/**") is True
+    assert _matches_pattern(".github/workflows/ci.yml", "github/**") is False
+    assert _matches_pattern(".github/workflows/ci.yml", ".github/**") is True
+
+
+def test_profile_applicability_supports_gitignore_negation() -> None:
+    from harness_toolkit.kit.profiles import _matched_paths
+
+    assert _matched_paths(
+        ("src/**/cli.py", "!src/**/generated/**"),
+        ("src/demo/cli.py", "src/demo/generated/cli.py"),
+    ) == ("src/demo/cli.py",)
+
+
+def test_checks_changed_suggests_applicable_profile_items(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+    (repo / "src" / "harness_toolkit" / "kit").mkdir(parents=True)
+    (repo / "src" / "harness_toolkit" / "kit" / "cli.py").write_text(
+        "print('changed')\n"
+    )
+    monkeypatch.setenv("HARNESS_KIT_CONFIG", str(_write_profile_config(tmp_path, repo)))
+
+    result = _run_workflow("checks", "--target", str(repo), "--changed", "--json")
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["changed_paths"] == ["src/harness_toolkit/kit/cli.py"]
+    assert payload["suggested_checks"][0]["name"] == "unit-tests"
+    assert payload["suggested_checks"][0]["required"] is True
+    assert payload["suggested_checks"][0]["enforced"] is True
+    assert (
+        "hk validate --check unit-tests"
+        in payload["suggested_checks"][0]["record_command"]
+    )
+    assert payload["suggested_reviews"][0]["name"] == "agent-friendly-cli-review"
+    assert payload["suggested_reviews"][0]["required"] is True
+    assert payload["suggested_reviews"][0]["enforced"] is True
+    assert (
+        "hk review prompt agent-friendly-cli-review"
+        in payload["suggested_reviews"][0]["prompt_command"]
+    )
+    assert "prompt_file_text" not in json.dumps(payload)
+    assert "Review CLI changes for non-interactive defaults" not in result.stdout
+
+    inspected = _run_workflow(
+        "checks",
+        "--profile",
+        "hk-dogfood",
+        "--target",
+        str(repo),
+        "--changed",
+        "--json",
+    )
+    inspected_payload = json.loads(inspected.stdout)
+    assert inspected_payload["suggested_checks"][0]["required"] is True
+    assert inspected_payload["suggested_checks"][0]["enforced"] is False
+
+
+def test_named_profile_review_prompt_uses_prompt_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+    monkeypatch.setenv("HARNESS_KIT_CONFIG", str(_write_profile_config(tmp_path, repo)))
+    assert (
+        _run_workflow(
+            "start",
+            "cli-review",
+            "--plan",
+            "Touch CLI command behavior.",
+            "--target",
+            str(repo),
+        ).returncode
+        == 0
+    )
+    (repo / "src" / "harness_toolkit" / "kit").mkdir(parents=True)
+    (repo / "src" / "harness_toolkit" / "kit" / "cli.py").write_text(
+        "print('changed')\n"
+    )
+
+    result = _run_workflow(
+        "review",
+        "prompt",
+        "agent-friendly-cli-review",
+        "--target",
+        str(repo),
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "Profile review: agent-friendly-cli-review" in result.stdout
+    assert "Review CLI changes for non-interactive defaults" in result.stdout
+    assert "hk review add --review agent-friendly-cli-review" in result.stdout
+    assert "src/harness_toolkit/kit/cli.py" in result.stdout
+
+
+def test_ready_requires_matching_profile_check_and_review(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+    monkeypatch.setenv("HARNESS_KIT_CONFIG", str(_write_profile_config(tmp_path, repo)))
+    assert (
+        _run_workflow(
+            "start",
+            "profile-required",
+            "--plan",
+            "Touch CLI command behavior.",
+            "--target",
+            str(repo),
+        ).returncode
+        == 0
+    )
+    (repo / "src" / "harness_toolkit" / "kit").mkdir(parents=True)
+    (repo / "src" / "harness_toolkit" / "kit" / "cli.py").write_text(
+        "print('changed')\n"
+    )
+    _run_workflow(
+        "decide",
+        "No spec impact for synthetic CLI dogfood.",
+        "--spec-impact",
+        "none",
+        "--target",
+        str(repo),
+    )
+    missing = _run_workflow("ready", "--target", str(repo), "--json")
+    assert missing.returncode == 1
+    missing_payload = json.loads(missing.stdout)
+    missing_checks = {check["id"]: check for check in missing_payload["checks"]}
+    assert missing_checks["profile-check:unit-tests"]["status"] == "fail"
+    assert (
+        missing_checks["profile-review:agent-friendly-cli-review"]["status"] == "fail"
+    )
+
+    _run_workflow(
+        "validate",
+        "--check",
+        "unit-tests",
+        "--why",
+        "Focused synthetic check.",
+        "--target",
+        str(repo),
+        "--",
+        "python3",
+        "-c",
+        "print('ok')",
+    )
+    _run_workflow(
+        "review",
+        "add",
+        "--review",
+        "agent-friendly-cli-review",
+        "--backend",
+        "subagent",
+        "--reviewer",
+        "fresh-context",
+        "--rubric",
+        "agent-friendly-cli",
+        "--summary",
+        "No blockers.",
+        "--target",
+        str(repo),
+    )
+    _run_workflow("sync", "--target", str(repo))
+
+    result = _run_workflow("ready", "--target", str(repo), "--json")
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    checks = {check["id"]: check for check in payload["checks"]}
+    assert checks["profile-check:unit-tests"]["status"] == "pass"
+    assert checks["profile-review:agent-friendly-cli-review"]["status"] == "pass"
+
+
+def test_start_retries_resume_active_work_with_same_slug(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+
+    first = _run_workflow(
+        "start",
+        "demo-work",
+        "--plan",
+        "Adopted implementation intent",
+        "--context",
+        "Important context",
+        "--target",
+        str(repo),
+        "--json",
+    )
+    second = _run_workflow(
+        "start",
+        "demo-work",
+        "--plan",
+        "Adopted implementation intent",
+        "--context",
+        "Important context",
+        "--target",
+        str(repo),
+        "--json",
+    )
+
+    assert first.returncode == 0, first.stderr
+    assert second.returncode == 0, second.stderr
+    first_payload = json.loads(first.stdout)
+    second_payload = json.loads(second.stdout)
+    assert first_payload["work_id"] == second_payload["work_id"]
+    assert first_payload["resumed"] is False
+    assert second_payload["resumed"] is True
+    state_dir = Path(second_payload["state_dir"])
+    work_dirs = list((state_dir / "work").iterdir())
+    assert len(work_dirs) == 1
+    events_path = state_dir / "work" / second_payload["work_id"] / "events.jsonl"
+    notes = [
+        json.loads(line)
+        for line in events_path.read_text().splitlines()
+        if line.strip()
+    ]
+    plan_notes = [
+        event
+        for event in notes
+        if event["type"] == "note_added"
+        and event["data"]["kind"] == "plan"
+        and event["data"]["text"] == "Adopted implementation intent"
+    ]
+    context_notes = [
+        event
+        for event in notes
+        if event["type"] == "note_added"
+        and event["data"]["kind"] == "context"
+        and event["data"]["text"] == "Important context"
+    ]
+    assert len(plan_notes) == 1
+    assert len(context_notes) == 1
+
+
+def test_workflow_instructions_profile_implies_repo_scope_for_compatibility() -> None:
     result = _run_workflow("instructions", "--profile", "python", "--json")
 
     assert result.returncode == 0, result.stderr
     payload = json.loads(result.stdout)
+    assert payload["scope"] == "repo"
     assert payload["profile"] == "python"
-    assert "hk profile list --target . --json" in payload["agents_md"]
-    assert "hk status --target . --profile python --json" in payload["agents_md"]
-    assert "hk checks --target . --profile python --json" in payload["agents_md"]
-    assert "hk sync-check --target . --profile python --json" in payload["agents_md"]
-    assert "Do not create or commit `.ai/`" in payload["agents_md"]
-    assert "does not run validation commands" in payload["agents_md"]
+    assert (
+        "hk checks --target . --profile python --changed --json" in payload["agents_md"]
+    )
+
+
+def test_workflow_instructions_reject_user_scope_with_profile() -> None:
+    result = _run_workflow("instructions", "--scope", "user", "--profile", "python")
+
+    assert result.returncode == 1
+    assert "--profile/--profiles-dir only apply with --scope repo" in result.stderr
+
+
+def test_user_harness_config_resolves_inline_profile_and_checks(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "foreman"
+    repo.mkdir()
+    _git_init(repo)
+    prompt_file = tmp_path / "foreman-review.md"
+    prompt_file.write_text("Review CLI config behavior and focused tests.\n")
+    config = tmp_path / "harness.toml"
+    config.write_text(
+        f'''
+version = 1
+default_profile = "generic"
+
+[[targets]]
+name = "foreman"
+path = "{repo}"
+profile = "foreman"
+
+[profiles.foreman]
+title = "Foreman"
+summary = "Rust CLI/TUI project."
+target_hint = "Use --target {repo}."
+instructions = "Use focused cargo tests and record exact HK evidence."
+
+[[profiles.foreman.checks]]
+name = "cli-config-tests"
+purpose = "Run CLI config tests."
+command_template = "cargo test --test cli_config"
+run_from = "repo-root"
+notes = ["Use for config behavior changes."]
+
+[[profiles.foreman.reviews]]
+name = "core-quality"
+purpose = "Fresh-context review before handoff."
+backend = "codex"
+rubric = "core-quality"
+dispatch_hint = "codex review --uncommitted"
+prompt_file = "{prompt_file.name}"
+'''
+    )
+    monkeypatch.setenv("HARNESS_KIT_CONFIG", str(config))
+
+    resolved = _run_workflow("profile", "resolve", "--target", str(repo), "--json")
+    checks = _run_workflow("checks", "--target", str(repo), "--json")
+
+    assert resolved.returncode == 0, resolved.stderr
+    resolution = json.loads(resolved.stdout)
+    assert resolution["profile"] == "foreman"
+    assert resolution["source"] == "user-config"
+    assert resolution["matched_name"] == "foreman"
+    assert checks.returncode == 0, checks.stderr
+    payload = json.loads(checks.stdout)
+    assert payload["profile"] == "foreman"
+    assert payload["checks"][0]["command_template"] == "cargo test --test cli_config"
+    assert payload["reviews"][0]["backend"] == "codex"
+    assert payload["reviews"][0]["dispatch_hint"] == "codex review --uncommitted"
+    assert "prompt_file_text" not in payload["reviews"][0]
+
+
+def test_user_harness_config_uses_longest_target_prefix(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "repo"
+    module = repo / "module"
+    module.mkdir(parents=True)
+    _git_init(repo)
+    config = tmp_path / "harness.toml"
+    config.write_text(
+        f'''
+version = 1
+
+[[targets]]
+name = "repo"
+path = "{repo}"
+profile = "repo-profile"
+
+[[targets]]
+name = "module"
+path = "{module}"
+profile = "module-profile"
+
+[profiles.repo-profile]
+title = "Repo"
+summary = "Repo profile."
+target_hint = "repo"
+instructions = "repo instructions"
+
+[[profiles.repo-profile.checks]]
+name = "repo-check"
+purpose = "Repo check."
+command_template = "repo-check"
+run_from = "repo-root"
+
+[profiles.module-profile]
+title = "Module"
+summary = "Module profile."
+target_hint = "module"
+instructions = "module instructions"
+
+[[profiles.module-profile.checks]]
+name = "module-check"
+purpose = "Module check."
+command_template = "module-check"
+run_from = "target"
+'''
+    )
+    monkeypatch.setenv("HARNESS_KIT_CONFIG", str(config))
+
+    result = _run_workflow("profile", "resolve", "--target", str(module), "--json")
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["profile"] == "module-profile"
+    assert payload["matched_name"] == "module"
 
 
 def test_workflow_profiles_and_checks_are_discoverable_without_execution(
@@ -122,14 +642,11 @@ def test_workflow_profiles_and_checks_are_discoverable_without_execution(
     target.mkdir()
     _git_init(target)
 
-    state_root = tmp_path / "state"
     profiles = _run_workflow(
         "profile",
         "list",
         "--target",
         str(target),
-        "--state-root",
-        str(state_root),
         "--json",
     )
     checks = _run_workflow(
@@ -138,8 +655,6 @@ def test_workflow_profiles_and_checks_are_discoverable_without_execution(
         "python",
         "--target",
         str(target),
-        "--state-root",
-        str(state_root),
         "--json",
     )
 
@@ -309,286 +824,11 @@ def test_workflow_profile_create_stdout_and_rust_mise_preset(tmp_path: Path) -> 
     assert 'name = "foreman-root"' in result.stdout
     assert 'command_template = "mise run check"' in result.stdout
     assert (
-        'command_template = "hk sync-check --target <target> --profile foreman-root --json"'
+        'command_template = "hk sync --target <target> --json && hk ready --target <target> --json"'
         in result.stdout
     )
-    assert result.stdout.count('name = "handoff"') == 1
+    assert result.stdout.count('name = "handoff-readiness"') == 1
     assert _git_status(target) == ""
-
-
-def test_workflow_plan_validates_custom_profile_without_profile_scoped_state(
-    tmp_path: Path,
-) -> None:
-    target = tmp_path / "target"
-    target.mkdir()
-    _git_init(target)
-    profiles_dir = tmp_path / "profiles"
-    state_root = tmp_path / "state"
-    create_profile = _run_workflow(
-        "profile",
-        "create",
-        "my-project-api",
-        "--target",
-        "my_project/api",
-        "--preset",
-        "python",
-        "--profiles-dir",
-        str(profiles_dir),
-    )
-    assert create_profile.returncode == 0, create_profile.stderr
-
-    result = _run_workflow(
-        "plan",
-        "custom-profile-plan",
-        "--target",
-        str(target),
-        "--profile",
-        "my-project-api",
-        "--profiles-dir",
-        str(profiles_dir),
-        "--state-root",
-        str(state_root),
-        "--json",
-    )
-
-    assert result.returncode == 0, result.stderr
-    payload = json.loads(result.stdout)
-    state_dir = Path(payload["state_dir"])
-    assert state_dir.name == "root"
-    assert "my-project-api" not in str(state_dir.relative_to(state_root))
-    assert _active_plan(state_dir).name.endswith("-custom-profile-plan")
-    assert _git_status(target) == ""
-
-
-def test_workflow_external_plan_keeps_target_repo_clean(tmp_path: Path) -> None:
-    target = tmp_path / "target"
-    target.mkdir()
-    _git_init(target)
-    state_root = tmp_path / "state"
-
-    result = _run_workflow(
-        "plan",
-        "portable-demo",
-        "--target",
-        str(target),
-        "--state-root",
-        str(state_root),
-        "--profile",
-        "python",
-        "--json",
-    )
-
-    assert result.returncode == 0, result.stderr
-    payload = json.loads(result.stdout)
-    state_dir = Path(payload["state_dir"])
-    assert state_dir.is_relative_to(state_root)
-    assert (state_dir / ".ai" / "plans" / "_templates").is_dir()
-    assert _active_plan(state_dir).name.endswith("-portable-demo")
-    assert _git_status(target) == ""
-
-
-def test_workflow_target_subdirectory_defines_scope(tmp_path: Path) -> None:
-    target = tmp_path / "target"
-    target.mkdir()
-    _git_init(target)
-    scoped = target / "packages" / "api"
-    scoped.mkdir(parents=True)
-    state_root = tmp_path / "state"
-
-    result = _run_workflow(
-        "attach",
-        "--target",
-        str(scoped),
-        "--state-root",
-        str(state_root),
-        "--json",
-    )
-
-    assert result.returncode == 0, result.stderr
-    payload = json.loads(result.stdout)
-    assert payload["target_root"] == str(target.resolve())
-    assert payload["target_scope"] == str(scoped.resolve())
-    assert payload["scope"] == "packages-api"
-    state_dir = Path(payload["state_dir"])
-    assert state_dir.name == "packages-api"
-    assert state_dir.parent.parent == state_root
-    assert _git_status(target) == ""
-
-
-def test_workflow_overlay_attach_updates_local_exclude_only(tmp_path: Path) -> None:
-    target = tmp_path / "target"
-    target.mkdir()
-    _git_init(target)
-
-    result = _run_workflow(
-        "attach",
-        "--target",
-        str(target),
-        "--mode",
-        "overlay",
-        "--json",
-    )
-
-    assert result.returncode == 0, result.stderr
-    payload = json.loads(result.stdout)
-    assert payload["ignored_by_local_git"] is True
-    state_dir = Path(payload["state_dir"])
-    assert state_dir == target / ".ai-local" / "harness-kit" / "root"
-    assert (
-        "/.ai-local/harness-kit/" in (target / ".git" / "info" / "exclude").read_text()
-    )
-    assert _git_status(target) == ""
-
-
-def test_workflow_overlay_attach_works_with_linked_worktree(tmp_path: Path) -> None:
-    main_repo = tmp_path / "main"
-    main_repo.mkdir()
-    _git_init(main_repo)
-    worktree = tmp_path / "linked-worktree"
-    subprocess.run(
-        ["git", "worktree", "add", "-b", "feat/worktree", str(worktree)],
-        cwd=main_repo,
-        check=True,
-        capture_output=True,
-        env=_git_env(),
-    )
-
-    result = _run_workflow(
-        "attach",
-        "--target",
-        str(worktree),
-        "--mode",
-        "overlay",
-        "--json",
-    )
-
-    assert result.returncode == 0, result.stderr
-    payload = json.loads(result.stdout)
-    assert payload["ignored_by_local_git"] is True
-    exclude_path = subprocess.run(
-        ["git", "rev-parse", "--git-path", "info/exclude"],
-        cwd=worktree,
-        check=True,
-        capture_output=True,
-        text=True,
-        env=_git_env(),
-    ).stdout.strip()
-    assert "/.ai-local/harness-kit/" in Path(exclude_path).read_text()
-    assert _git_status(worktree) == ""
-
-
-def test_workflow_sync_check_validates_local_plan_without_tracked_artifacts(
-    tmp_path: Path,
-) -> None:
-    target = tmp_path / "target"
-    target.mkdir()
-    _git_init(target)
-    state_root = tmp_path / "state"
-
-    create = _run_workflow(
-        "plan",
-        "local-check",
-        "--target",
-        str(target),
-        "--state-root",
-        str(state_root),
-        "--json",
-    )
-    assert create.returncode == 0, create.stderr
-    state_dir = Path(json.loads(create.stdout)["state_dir"])
-    plan = _active_plan(state_dir)
-    (plan / "TODO.md").write_text("# TODO\n\n- [x] Prove portable workflow\n")
-    (plan / "DECISIONS.md").write_text(
-        "# Decisions\n\n## What Changed\n\n- Added portable workflow state.\n\n## Why\n\n- Shared repos should stay clean.\n"
-    )
-    (plan / "VALIDATION.md").write_text(
-        "# Validation\n\n```bash\ngit status --porcelain\n```\n"
-    )
-    (plan / "REVIEW.md").write_text(
-        "# Review\n\n- External reviewer found no blockers.\n"
-    )
-
-    result = _run_workflow(
-        "sync-check",
-        "--target",
-        str(target),
-        "--state-root",
-        str(state_root),
-        "--json",
-    )
-
-    assert result.returncode == 0, result.stderr
-    payload = json.loads(result.stdout)
-    assert payload["plan_dir"] == str(plan)
-    assert payload["checks"] == ["plan", "decisions", "validation", "review"]
-
-
-def test_workflow_plan_allows_slug_suffixes_without_false_duplicates(
-    tmp_path: Path,
-) -> None:
-    target = tmp_path / "target"
-    target.mkdir()
-    _git_init(target)
-    state_root = tmp_path / "state"
-
-    first = _run_workflow(
-        "plan",
-        "foo-bar",
-        "--target",
-        str(target),
-        "--state-root",
-        str(state_root),
-        "--json",
-    )
-    second = _run_workflow(
-        "plan",
-        "bar",
-        "--target",
-        str(target),
-        "--state-root",
-        str(state_root),
-        "--json",
-    )
-
-    assert first.returncode == 0, first.stderr
-    assert second.returncode == 0, second.stderr
-
-
-def test_workflow_sync_check_rejects_prose_only_validation_command(
-    tmp_path: Path,
-) -> None:
-    target = tmp_path / "target"
-    target.mkdir()
-    _git_init(target)
-    state_root = tmp_path / "state"
-    create = _run_workflow(
-        "plan",
-        "prose-validation",
-        "--target",
-        str(target),
-        "--state-root",
-        str(state_root),
-        "--json",
-    )
-    assert create.returncode == 0, create.stderr
-    plan = _active_plan(Path(json.loads(create.stdout)["state_dir"]))
-    (plan / "TODO.md").write_text("# TODO\n\n- [x] Prove portable workflow\n")
-    (plan / "DECISIONS.md").write_text("# Decisions\n\n- Added portable workflow.\n")
-    (plan / "VALIDATION.md").write_text(
-        "# Validation\n\nRemember to run mise run check before handoff.\n"
-    )
-    (plan / "REVIEW.md").write_text("# Review\n\n- External review complete.\n")
-
-    result = _run_workflow(
-        "sync-check",
-        "--target",
-        str(target),
-        "--state-root",
-        str(state_root),
-    )
-
-    assert result.returncode == 1
-    assert "VALIDATION.md must contain real validation commands" in result.stderr
 
 
 def test_workflow_status_reports_missing_target_without_traceback(
@@ -610,94 +850,3 @@ def test_workflow_status_reports_file_target_without_traceback(tmp_path: Path) -
     assert result.returncode == 1
     assert "target is not a directory" in result.stderr
     assert "Traceback" not in result.stderr
-
-
-def test_workflow_sync_check_rejects_required_review_placeholder(
-    tmp_path: Path,
-) -> None:
-    target = tmp_path / "target"
-    target.mkdir()
-    _git_init(target)
-    state_root = tmp_path / "state"
-    create = _run_workflow(
-        "plan",
-        "missing-review",
-        "--target",
-        str(target),
-        "--state-root",
-        str(state_root),
-        "--json",
-    )
-    assert create.returncode == 0, create.stderr
-    plan = _active_plan(Path(json.loads(create.stdout)["state_dir"]))
-    (plan / "TODO.md").write_text("# TODO\n\n- [x] Prove portable workflow\n")
-    (plan / "DECISIONS.md").write_text("# Decisions\n\n- Added portable workflow.\n")
-    (plan / "VALIDATION.md").write_text("# Validation\n\n- `mise run check`\n")
-
-    result = _run_workflow(
-        "sync-check",
-        "--target",
-        str(target),
-        "--state-root",
-        str(state_root),
-    )
-
-    assert result.returncode == 1
-    assert "REVIEW.md must contain external review notes" in result.stderr
-
-
-def test_workflow_sync_check_rejects_placeholder_plan_even_with_validation_command(
-    tmp_path: Path,
-) -> None:
-    target = tmp_path / "target"
-    target.mkdir()
-    _git_init(target)
-    state_root = tmp_path / "state"
-    create = _run_workflow(
-        "plan",
-        "placeholder-check",
-        "--target",
-        str(target),
-        "--state-root",
-        str(state_root),
-        "--json",
-    )
-    assert create.returncode == 0, create.stderr
-    plan = _active_plan(Path(json.loads(create.stdout)["state_dir"]))
-    (plan / "VALIDATION.md").write_text(
-        "# Validation\n\n```bash\ngit status --porcelain\n```\n"
-    )
-
-    result = _run_workflow(
-        "sync-check",
-        "--target",
-        str(target),
-        "--state-root",
-        str(state_root),
-    )
-
-    assert result.returncode == 1
-    assert "TODO.md must contain meaningful checklist items" in result.stderr
-
-
-def test_workflow_attach_dry_run_does_not_write_state(tmp_path: Path) -> None:
-    target = tmp_path / "target"
-    target.mkdir()
-    _git_init(target)
-    state_root = tmp_path / "state"
-
-    result = _run_workflow(
-        "attach",
-        "--target",
-        str(target),
-        "--state-root",
-        str(state_root),
-        "--dry-run",
-        "--json",
-    )
-
-    assert result.returncode == 0, result.stderr
-    payload = json.loads(result.stdout)
-    assert Path(payload["state_dir"]).is_relative_to(state_root)
-    assert not Path(payload["state_dir"]).exists()
-    assert _git_status(target) == ""

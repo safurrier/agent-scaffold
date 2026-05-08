@@ -17,11 +17,16 @@ index:
 
 # Portable Workflow
 
-`hk` is the Harness Kit CLI for using the slice planning workflow in a repository
-that was not initialized from harness-scaffold. It is meant for shared codebases
-where committing `.ai/`, `.agent/`, `.mise/`, or `.gitignore` changes is not
-appropriate. The readable command is `harness-kit`; the daily short command is
-`hk`.
+`hk` is the Harness Kit CLI for using portable planning and local-assistant
+workflow state in a repository that was not initialized from harness-scaffold. It
+is meant for shared codebases where committing `.ai/`, `.agent/`, `.mise/`,
+`.harness/`, or `.gitignore` changes is not appropriate. The readable command is
+`harness-kit`; the daily short command is `hk`.
+
+Harness Kit is a lifecycle-first local assistant backed by ledger state:
+read-only repo briefs, ignored/external work ledgers, typed learning/decision/gap
+notes, sync checkpoints, captured command evidence, generated handoffs, and
+optional local specs. See [Harness Kit Design](harness-kit-lifecycle-design.md).
 
 The CLI uses Cyclopts so command signatures carry Python type information (for
 example `Literal["external", "overlay"]` for mode choices) while still producing
@@ -60,134 +65,243 @@ Harness Kit keeps workflow state separate from target repository ownership:
 `--target` identifies the repo or module that owns the work, while `--profile`
 identifies the workflow/check contract to follow.
 
+## Which workflow should I use?
+
+Harness Kit exposes a lifecycle for agent work that needs local memory, exact
+command evidence, review records, readiness checks, and a generated handoff
+without committing ceremony:
+
+```bash
+hk brief --target . --json
+hk start <slug> --plan 'Adopted implementation intent' --target . --json
+hk validate --why 'What this proves' --target . -- <native validation command>
+hk status --target . --json
+hk ready --target . --json
+hk handoff --target . --format markdown
+```
+
+Portable plan-artifact commands were removed from `hk`: there is no `hk
+attach`, `hk legacy plan`, or `hk legacy sync-check`. Scaffolded repos still keep
+the durable plan-package workflow through `mise run plan` and `mise run
+sync-check`, backed by the separate slice-workflow CLI.
+
+Conceptually, the intended agent/human lifecycle is:
+
+```text
+research → plan → implement → validate → review → handoff
+```
+
+Planning can happen outside HK in chat, issues, or scratch docs. Once the plan is
+stable enough to implement, agents should translate the agreed intent into a
+compact HK plan note, for example:
+
+```bash
+hk plan --from-file /tmp/adopted-plan.md --target .
+```
+
+HK records the explicit plan; it does not parse conversations or infer plans.
+Today, plan artifacts represent that lifecycle as Markdown/YAML files. Harness Kit's
+target is to represent it as ledger events and generate the Markdown/YAML views
+when needed.
+
 ## Harness instruction model
 
 The intended adoption path is a tiny durable instruction in a user's global or
 repo-level `AGENTS.md`, not a pile of committed scaffold files in every shared
-repo. Print the snippet with:
+repo. See [Agent Adoption](agent-adoption.md) for the user-level snippet and
+agent-facing first steps.
+
+Print the user-level snippet with:
 
 ```bash
 hk instructions
-hk instructions --json
+hk instructions --scope user --json
 ```
 
-### User-level AGENTS.md bootstrap
-
-If you want agents to default to Harness Kit across arbitrary repos, append a
-compact instruction block to your user-level `AGENTS.md`. Keep it short and point
-to a fuller reference or skill so every session does not load the entire workflow
-manual.
-
-Example:
-
-````markdown
-## Harness Kit Workflow
-
-For meaningful code changes, use Harness Kit (`hk`) as the default planning and
-handoff loop unless stronger repo-specific instructions supersede it.
-
-If the current session is not already familiar with the `hk` workflow, it MUST:
-
-1. Print the current instructions:
-   ```bash
-   hk instructions --profile generic --json
-   ```
-2. Read the local Harness Kit workflow reference if one is available.
-
-If already familiar with the workflow, do not reload the full reference just for
-ceremony. Still use the managed profile catalog when selecting profiles:
-
-```bash
-hk profile list --target <repo-or-module> --profiles-dir ~/.config/harness-toolkit/profiles --json
-```
-
-Rules to remember:
-
-- `hk` manages planning/handoff state; it does not run validation commands.
-- Run validation directly and record exact command/result evidence in `VALIDATION.md`.
-- Keep `--target`, `--profile`, and `--profiles-dir` consistent across `hk` commands.
-- If no good profile exists, use the profile-authoring workflow to propose one;
-  do not create profiles silently.
-````
-
-For repo-local adoption, `hk instructions` prints a smaller target-specific
-snippet:
+For repo-local adoption, `hk instructions --scope repo` prints a fuller
+profile-specific snippet:
 
 ````markdown
 ## Portable agent workflow
 
-Use `hk` for meaningful work in this repo or scoped path. Do not
-create or commit `.ai/`, `.agent/`, `.mise/`, or `.gitignore` workflow files
-unless the user explicitly asks to adopt harness-scaffold in this repository.
+Use `hk` for meaningful work in this repo or scoped path unless stronger repo-specific instructions supersede it. Treat Harness Kit and agent-generated local state as uncommitted unless the repo instructions or user explicitly say it should be committed.
 
 Standard loop:
 
 ```bash
-hk profile list --target . --json
-# choose the closest profile yourself and tell the user once why you chose it
+hk brief --target . --json
+hk start <slug> --plan 'Adopted implementation intent' --target . --json
+hk checks --target . --json
+hk validate --why 'What this proves' --target . -- <native command>
 hk status --target . --json
-hk plan <slug> --target . --profile <profile> --json
-# update the returned plan files as work progresses
-hk checks --target . --profile <profile> --json
-hk sync-check --target . --profile <profile> --json
+hk ready --target . --json
+hk handoff --target .
 ```
 
-For monorepos, pass `--target` as the subdirectory that should own the workflow
-state. Use `--mode overlay` only when you need workflow files visible inside the
-checkout; overlay state lives under `.ai-local/harness-kit/` and is ignored
-through `.git/info/exclude`.
+For monorepos, pass `--target` as the subdirectory that owns the lifecycle state.
+HK stores local state under `.harness-local/`, ignored via `.git/info/exclude`.
 ````
 
-## Modes
+## Local state
 
-### External state
+Harness Kit state is local to the target checkout by default. It lives under
+`.harness-local/` and HK adds a local-only ignore rule to `.git/info/exclude`.
+There is no external/overlay plan-artifact mode in `hk` anymore.
 
-External mode stores workflow state outside the target repository:
+## Agent journey
 
-```bash
-hk plan add-cache-layer --target /path/to/repo --state-root ~/.local/share/harness-toolkit/workflows --json
-hk status --target /path/to/repo --json
-hk sync-check --target /path/to/repo --json
-```
+`hk` is a readiness ledger for serious agent-driven changes. It is not trying
+to be a human task manager or a native task runner. Humans usually add a small
+`AGENTS.md` directive, shape the work in chat/issues/scratch docs, then hand the
+agreed intent to an implementation agent and tell it to use `hk`. HK is most
+useful when the change is broad, risky, multi-step, likely to span context
+compaction, or when skipped validation needs to be explicit.
 
-The target repository stays clean because plans, templates, and workflow metadata
-live under the external state root. Set `HARNESS_KIT_WORKFLOW_HOME` to change the
-default external root; `--state-root` remains the explicit per-command override.
-
-### Overlay state
-
-Overlay mode stores workflow state inside the target checkout under
-`.ai-local/harness-kit/`, then adds a local-only ignore rule to the checkout's
-Git exclude file:
+The minimal path is:
 
 ```bash
-hk attach --target /path/to/repo --mode overlay --json
-hk plan add-cache-layer --target /path/to/repo --mode overlay --json
+hk start <slug> --plan 'Adopted implementation intent'
+hk validate --why 'What this command proves' -- <native command>
+hk status
+hk ready
+hk summary
 ```
 
-This makes files visible to editors and agents while avoiding committed
-`.gitignore` changes. The implementation uses `git rev-parse --git-path
-info/exclude`, so linked worktrees and `.git` file checkouts are handled.
+If an agent retries `hk start` with the same slug while that work item is still
+active, HK resumes the active work item instead of creating duplicate retry
+state. Use a new slug only when you intentionally want a separate work item.
+`hk start --plan` is a convenient seed, not a requirement to predict every step
+up front; agents can use repeated `hk plan "..."` notes as a living plan when
+the implementation shape emerges progressively.
+
+`hk status` is the journey guide. It tells the agent when to record context,
+decisions/spec impact, review, sync, or explicit dangerous skips.
+
+## User config and profiles
+
+For cross-repo use, HK can load a user-level config from:
+
+1. `$HARNESS_KIT_CONFIG`
+2. `$XDG_CONFIG_HOME/harness-toolkit/harness.toml`
+3. `~/.config/harness-toolkit/harness.toml`
+
+The config is explicit routing plus inline profile guidance. It does not auto-run
+checks and does not silently ignore sync paths.
+
+```toml
+version = 1
+default_profile = "generic"
+
+[[targets]]
+name = "foreman"
+path = "~/git_repositories/foreman"
+profile = "foreman"
+
+[profiles.foreman]
+title = "Foreman"
+summary = "Rust CLI/TUI project."
+target_hint = "~/git_repositories/foreman"
+instructions = """
+Use focused cargo tests while iterating.
+Use `cargo fmt --check` before handoff.
+For review, use Codex via `codex review --uncommitted` when available.
+"""
+
+[[profiles.foreman.checks]]
+name = "cli-config-tests"
+purpose = "Run CLI config tests."
+command_template = "cargo test --test cli_config"
+run_from = "repo-root"
+applies_when = ["src/cli/**", "tests/cli/**"]
+required_when = ["src/cli/**", "!src/cli/generated/**"]
+
+[[profiles.foreman.reviews]]
+name = "agent-friendly-cli-review"
+purpose = "Review CLI changes against agent-facing CLI design principles."
+backend = "fresh-context-subagent"
+rubric = "agent-friendly-cli"
+dispatch_hint = "Use a fresh-context reviewer."
+prompt_file = "prompts/agent-friendly-cli-review.md"
+applies_when = ["src/cli/**", "docs/**"]
+required_when = ["src/cli/**", "!src/cli/generated/**"]
+```
+
+`applies_when` makes `hk checks --changed` suggest an item for matching changed
+paths. `required_when` makes readiness expect that named check/review when the
+path rule matches **when that profile is the target's resolved user-config
+profile**. Profiles inspected with `--profile` / `--profiles-dir` are discovery
+only unless they are also bound through user config. Agents satisfy required
+checks with `hk validate --check NAME --why ... -- <native command>` and required
+reviews with `hk review add --review NAME ...`. If the required item is genuinely
+impossible, record an auditable skip whose `--label` matches the check or review
+name.
+
+Path rules use gitignore-style patterns evaluated against repo-root-relative
+changed paths. Important examples:
+
+- `*.md` matches Markdown files at any depth, including `docs/guide.md`.
+- `/*.md` matches Markdown files only at the repo root.
+- `docs/**` matches everything under `docs/`.
+- `.github/**` is required for dot-directories; `github/**` does not match `.github/`.
+- Later negated patterns can remove matches, e.g. `required_when = ["src/**", "!src/generated/**"]`.
+
+Use:
+
+```bash
+hk profile resolve --target . --json
+hk checks --target . --changed --json
+hk review prompt agent-friendly-cli-review --target .
+```
+
+Profile flags are discovery inputs, not lifecycle state. Use `--profile` and
+`--profiles-dir` with commands that explicitly document them, such as
+`hk checks`, `hk profile`, and repo-scope `hk instructions`; do not pass those
+flags to lifecycle commands such as `hk start`, `hk validate`, `hk status`,
+`hk ready`, or `hk handoff`.
+
+Resolution uses explicit longest path-prefix matching. If a profile has multiple
+review entries, the agent should dispatch the applicable ones independently/in
+parallel when the harness supports it, then record accepted reviews with
+`hk review add --review NAME ...`.
+
+Repo-level `.harness/harness.toml`, structured review backend adapters, and
+persistent sync ignore config are deferred.
 
 ## Commands
 
 | Command | Purpose |
 |---|---|
-| `hk instructions` | Print the minimal `AGENTS.md` snippet, optionally profile-specific |
-| `hk profile list` | List built-in/custom profile contracts and model-directed selection guidance |
-| `hk profile show <name>` | Show one profile's instructions and checks |
+| `hk brief` | Print a read-only repo brief without choosing validation commands |
+| `hk init` | Initialize ignored local Harness Kit state |
+| `hk start <slug> --plan <text>` | Start a lifecycle work item and optionally seed context/plan records; same-slug retries resume the active work item |
+| `hk work start` | Advanced compatibility surface for ledger-backed local work units |
+| `hk note` | Advanced: append typed plan, background, learning, decision, gap, or spec-impact notes |
+| `hk status` | Show active work, readiness checks, and next-action guidance for the agent loop |
+| `hk sync` | Record or check a freshness checkpoint for the active work snapshot; use `--exclude PATH --reason TEXT` for explicit one-shot untracked local-state exclusions; HK records/revalidates excluded path metadata instead of using a tiny hardcoded allowlist |
+| `hk capture` | Advanced: run a native command and record exact evidence |
+| `hk artifact attach` | Attach a real harness/tool-produced file such as an agent session transcript, Codex review transcript, HAR file, or validation artifact; HK copies/references it, hashes it, and renders metadata in handoff |
+| `hk review prompt [REVIEW_NAME]` | Print a generic or profile-named reviewer prompt to dispatch to an independent AI/tool or fresh-context reviewer, e.g. Pi `subagent`, Claude Code `Agent`/`Task` alias, or Codex via Shell tool running `codex review --uncommitted`; re-run `hk status` after review tools run |
+| `hk summary` | Render a concise human-readable readiness digest for PRs/review |
+| `hk handoff` | Render a longer transfer artifact from the work ledger |
+| `hk spec` | Manage optional local/external spec drafts |
+| `hk instructions` | Print the compact user-level `AGENTS.md` snippet; use `--scope repo` for a fuller profile-specific repo snippet |
+| `hk profile list` | List built-in/custom/user-config profile contracts and model-directed selection guidance |
+| `hk profile resolve` | Resolve the configured profile for a target using explicit user config bindings |
+| `hk profile show <name>` | Show one profile's instructions, checks, and review guidance |
 | `hk profile create <name>` | Create an editable custom profile TOML template |
-| `hk checks --profile <name>` | Show named verification loops without executing them |
-| `hk attach` | Prepare external or overlay workflow state for a target repo |
-| `hk plan <slug>` | Create a plan directory in the workflow state |
-| `hk status` | Show active plan and validation status |
-| `hk sync-check` | Run local handoff checks without requiring tracked artifacts |
+| `hk checks [--profile <name>] [--changed]` | Show named verification loops and review guidance without executing them; `--changed` adds path-rule suggestions and required items |
+| `hk plan <text>` | Record or refine the lifecycle implementation plan for active Harness Kit work |
+| `hk dangerously-skip review\|validation\|sync --label <name> --reason <text> --mitigation <text>` | Explicitly record an auditable dangerous skip when a lifecycle guarantee cannot be satisfied; skips render in summary, handoff, and PR handoff |
 
-Profiles are small workflow contracts for agentic engineering checks. They
-describe the checks that exist for an environment; they do **not** run those
-checks. Agents should run the suggested validation command directly so the raw
-output stays visible in the normal shell loop, then record the exact
-command/result in `VALIDATION.md`.
+Portable plan-artifact commands have been removed from `hk`. Use scaffold `mise run
+plan` and `mise run sync-check` for committed plan packages.
+
+Profiles are small workflow contracts for agentic engineering checks and
+reviews. They describe what exists for an environment; they do **not** run those
+checks or reviews. Agents should run the suggested validation command directly so
+the raw output stays visible in the normal shell loop, then record the exact
+command/result with `hk validate --why` for Harness Kit lifecycle work. When a
+profile check is named, record it with `hk validate --check NAME --why ...`.
 
 Initial built-in profiles:
 
@@ -201,7 +315,7 @@ Example discovery:
 
 ```bash
 hk profile list --target /path/to/repo --json
-hk checks --profile python --target /path/to/python-project --json
+hk checks --profile python --target /path/to/python-project --changed --json
 ```
 
 `profile list --target` does not score, rank, or implicitly choose a profile. It
@@ -253,24 +367,21 @@ that agents can load when no exact profile exists. It guides agents to mine CI,
 hooks, task runners, and repo docs, then propose TOML for user approval before
 writing a custom profile.
 
-All stateful commands accept:
+Harness Kit lifecycle commands accept:
 
 - `--target PATH` — target repo or scoped path, defaulting to the current directory
-- `--mode external|overlay` — state placement strategy
-- `--state-root PATH` — external state root override
-- `--json` — machine-readable output
+- `--json` — machine-readable output where useful
+- `--no-local-files` — use external state instead of checkout-local ignored files
+  for commands that write lifecycle state
 
-Discovery commands that take `--target` (`profile list` and `checks`) also
-accept `--mode` and `--state-root` for command-shape consistency,
-but they do not read or write workflow state. Commands that need custom profiles
-accept `--profiles-dir`; this keeps profile catalogs explicit and avoids hidden
-repo-local adoption.
+Commands that need custom profiles accept `--profiles-dir`; this keeps profile
+catalogs explicit and avoids hidden repo-local adoption.
 
 Agent-friendly properties in the current spike:
 
 - non-interactive by default; every input is an argument or flag
-- idempotent `attach`; re-running preserves the same local exclude rule
-- `attach --dry-run` previews state paths without writing files
+- local state is ignored through `.git/info/exclude`
+- profile/check discovery does not execute commands
 - JSON output for every command agents need to compose
 - actionable errors with a suggested retry command
 - focused per-subcommand help with examples

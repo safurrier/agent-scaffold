@@ -1,0 +1,18 @@
+slug: redact-ai-artifacts
+branch: feat/harness-kit-2-ledger-assistant
+created: 2026-05-06
+pr: 12
+status: complete
+source: user request to redact potentially sensitive `.ai` artifacts before merge
+contract_change: docs_only
+decision_record: none
+review_mode: external_required
+review_backend: deterministic-grep-audit
+review_rubrics:
+  - privacy
+  - artifact-safety
+evidence_required:
+  - commands
+  - review
+continues_from: .ai/plans/2026-05-06-155704-harness-kit-versionless-docs
+supersedes:

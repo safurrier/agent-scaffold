@@ -1,0 +1,10 @@
+artifacts:
+  - path: artifacts/docs-validation.log
+    type: evidence
+    description: Search, MkDocs build, and focused test validation for the versionless docs/help cleanup.
+  - path: artifacts/codex-initial-review.md
+    type: review
+    description: Initial Codex review that found remaining migration/help-text framing issues.
+  - path: artifacts/codex-final-review.md
+    type: review
+    description: Final Codex review reporting no blocking findings.

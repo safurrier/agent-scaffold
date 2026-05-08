@@ -1,0 +1,19 @@
+slug: hk-profile-applicability-reviews
+branch: feat/harness-kit-2-ledger-assistant
+created: 2026-05-08
+pr:
+status: complete
+source: user feedback on domain-specific profile checks and reviews
+contract_change: contract_changed
+decision_record: none
+review_mode: external_required
+review_backend: Pi subagent tool
+review_rubrics:
+  - core-quality
+  - agent-friendly-cli
+evidence_required:
+  - commands
+  - dogfood
+  - review
+continues_from: .ai/plans/2026-05-08-094701-hk-summary-skip-mitigation
+supersedes:

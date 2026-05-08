@@ -20,6 +20,8 @@ name = "fast-gate"
 purpose = "Run the repo quality gate before commit or handoff."
 command_template = "mise run check"
 run_from = "repo-root"
+applies_when = ["src/**", "tests/**", "docs/**"]
+required_when = ["src/**", "tests/**"]
 
 [[checks]]
 name = "handoff"
@@ -57,7 +59,7 @@ run_from = "repo-root"
 [[checks]]
 name = "handoff"
 purpose = "Validate portable workflow evidence and review state."
-command_template = "hk sync-check --target <target> --profile example-rust-root --profiles-dir <profiles-dir> --json"
+command_template = "hk sync --target <target> --json && hk ready --target <target> --json"
 run_from = "current-directory"
 ```
 
@@ -99,6 +101,17 @@ purpose = "Apply managed config changes after dotfile edits."
 command_template = "mise run dotfiles"
 run_from = "repo-root"
 notes = ["Use when changes affect deployed dotfiles or generated config."]
+applies_when = ["home/**", "config/**", "dotfiles/**"]
+
+[[reviews]]
+name = "agent-friendly-cli-review"
+purpose = "Review CLI changes against agent-facing CLI design principles."
+backend = "fresh-context-subagent"
+rubric = "agent-friendly-cli"
+dispatch_hint = "Use a fresh-context reviewer."
+prompt_file = "prompts/agent-friendly-cli-review.md"
+applies_when = ["src/**/cli*.py", "docs/**"]
+required_when = ["src/**/cli*.py"]
 
 [[checks]]
 name = "ci-parity-tests"
@@ -109,7 +122,7 @@ run_from = "repo-root"
 [[checks]]
 name = "handoff"
 purpose = "Validate portable workflow evidence and review state."
-command_template = "hk sync-check --target <target> --profile example-dotfiles-root --profiles-dir <profiles-dir> --json"
+command_template = "hk sync --target <target> --json && hk ready --target <target> --json"
 run_from = "current-directory"
 notes = ["This checks recorded evidence; it does not rerun validation."]
 ```

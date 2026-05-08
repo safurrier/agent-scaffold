@@ -1,0 +1,7 @@
+artifacts:
+  - path: artifacts/agent-friendly-cli-audit.md
+    type: report
+    description: Agent-friendly CLI audit using the dedicated CLI design checklist.
+  - path: artifacts/review-summary.md
+    type: review
+    description: Fresh-context review summary for the CLI polish slice.

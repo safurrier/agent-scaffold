@@ -21,7 +21,7 @@ index:
 
 ## Summary
 
-harness-toolkit contains two related CLIs: `harness-scaffold`, the starter-template CLI for new agent-ready repositories, and `hk` / `harness-kit`, the portable workflow CLI for existing repositories. `harness-scaffold` transforms a cloned template into a fully configured project with a stable 22-task command surface. `hk` applies planning, validation, and handoff workflow state without committing scaffold files. Both humans and AI agents benefit from language-agnostic, CI-parity contracts where `mise run check` is the fast local gate and handoff evidence stays inspectable.
+harness-toolkit contains two related CLIs: `harness-scaffold`, the starter-template CLI for new agent-ready repositories, and `hk` / `harness-kit`, the portable workflow CLI for existing repositories. `harness-scaffold` transforms a cloned template into a fully configured project with a stable 22-task command surface. `hk` applies planning, validation, review, readiness, and handoff workflow state without committing scaffold files, and is evolving toward a cleaner lifecycle-first Harness Kit backed by local ledgers, sync checkpoints, captured command evidence, generated handoffs, and optional local specs. Both humans and AI agents benefit from language-agnostic, CI-parity contracts where `mise run check` is the fast local gate and handoff evidence stays inspectable.
 
 ## Goals / Non-Goals
 
@@ -90,14 +90,82 @@ harness-scaffold init [OPTIONS]
   --no-examples         Remove example code after init
 ```
 
-**Portable workflow CLI:**
+**Harness Kit CLI:**
+
+Current `hk` commands are lifecycle-first. Portable plan-artifact
+commands (`hk attach`, `hk legacy plan`, and `hk legacy sync-check`) are removed;
+scaffold plan artifacts use `mise run plan` and `mise run sync-check` through the
+slice-workflow CLI instead.
 
 ```
 hk profile list --target <repo-or-module> --json
-hk plan <slug> --target <repo-or-module> --profile <profile> --json
-hk checks --target <repo-or-module> --profile <profile> --json
-hk sync-check --target <repo-or-module> --profile <profile> --json
+hk profile resolve --target <repo-or-module> --json
+hk checks --target <repo-or-module> [--profile <profile>] [--changed] --json
 ```
+
+The public shape is lifecycle-first rather than generic-note-first:
+
+```
+hk brief --target <repo-or-module> --json
+hk start <slug> --plan "TEXT" --target <repo-or-module> --json
+hk start <slug> --context "TEXT" --plan "TEXT" --target <repo-or-module> --json
+hk status --target <repo-or-module> --json
+hk plan "TEXT" --target <repo-or-module> --json
+hk plan --from-file <path> --target <repo-or-module> --json
+hk context "TEXT" --target <repo-or-module> --json
+hk context --from-file <path|-> --target <repo-or-module> --json
+hk decide "TEXT" --spec-impact none|updated|not-needed --spec-ref <path> --target <repo-or-module> --json
+hk validate [--check <profile-check>] --why "WHAT THIS VALIDATES" --target <repo-or-module> -- <command...>
+hk review prompt [profile-review] --target <repo-or-module> --json
+hk review add [--review <profile-review>] --backend <independent-tool> --reviewer <independent-reviewer-or-fresh-context-subagent> --rubric <name> --summary "TEXT" --target <repo-or-module> --json
+hk artifact attach --path <file> --kind <kind> --label "TEXT" --target <repo-or-module> --json
+hk sync --exclude <path> --reason "TEXT" --target <repo-or-module> --json
+hk sync --target <repo-or-module> --json
+hk sync --check --target <repo-or-module> --json
+hk dangerously-skip review|validation|sync --label <name> --reason "TEXT" --mitigation "TEXT" --target <repo-or-module> --json
+hk ready --target <repo-or-module> --json
+hk summary --target <repo-or-module> --json
+hk handoff --target <repo-or-module> --format markdown|pr [--json]
+hk export --target <repo-or-module> --format handoff --json
+hk spec init|status|outline|promote --target <repo-or-module> --json
+```
+
+Slugs are short human-readable task names; chronological ordering comes from
+HK-generated timestamped work IDs. `hk start --plan` starts work and records the
+first lifecycle plan event; `hk plan` records or refines lifecycle plan text for
+already-active Harness Kit work, including progressive planning when the detailed
+implementation shape emerges after work starts. `hk status` is the agent
+next-action view; `hk summary` is the concise human-readable readiness digest;
+`hk handoff` is the longer transfer artifact. Spec impact uses explicit modes (`none`, `updated`, or
+`not-needed`) plus optional `--spec-ref` file references. Review is required by
+default. Preferred review comes from an independent AI/tool reviewer, ideally a
+different model, runtime, or context. A fresh-context subagent is the minimum
+acceptable fallback. Implementation-agent self-review does not satisfy readiness;
+if the harness provides a fresh-context review mechanism, the agent should dispatch
+`hk review prompt` to it before handoff. Examples include Pi `subagent`, Claude
+Code `Agent`/legacy `Task`, and Codex via the Shell tool running
+`codex review --uncommitted`. Agents should re-run `hk status` after review
+because review tools may create agent-local state. If no independent AI/tool
+or fresh-context review is available, the
+agent must use an explicit dangerous review skip with a label, reason, and
+mitigation. If sync freshness is stale only because of
+understood untracked local-only state, the agent should prefer a constrained
+`hk sync --exclude PATH --reason ...`; exclusions are recorded and revalidated
+rather than limited to a hardcoded `.pi`/`.claude` allowlist, while root,
+pathspec, tracked, staged, and missing paths remain invalid. Whole-sync dangerous
+skips remain an explicit fallback.
+
+`hk artifact attach` records harness/tool-produced files such as agent session
+transcripts, Codex review transcripts, HAR files, or raw validation artifacts by
+copying or referencing the source file, hashing it, and appending metadata to the
+Harness Kit lifecycle ledger. Agents should attach real files produced by tools rather
+than narrating their own session text into HK.
+
+Profiles and repo-owned scripts are validation guidance and stable native command
+surfaces for `hk validate`, not task-runner commands that HK chooses and runs.
+Lower-level work/note/capture/evidence commands may remain as compatibility or
+advanced interfaces, but Harness Kit is not complete until lifecycle readiness reaches
+parity with the plan-artifact workflow.
 
 `harness-kit` is the readable long command for the same portable CLI. `hk` is the
 short daily command.
@@ -150,6 +218,11 @@ class Stack(Protocol):
 - **Stack dispatch via env**: Tasks read `SCAFFOLD_PROJECT_STACK` from `.mise.toml` to dispatch to the correct toolchain. Wrong dispatch = wrong tools run.
 - **Deterministic output**: Non-interactive init with identical inputs produces identical output. Template rendering is deterministic.
 - **stdlib-only test helpers**: `_docs_helpers.py` uses only stdlib (no pyyaml) so it's portable into generated repos without adding dependencies.
+- **Lifecycle-first Harness Kit**: Harness Kit MUST preserve the handoff-safety spine: useful context when it prevents rediscovery, explicit plan, spec/decision reflection, validation evidence, external-enough review, readiness gate, and handoff artifact. A generic note ledger without readiness parity is an implementation foundation, not the completed product.
+- **Shell-first command evidence**: `hk` MAY capture exact native commands and local work state, but MUST NOT hide validation behind `hk run`-style task-runner commands. Captured evidence preserves command identity, exit code, rationale, and transcript metadata. Profiles and dumb scripts may guide which native commands to validate, but the proof remains `hk validate --why ... -- <native command>`.
+- **Freshness vs readiness**: `hk sync --check` answers whether ledger work changed after the last checkpoint. `hk ready` is the ledger-backed Harness Kit lifecycle readiness gate; `mise run sync-check` remains scoped to scaffold/task-contract plan artifacts.
+- **No heuristic readiness/profile scoring**: `hk brief` and profile commands report facts and guidance, not readiness grades, confidence scores, or silent validation command selection. Planning may happen outside HK, but agents must translate the agreed intent into explicit lifecycle records; HK records those declarations and checks evidence consistency while humans/reviewers judge quality. HK does not infer whether context is non-obvious; agents record `hk context` when it improves handoff or prevents rediscovery.
+- **Local-first adoption boundary**: default `hk` local assistant state stays ignored or external. Committed `.harness/`, `SPEC.md`, or task-contract artifacts require explicit adoption/promotion.
 
 ## Acceptance
 

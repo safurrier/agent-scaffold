@@ -1,0 +1,20 @@
+slug: hk-session-artifacts-skill
+branch: feat/harness-kit-2-ledger-assistant
+created: 2026-05-06
+pr: 12
+status: complete
+source: user direction to prefer a skill plus discovery helper for exact Pi/Claude/Codex transcript attachment over shell wrappers or HK latest-session guessing
+contract_change: implementation_only
+decision_record: none
+review_mode: external_required
+review_backend: pi-subagent
+review_rubrics:
+  - core-quality
+  - skill-usability
+  - transcript-safety
+evidence_required:
+  - commands
+  - dogfood
+  - handoff
+continues_from: .ai/plans/2026-05-06-113116-hk-artifact-attach
+supersedes:

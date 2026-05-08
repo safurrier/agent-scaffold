@@ -1,0 +1,12 @@
+{
+  "artifact_path": "/private/tmp/hk-artifact-dogfood.K0vW7c/repo/.harness-local/harness-kit/root/work/2026-05-06-115834-artifact-attach/artifacts/artifact_20260506_115838_243386_codex-review-transcript_codex-rereview-events.jsonl",
+  "copied": true,
+  "kind": "codex-review-transcript",
+  "label": "Codex rereview JSONL transcript copied into HK artifacts",
+  "redaction": "external",
+  "seq": 4,
+  "sha256": "sha256:de9b1acb8365df2154d6d47e3868fef618f4f66ddd1acc7774585cd27a8df872",
+  "size_bytes": 159135,
+  "source_path": "/private/tmp/hk-artifact-dogfood.K0vW7c/codex-rereview-events.jsonl",
+  "work_id": "2026-05-06-115834-artifact-attach"
+}

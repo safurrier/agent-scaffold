@@ -13,6 +13,9 @@ the stable operator interface.
 
 ## How to Work Here
 
+The local checkout path is `~/git_repositories/harness-toolkit`; older notes or
+session summaries may still refer to the pre-rename path `~/git_repositories/agent-scaffold`.
+
 Use `mise run plan -- <slug>` for meaningful work, keep the active plan current,
 and close the slice with evidence and review before handoff. Treat `SPEC.md` as
 the correctness envelope and `docs/task-contract.md` as the task-surface
@@ -27,6 +30,10 @@ reference.
 **Handoff gate**: `mise run sync-check`.
 
 **Focused tests**: `uv run pytest -m "not slow"`.
+
+**Current HK dev CLI**: `scripts/hk-dev ...` runs this checkout's `hk` while
+preserving the caller cwd; use it for dogfood before the installed `hk` is
+updated.
 
 **Slice prompt rendering**: `mise run slice-plan -- --task <task.md>`, then
 `mise run slice-implement` and `mise run slice-review` when useful.
@@ -69,6 +76,81 @@ use it only in a copied scaffold or throwaway init target.
   signatures, Literal choices, and generated help make the CLI safer for agents
   to call.
 
+- **DO** treat Harness Kit as a cleaner, simpler handoff-safety lifecycle. **NOT** as a generic local note ledger or unrelated
+  agent-memory product. **BECAUSE** the core product promise to preserve is:
+  explicit plan, spec/decision reflection, validation evidence, external-enough
+  review, readiness gate, and handoff artifact.
+
+- **DO** frame Harness Kit primarily as an agent-facing lifecycle and handoff tool.
+  **NOT** optimize docs around a human task-manager workflow or spend product
+  energy on version-transition docs for the short-lived prototype. **BECAUSE** Harness Kit can reset
+  the surface around agents doing work and leaving evidence for humans.
+
+- **DO** consider `context` a plausible Harness Kit product verb because it connects
+  to context engineering: capturing framing, constraints, relevant files, and
+  discovered repo facts for the next human/agent. **NOT** assume `background` is
+  always the better public word just because generic LLM context is overloaded.
+  **BECAUSE** a clear `hk context ...` command may express the user-facing job
+  better than exposing lower-level note kinds.
+
+- **DO** keep Harness Kit lifecycle commands opinionated and singular. **NOT** expose
+  multiple equally promoted ways to do the same thing. **BECAUSE** the desired
+  product is a clean agent/human handoff workflow, not a compatibility maze;
+  lower-level commands should be advanced/internal only when they are truly
+  needed.
+
+- **DO** make `hk context` agent-guided rather than magically detected. **NOT**
+  require HK to infer whether work has "non-obvious context." **BECAUSE** the
+  normal workflow is human/agent planning outside HK, then the agent distills
+  useful context, plan, decisions, validation, and review records into the HK
+  ledger only when they prevent rediscovery or improve handoff.
+
+- **DO** use `export` language for turning ledger state into shareable files.
+  **NOT** center `materialize` as the product verb. **BECAUSE** users understand
+  exporting a handoff package; materialization is an implementation detail.
+
+- **DO** make skipped readiness checks explicit and intentionally scary, e.g.
+  `dangerously skip review` or a similarly unmistakable command. **NOT** hide
+  skipped review/validation behind bland waiver language. **BECAUSE** skipping a
+  lifecycle guarantee should read like a conscious YOLO-style exception.
+
+- **DO** make Harness Kit review UX plainly require an independent AI/tool or a
+  fresh-context subagent review. **NOT** rely only on regex-style self-review
+  detection or let agents record their own review as external. **BECAUSE** the
+  point of the review gate is to prevent same-context self-approval; heuristics
+  are guardrails, not the guarantee.
+
+- **DO** allow `hk sync --exclude` for explicit literal untracked local paths and
+  record/revalidate the excluded path metadata. **NOT** hardcode exclusions to
+  only `.pi` or `.claude` state. **BECAUSE** real repos can produce many kinds of
+  local-only files; the safety property should come from explicit recorded
+  exclusions plus tracked/staged/pathspec/root/source-change checks, not a tiny
+  allowlist.
+
+- **DO** prefer a generic Harness Kit `artifact attach` concept for programmatically
+  attaching harness-produced files such as agent session transcripts, Codex review
+  transcripts, HAR files, or validation outputs. **NOT** make this a special
+  `transcript attach` command first or have agents write their own session prose
+  into the ledger. **BECAUSE** HK should copy/hash/record real artifacts produced
+  by tools and render their metadata in handoff.
+
+- **DO** describe harness-specific review options as tool-callable mechanisms.
+  **NOT** tell agents to use Codex slash commands like `/review` or `/agent` in
+  harness-facing instructions. **BECAUSE** harnesses can call tools, not TUI slash
+  commands; use Pi `subagent`, Claude Code `Agent`/legacy `Task`, or Codex via
+  the Shell tool running `codex review --uncommitted`.
+
+- **DO** keep public Harness Kit docs focused on generic adoption and agent-facing
+  workflow. **NOT** include personal dotfiles implementation notes or machine-specific
+  setup steps in this repo's public docs. **BECAUSE** user-specific adoption notes
+  belong in the user's dotfiles repo or private setup docs.
+
+- **DO** treat profiles and dumb repo scripts as validation guidance and stable
+  command surfaces that feed `hk validate -- <native command>`. **NOT** turn HK
+  into a task runner that chooses and executes checks itself. **BECAUSE** Harness Kit
+  should preserve shell-first evidence while still helping agents find the right
+  repo-owned commands.
+
 ## Related Context
 
 | Path | What's there |
@@ -81,6 +163,7 @@ use it only in a copied scaffold or throwaway init target.
 | `docs/init-system.md` | How `mise run init` transforms the scaffold |
 | `docs/AGENTS.md` | Docs routing index, including stack and ADR docs |
 | `docs/decisions/` | ADRs for scaffold workflow and contract choices |
+| `.agent/skills/hk-pr-sized-dogfood/` | Repo-local skill for PR-sized HK dogfood replay studies |
 | `templates/.agent/skills/slice-workflow/` | Skill shipped to generated repos |
 | `templates/.ai/plans/AGENTS.md` | Plan artifact contract shipped to generated repos |
 
