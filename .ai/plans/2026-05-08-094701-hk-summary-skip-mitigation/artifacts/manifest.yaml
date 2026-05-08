@@ -1,0 +1,7 @@
+artifacts:
+  - path: artifacts/summary-skip-dogfood.log
+    type: dogfood
+    description: Synthetic rollout dogfood covering progressive plan, summary, and dangerous skip mitigation.
+  - path: artifacts/review-summary.md
+    type: review
+    description: Fresh-context review summary for summary/skip mitigation changes.

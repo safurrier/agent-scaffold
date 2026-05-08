@@ -696,16 +696,19 @@ def test_dangerously_skip_sync_satisfies_readiness_and_handoff(tmp_path: Path) -
     skip = add_dangerous_skip(
         target,
         check="sync",
+        label="agent-local-state",
         reason="Only .pi agent-local state changed after the last checkpoint.",
+        mitigation="No source files changed after the sync checkpoint.",
     )
     done = ready(target)
     checked = sync_checkpoint(target, check=True)
     rendered = handoff(target)
 
     assert stale.ready is False
-    assert skip.kind == "sync"
+    assert skip.check == "sync"
+    assert skip.label == "agent-local-state"
     assert checked.synced is True
-    assert checked.message == "sync dangerously skipped"
+    assert "sync dangerously skipped: agent-local-state" in checked.message
     assert done.ready is True
     assert done.status == "ready-with-dangerous-skips"
     assert any(
@@ -717,6 +720,7 @@ def test_dangerously_skip_sync_satisfies_readiness_and_handoff(tmp_path: Path) -
     assert "Sync status: `sync-dangerously-skipped`" in rendered.content
     assert "## Dangerous skips" in rendered.content
     assert "Only .pi agent-local state changed" in rendered.content
+    assert "No source files changed after the sync checkpoint" in rendered.content
 
 
 def test_sync_exclude_allows_literal_untracked_local_path_without_stale_ready(
@@ -971,7 +975,9 @@ def test_dangerously_skip_sync_requires_prior_checkpoint(tmp_path: Path) -> None
         add_dangerous_skip(
             target,
             check="sync",
+            label="missing-checkpoint",
             reason="No checkpoint exists yet.",
+            mitigation="Run sync first.",
         )
 
 
@@ -986,7 +992,9 @@ def test_dangerously_skip_sync_goes_stale_after_later_work(tmp_path: Path) -> No
     add_dangerous_skip(
         target,
         check="sync",
+        label="agent-local-state",
         reason="Only .pi agent-local state changed after checkpoint.",
+        mitigation="No source files changed after the sync checkpoint.",
     )
     fresh = sync_checkpoint(target, check=True)
 
@@ -996,7 +1004,7 @@ def test_dangerously_skip_sync_goes_stale_after_later_work(tmp_path: Path) -> No
     stale = sync_checkpoint(target, check=True)
 
     assert fresh.synced is True
-    assert fresh.message == "sync dangerously skipped"
+    assert "sync dangerously skipped: agent-local-state" in fresh.message
     assert stale.synced is False
 
 
@@ -1170,8 +1178,12 @@ def test_cli_handoff_pr_format_discloses_dangerous_skips(tmp_path: Path) -> None
         _run_hk(
             "dangerously-skip",
             "review",
+            "--label",
+            "no-review",
             "--reason",
             "No independent reviewer before handoff.",
+            "--mitigation",
+            "Human review before merge.",
             "--target",
             str(target),
         ).returncode
@@ -1182,7 +1194,68 @@ def test_cli_handoff_pr_format_discloses_dangerous_skips(tmp_path: Path) -> None
 
     assert result.returncode == 0, result.stderr
     assert "## Dangerous skips" in result.stdout
+    assert "no-review" in result.stdout
     assert "No independent reviewer before handoff." in result.stdout
+    assert "Human review before merge." in result.stdout
+
+
+def test_cli_dangerously_skip_requires_mitigation(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    assert (
+        _run_hk("start", "skip-needs-mitigation", "--target", str(target)).returncode
+        == 0
+    )
+
+    result = _run_hk(
+        "dangerously-skip",
+        "review",
+        "--label",
+        "no-review",
+        "--reason",
+        "No reviewer available.",
+        "--target",
+        str(target),
+    )
+
+    assert result.returncode != 0
+    assert "--mitigation" in result.stderr
+
+
+def test_cli_summary_renders_human_readiness_digest(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    assert (
+        _run_hk(
+            "start", "summary-work", "--target", str(target), "--plan", "Ship it"
+        ).returncode
+        == 0
+    )
+    assert (
+        _run_hk(
+            "dangerously-skip",
+            "review",
+            "--label",
+            "no-review",
+            "--reason",
+            "No independent reviewer before handoff.",
+            "--mitigation",
+            "Human review before merge.",
+            "--target",
+            str(target),
+        ).returncode
+        == 0
+    )
+
+    result = _run_hk("summary", "--target", str(target))
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.startswith("# HK Readiness Summary")
+    assert "## Validation" in result.stdout
+    assert "## Review" in result.stdout
+    assert "## Dangerous skips" in result.stdout
+    assert "no-review" in result.stdout
+    assert "Human review before merge." in result.stdout
 
 
 def test_cli_handoff_format_json_is_not_a_file_format(tmp_path: Path) -> None:

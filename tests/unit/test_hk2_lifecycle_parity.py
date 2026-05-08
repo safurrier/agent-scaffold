@@ -63,7 +63,11 @@ def test_lifecycle_missing_review_can_be_dangerously_skipped(tmp_path: Path) -> 
         why="Smoke validation proves native command evidence.",
     )
     add_dangerous_skip(
-        target, check="review", reason="No independent reviewer in parity fixture."
+        target,
+        check="review",
+        label="fixture-no-review",
+        reason="No independent reviewer in parity fixture.",
+        mitigation="Covered by parity test assertions.",
     )
     sync_checkpoint(target)
 

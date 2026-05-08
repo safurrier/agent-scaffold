@@ -1,0 +1,17 @@
+slug: hk-summary-skip-mitigation
+branch: feat/harness-kit-2-ledger-assistant
+created: 2026-05-08
+pr: 12
+status: complete
+source: user-request
+contract_change: implementation_only
+decision_record: none
+review_mode: external_required
+review_backend: builtin reviewer subagent
+review_rubrics:
+  - core-quality
+evidence_required:
+  - commands
+  - dogfood
+continues_from: 2026-05-07-151148-hk-cli-help-idempotency-polish
+supersedes:

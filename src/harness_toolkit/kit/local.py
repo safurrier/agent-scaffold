@@ -42,6 +42,7 @@ from harness_toolkit.kit.readiness.diagnostics import ReadyCheck, ReadyResult
 from harness_toolkit.kit.readiness.policy import (
     SELF_REVIEW_GUIDANCE,
     dangerous_skip_events,
+    dangerous_skip_message,
     is_self_review_identity,
     notes_by_kind,
     notes_by_kinds,
@@ -53,6 +54,7 @@ from harness_toolkit.kit.readiness.policy import (
 from harness_toolkit.kit.rendering.handoff import (
     render_handoff_markdown,
     render_handoff_pr_markdown,
+    render_summary_markdown,
 )
 from harness_toolkit.kit.rendering.materialize import write_note_views
 from harness_toolkit.kit.rendering.review_prompt import render_review_prompt
@@ -158,6 +160,16 @@ class NoteResult:
 
 
 @dataclass(frozen=True)
+class DangerousSkipResult:
+    work_id: str
+    seq: int
+    check: str
+    label: str
+    reason: str
+    mitigation: str
+
+
+@dataclass(frozen=True)
 class SyncResult:
     work_id: str
     synced: bool
@@ -231,6 +243,7 @@ JsonDataclass = (
     | InitResult
     | WorkResult
     | NoteResult
+    | DangerousSkipResult
     | SyncResult
     | CaptureResult
     | ReviewResult
@@ -770,7 +783,7 @@ def sync_checkpoint(
             return SyncResult(
                 work_id=work_dir.name,
                 synced=True,
-                message="sync dangerously skipped",
+                message=dangerous_skip_message("sync", [skip]),
                 guidance=guidance,
             )
         message = "synced" if synced else "needs sync: work changed after checkpoint"
@@ -1248,16 +1261,27 @@ def add_dangerous_skip(
     target: Path,
     *,
     check: str,
+    label: str,
     reason: str,
+    mitigation: str,
     no_local_files: bool = False,
-) -> NoteResult:
+) -> DangerousSkipResult:
     if check not in {"review", "validation", "sync"}:
         raise LocalWorkflowError("dangerously-skip supports: review, validation, sync")
+    if not label.strip():
+        raise LocalWorkflowError("dangerously-skip requires --label")
     if not reason.strip():
         raise LocalWorkflowError("dangerously-skip requires --reason")
+    if not mitigation.strip():
+        raise LocalWorkflowError("dangerously-skip requires --mitigation")
     state = ensure_state(target, no_local_files=no_local_files)
     work_dir = require_work(state)
-    data: dict[str, object] = {"check": check, "reason": reason.strip()}
+    data: dict[str, object] = {
+        "check": check,
+        "label": label.strip(),
+        "reason": reason.strip(),
+        "mitigation": mitigation.strip(),
+    }
     if check == "sync":
         events = read_events(work_dir)
         if not any(event.type == "sync_checkpoint" for event in events):
@@ -1272,7 +1296,14 @@ def add_dangerous_skip(
             }
         )
     record = append_event(work_dir, "dangerous_skip_added", data)
-    return NoteResult(work_id=work_dir.name, seq=record.seq, kind=check, text=reason)
+    return DangerousSkipResult(
+        work_id=work_dir.name,
+        seq=record.seq,
+        check=check,
+        label=label.strip(),
+        reason=reason.strip(),
+        mitigation=mitigation.strip(),
+    )
 
 
 def ready(target: Path, *, no_local_files: bool = False) -> ReadyResult:
@@ -1343,7 +1374,7 @@ def status(target: Path, *, no_local_files: bool = False) -> StatusResult:
         )
     if check_map.get("review") and check_map["review"].status == "fail":
         actions.append(
-            "review required: preferred independent AI/tool reviewer; minimum fresh-context subagent. Run `hk review prompt`; dispatch it via your harness if available (Pi `subagent` tool, Claude Code `Agent` tool/`Task` alias, Codex Shell tool running `codex review --uncommitted`); record with `hk review add ...`, then re-run `hk status`; or explicitly `hk dangerously-skip review --reason ...`; self-review does not count"
+            "review required: preferred independent AI/tool reviewer; minimum fresh-context subagent. Run `hk review prompt`; dispatch it via your harness if available (Pi `subagent` tool, Claude Code `Agent` tool/`Task` alias, Codex Shell tool running `codex review --uncommitted`); record with `hk review add ...`, then re-run `hk status`; or explicitly `hk dangerously-skip review --label no-review --reason ... --mitigation ...`; self-review does not count"
         )
     if check_map.get("sync") and check_map["sync"].status == "fail":
         sync_action = "sync: hk sync after reconciling changes"
@@ -1376,6 +1407,24 @@ def materialize_work(target: Path, *, no_local_files: bool = False) -> HandoffRe
     path = views / "handoff.md"
     path.write_text(handoff)
     return HandoffResult(work_id=work_dir.name, content=handoff, path=str(path))
+
+
+def summary(target: Path, *, no_local_files: bool = False) -> HandoffResult:
+    state = ensure_state(target, no_local_files=no_local_files)
+    work_dir = require_work(state)
+    events = read_events(work_dir)
+    evidence = read_evidence(work_dir)
+    content = render_summary_markdown(
+        work_id=work_dir.name,
+        branch=git_branch(state.target_root),
+        git_sha=git_sha(state.target_root),
+        dirty=git_dirty(state.target_root),
+        sync_status=sync_status_for(state),
+        events=events,
+        evidence=evidence,
+        readiness=ready_for_work(work_dir, state, check_handoff=False),
+    )
+    return HandoffResult(work_id=work_dir.name, content=content)
 
 
 def handoff(

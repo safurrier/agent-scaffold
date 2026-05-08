@@ -74,7 +74,9 @@ class ReviewRequest(TargetRequest):
 @dataclass(frozen=True)
 class DangerousSkipRequest(TargetRequest):
     check: str = ""
+    label: str = ""
     reason: str = ""
+    mitigation: str = ""
 
 
 @dataclass(frozen=True)
@@ -208,11 +210,15 @@ class LifecycleApp:
             request.target, no_local_files=request.no_local_files
         )
 
-    def dangerously_skip(self, request: DangerousSkipRequest) -> local.NoteResult:
+    def dangerously_skip(
+        self, request: DangerousSkipRequest
+    ) -> local.DangerousSkipResult:
         return local.add_dangerous_skip(
             request.target,
             check=request.check,
+            label=request.label,
             reason=request.reason,
+            mitigation=request.mitigation,
             no_local_files=request.no_local_files,
         )
 
@@ -234,6 +240,9 @@ class LifecycleApp:
             no_local_files=request.no_local_files,
             format=request.format,
         )
+
+    def summary(self, request: TargetRequest) -> local.HandoffResult:
+        return local.summary(request.target, no_local_files=request.no_local_files)
 
     def spec_init(self, request: TargetRequest) -> local.SpecResult:
         return local.init_spec(request.target, no_local_files=request.no_local_files)

@@ -70,8 +70,9 @@ hk start <slug> --plan "Adopted implementation intent" --target .
 Then work normally in the repository. If you accidentally retry `hk start` with
 the same slug while that work item is still active, HK resumes it instead of
 creating duplicate retry state. Use a new slug only for a separate work item.
-Use the repo's own commands for tests, linters, type checks, builds, or other
-validation.
+`hk start --plan` is a convenient seed, not a requirement to predict every step
+up front; use `hk plan "..."` again as the plan becomes clearer. Use the repo's
+own commands for tests, linters, type checks, builds, or other validation.
 
 Record validation evidence with the exact native command:
 
@@ -84,7 +85,7 @@ Let `hk status` guide the rest:
 ```bash
 hk status --target .
 hk ready --target .
-hk handoff --target .
+hk summary --target .
 ```
 
 ## Choosing `--target`
@@ -131,10 +132,10 @@ hk review add --backend subagent --reviewer reviewer-fresh-context --rubric core
 hk status --target .
 ```
 
-If review, validation, or sync cannot be completed, record an explicit exception:
+If review, validation, or sync cannot be completed, record an explicit exception with a mitigation:
 
 ```bash
-hk dangerously-skip review --reason "Why this is acceptable" --target .
+hk dangerously-skip review --label no-review --reason "Why this is acceptable" --mitigation "How this will be covered" --target .
 ```
 
 ## Commit hygiene

@@ -203,7 +203,13 @@ def _validate_event_payload(
             event_data, "check", path=path, line_number=line_number, kind=kind
         )
         _required_str(
+            event_data, "label", path=path, line_number=line_number, kind=kind
+        )
+        _required_str(
             event_data, "reason", path=path, line_number=line_number, kind=kind
+        )
+        _required_str(
+            event_data, "mitigation", path=path, line_number=line_number, kind=kind
         )
         if "event_seq" in event_data:
             _required_int(

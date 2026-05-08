@@ -88,11 +88,13 @@ mise run init -- --non-interactive --name my-project --shape single --stack pyth
 To have agents use Harness Kit across repos, add the short directive from
 [Agent Adoption](docs/agent-adoption.md) to your user-level `AGENTS.md`.
 
-Harness Kit is primarily an **agent-facing lifecycle**. Humans do not need to
-run it as a task manager. The usual adoption story is that a human shapes the
-work in normal conversation, issues, or scratch docs, then asks an implementation
-agent to use `hk` so the agent leaves behind plan, evidence, review, and handoff
-state.
+Harness Kit is a **readiness ledger for serious agent-driven changes**. It is
+primarily an agent-facing lifecycle, not a task runner or human task manager.
+The usual adoption story is that a human shapes the work in normal conversation,
+issues, or scratch docs, then asks an implementation agent to use `hk` so the
+agent leaves behind plan, evidence, review, and handoff state. The ceremony pays
+for itself when the work is risky, broad, multi-step, likely to span context
+compaction, or when skipped validation needs to be explicit rather than implied.
 
 The docs follow that journey: first explain what the tool is for, then give
 agents a small path that works, then let `hk status` reveal the deeper lifecycle
@@ -115,7 +117,7 @@ hk checks --target . --json            # shows configured checks/reviews, does n
 hk validate --why 'What this command proves' -- <native command>
 hk status
 hk ready
-hk handoff
+hk summary
 ```
 
 `hk status` is the coach. It tells the agent when to add optional context, record
@@ -141,8 +143,8 @@ are the common commands to reach for when the coach asks for something specific:
 | Record external-enough review | `hk review prompt`, `hk review add --backend ... --reviewer ... --rubric ... --summary ...` |
 | Attach real tool/harness files | `hk artifact attach --path FILE --kind KIND` |
 | Reconcile local changes before handoff | `hk sync`, `hk sync --exclude PATH --reason "..."` |
-| Check or render handoff | `hk ready`, `hk handoff`, `hk export` |
-| Make an explicit exception | `hk dangerously-skip review\|validation\|sync --reason "..."` |
+| Check readiness or explain it to humans | `hk ready`, `hk status`, `hk summary`, `hk handoff`, `hk export` |
+| Make an explicit exception | `hk dangerously-skip review\|validation\|sync --label LABEL --reason "..." --mitigation "..."` |
 
 Lower-level commands such as `hk note`, `hk evidence`, `hk capture`, and `hk spec`
 are inspection/escape hatches, not the promoted path.
@@ -156,8 +158,9 @@ and generated handoffs without committed ceremony. Use `hk start --plan`,
 
 Planning can happen outside HK; agents translate the agreed intent into compact
 HK context/plan/decision records rather than asking HK to infer it. `hk start
---plan` seeds the first lifecycle plan when work starts; `hk plan` refines the
-plan after work is active. `hk artifact attach` can attach real harness/tool
+--plan` seeds the first lifecycle plan when work starts; `hk start` can also be
+used without a plan followed by repeated `hk plan "..."` calls as a living plan
+when the implementation shape emerges progressively. `hk artifact attach` can attach real harness/tool
 files such as agent session transcripts or Codex review transcripts by copying or
 referencing the file, hashing it, and rendering the metadata in handoff. Slugs should be short human-readable task names;
 HK-generated work IDs provide chronological ordering. Review is required by
@@ -168,7 +171,10 @@ fresh-context review mechanism, dispatch `hk review prompt` to it before handoff
 Examples include Pi `subagent`, Claude Code `Agent`/legacy `Task`, and Codex via
 the Shell tool running `codex review --uncommitted`. Re-run `hk status` after
 review because review tools may create agent-local state. If review is impossible,
-record an explicit dangerous review skip. Explicit untracked local-only state can
+record an explicit dangerous review skip with a label, reason, and mitigation.
+Use `hk status` for the agent next-action loop, `hk summary` for a concise
+human-readable readiness digest, and `hk handoff` for the longer transfer
+artifact. Explicit untracked local-only state can
 be handled with recorded one-shot sync exclusions rather than silent ignores;
 `hk sync --exclude` is not limited to a hardcoded `.pi`/`.claude` allowlist, but
 it still rejects root, pathspec, tracked, staged, or missing paths. Today,

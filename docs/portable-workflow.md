@@ -150,10 +150,12 @@ There is no external/overlay plan-artifact mode in `hk` anymore.
 
 ## Agent journey
 
-`hk` is an agent-facing lifecycle CLI. It is not trying to be a human task
-manager. Humans usually add a small `AGENTS.md` directive, shape the work in
-chat/issues/scratch docs, then hand the agreed intent to an implementation agent
-and tell it to use `hk`.
+`hk` is a readiness ledger for serious agent-driven changes. It is not trying
+to be a human task manager or a native task runner. Humans usually add a small
+`AGENTS.md` directive, shape the work in chat/issues/scratch docs, then hand the
+agreed intent to an implementation agent and tell it to use `hk`. HK is most
+useful when the change is broad, risky, multi-step, likely to span context
+compaction, or when skipped validation needs to be explicit.
 
 The minimal path is:
 
@@ -162,12 +164,15 @@ hk start <slug> --plan 'Adopted implementation intent'
 hk validate --why 'What this command proves' -- <native command>
 hk status
 hk ready
-hk handoff
+hk summary
 ```
 
 If an agent retries `hk start` with the same slug while that work item is still
 active, HK resumes the active work item instead of creating duplicate retry
 state. Use a new slug only when you intentionally want a separate work item.
+`hk start --plan` is a convenient seed, not a requirement to predict every step
+up front; agents can use repeated `hk plan "..."` notes as a living plan when
+the implementation shape emerges progressively.
 
 `hk status` is the journey guide. It tells the agent when to record context,
 decisions/spec impact, review, sync, or explicit dangerous skips.
@@ -248,12 +253,13 @@ persistent sync ignore config are deferred.
 | `hk start <slug> --plan <text>` | Start a lifecycle work item and optionally seed context/plan records; same-slug retries resume the active work item |
 | `hk work start` | Advanced compatibility surface for ledger-backed local work units |
 | `hk note` | Advanced: append typed plan, background, learning, decision, gap, or spec-impact notes |
-| `hk status` | Show active work, readiness checks, and next-action guidance |
+| `hk status` | Show active work, readiness checks, and next-action guidance for the agent loop |
 | `hk sync` | Record or check a freshness checkpoint for the active work snapshot; use `--exclude PATH --reason TEXT` for explicit one-shot untracked local-state exclusions; HK records/revalidates excluded path metadata instead of using a tiny hardcoded allowlist |
 | `hk capture` | Advanced: run a native command and record exact evidence |
 | `hk artifact attach` | Attach a real harness/tool-produced file such as an agent session transcript, Codex review transcript, HAR file, or validation artifact; HK copies/references it, hashes it, and renders metadata in handoff |
 | `hk review prompt` | Print a reviewer prompt to dispatch to an independent AI/tool or fresh-context reviewer, e.g. Pi `subagent`, Claude Code `Agent`/`Task` alias, or Codex via Shell tool running `codex review --uncommitted`; re-run `hk status` after review tools run |
-| `hk handoff` | Render a conservative handoff from the work ledger |
+| `hk summary` | Render a concise human-readable readiness digest for PRs/review |
+| `hk handoff` | Render a longer transfer artifact from the work ledger |
 | `hk spec` | Manage optional local/external spec drafts |
 | `hk instructions` | Print the compact user-level `AGENTS.md` snippet; use `--scope repo` for a fuller profile-specific repo snippet |
 | `hk profile list` | List built-in/custom/user-config profile contracts and model-directed selection guidance |
@@ -262,7 +268,7 @@ persistent sync ignore config are deferred.
 | `hk profile create <name>` | Create an editable custom profile TOML template |
 | `hk checks [--profile <name>]` | Show named verification loops and review guidance without executing them; resolves user config when `--profile` is omitted |
 | `hk plan <text>` | Record or refine the lifecycle implementation plan for active Harness Kit work |
-| `hk dangerously-skip review\|validation\|sync --reason <text>` | Explicitly record an auditable dangerous skip when a lifecycle guarantee cannot be satisfied; skips render in handoff and PR handoff |
+| `hk dangerously-skip review\|validation\|sync --label <name> --reason <text> --mitigation <text>` | Explicitly record an auditable dangerous skip when a lifecycle guarantee cannot be satisfied; skips render in summary, handoff, and PR handoff |
 
 Portable plan-artifact commands have been removed from `hk`. Use scaffold `mise run
 plan` and `mise run sync-check` for committed plan packages.

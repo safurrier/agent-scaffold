@@ -15,6 +15,18 @@ def artifact_events(events: list[EventRecord]) -> list[dict[str, object]]:
     return [event.data for event in events if event.type == "artifact_attached"]
 
 
+def dangerous_skip_records(events: list[EventRecord]) -> list[dict[str, object]]:
+    return [event.data for event in events if event.type == "dangerous_skip_added"]
+
+
+def format_dangerous_skip(skip: dict[str, object]) -> str:
+    check = str(skip.get("check") or "unknown")
+    label = str(skip.get("label") or "unlabeled")
+    reason = str(skip.get("reason") or "")
+    mitigation = str(skip.get("mitigation") or "")
+    return f"- {check}: {label} — reason: {reason}; mitigation: {mitigation}"
+
+
 def artifact_display_path(artifact: dict[str, object]) -> str:
     path = str(artifact.get("artifact_path") or artifact.get("source_path") or "")
     return path or "<unrecorded>"
@@ -60,11 +72,10 @@ def render_handoff_pr_markdown(
             )
     else:
         lines.append("- No validation evidence recorded in HK.")
-    skips = [event.data for event in events if event.type == "dangerous_skip_added"]
+    skips = dangerous_skip_records(events)
     if skips:
         lines.extend(["", "## Dangerous skips"])
-        for skip in skips:
-            lines.append(f"- {skip.get('check')}: {skip.get('reason')}")
+        lines.extend(format_dangerous_skip(skip) for skip in skips)
     artifacts = artifact_events(events)
     if artifacts:
         lines.extend(["", "## Attached artifacts"])
@@ -79,6 +90,79 @@ def render_handoff_pr_markdown(
         for check in readiness.checks:
             if check.status != "pass":
                 lines.append(f"- {check.id}: {check.message}")
+    return "\n".join(lines) + "\n"
+
+
+def render_summary_markdown(
+    *,
+    work_id: str,
+    branch: str,
+    git_sha: str,
+    dirty: bool,
+    sync_status: str,
+    events: list[EventRecord],
+    evidence: list[EvidenceRecord],
+    readiness: ReadyResult,
+) -> str:
+    lines = [
+        "# HK Readiness Summary",
+        "",
+        f"- Work: `{work_id}`",
+        f"- Branch: `{branch}` at `{git_sha}`",
+        f"- Readiness: `{readiness.status}`",
+        f"- Sync: `{sync_status}`",
+        f"- Dirty: `{str(dirty).lower()}`",
+    ]
+    plan_items = notes_by_kind(events, "plan")
+    if plan_items:
+        lines.extend(["", "## Plan", *[f"- {item}" for item in plan_items]])
+    lines.extend(["", "## Validation"])
+    if evidence:
+        for record in evidence:
+            transcript = (
+                f"; transcript: `{record.transcript_path}`"
+                if record.transcript_path
+                else ""
+            )
+            why = f" — {record.why}" if record.why else ""
+            lines.append(
+                f"- {record.status}: `{record.command_display}` (exit {record.exit_code}{transcript}){why}"
+            )
+    else:
+        lines.append("- None recorded.")
+    reviews = review_events(events)
+    skips = dangerous_skip_records(events)
+    review_skips = [skip for skip in skips if skip.get("check") == "review"]
+    lines.extend(["", "## Review"])
+    if reviews:
+        for review in reviews:
+            raw_rubrics = review.get("rubrics", [])
+            rubrics_list = raw_rubrics if isinstance(raw_rubrics, list) else []
+            rubrics = ", ".join(str(item) for item in rubrics_list)
+            lines.append(
+                f"- {review.get('backend')} / {review.get('reviewer')} ({rubrics}): {review.get('summary')} [{review.get('disposition')}]"
+            )
+    elif review_skips:
+        lines.append("- No review recorded; see dangerous review skip below.")
+    else:
+        lines.append("- None recorded.")
+    lines.extend(["", "## Dangerous skips"])
+    if skips:
+        lines.extend(format_dangerous_skip(skip) for skip in skips)
+    else:
+        lines.append("- None recorded.")
+    artifacts = artifact_events(events)
+    if artifacts:
+        lines.extend(["", "## Attached artifacts"])
+        for artifact in artifacts:
+            label = str(artifact.get("label") or "").strip()
+            label_text = f" — {label}" if label else ""
+            lines.append(
+                f"- {artifact.get('kind')}: `{artifact_display_path(artifact)}`{label_text}"
+            )
+    lines.extend(["", "## Readiness checks"])
+    for check in readiness.checks:
+        lines.append(f"- {check.id}: {check.status} — {check.message}")
     return "\n".join(lines) + "\n"
 
 
@@ -189,9 +273,8 @@ def render_handoff_markdown(
                 else str(paths)
             )
             lines.append(f"- {path_text}: {checkpoint.get('exclude_reason')}")
-    skips = [event.data for event in events if event.type == "dangerous_skip_added"]
+    skips = dangerous_skip_records(events)
     if skips:
         lines.extend(["", "## Dangerous skips"])
-        for skip in skips:
-            lines.append(f"- {skip.get('check')}: {skip.get('reason')}")
+        lines.extend(format_dangerous_skip(skip) for skip in skips)
     return "\n".join(lines) + "\n"

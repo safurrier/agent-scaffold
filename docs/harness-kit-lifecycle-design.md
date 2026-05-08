@@ -187,10 +187,10 @@ Events after the last sync or a changed diff hash make the work unsynced.
 Generated views such as handoffs and materialized Markdown are sync-neutral
 because they do not change the substance of the work. If a final freshness check
 is stale only because of understood local agent state, the user may record an
-explicit `hk dangerously-skip sync --reason ...`; that skip is tied to the current
-event sequence and diff hash, should be one of the final freshness actions when
-agent-local files keep changing, and is rendered under dangerous skips in
-handoff.
+explicit `hk dangerously-skip sync --label NAME --reason TEXT --mitigation TEXT`;
+that skip is tied to the current event sequence and diff hash, should be one of
+the final freshness actions when agent-local files keep changing, and is rendered
+under dangerous skips in summaries and handoffs.
 
 Adopted/scaffolded repos may configure stricter checks later.
 
@@ -364,8 +364,9 @@ hk review prompt [--target PATH] [--json]
 hk artifact attach --path FILE --kind KIND [--label TEXT] [--no-copy] [--target PATH] [--json]
 hk sync [--exclude PATH]... [--reason TEXT] [--target PATH] [--json]
 hk sync --check [--target PATH] [--json]
-hk dangerously-skip sync --reason TEXT [--target PATH] [--json]
+hk dangerously-skip review|validation|sync --label NAME --reason TEXT --mitigation TEXT [--target PATH] [--json]
 hk ready [--target PATH] [--json]
+hk summary [--target PATH] [--json]
 hk handoff [--target PATH] [--format markdown|pr] [--write PATH] [--json]
 hk spec init|status|outline|promote
 hk profile list|show|create
@@ -374,7 +375,8 @@ hk profile list|show|create
 `hk start --plan` is the promoted way to cut a slice with the first lifecycle
 plan already recorded. `hk plan` remains the refinement command for already-active
 work. Slugs are short human-readable names; timestamped work IDs provide ordering.
-`hk status` is a preflight/next-action coach, while `hk ready` remains the final
+`hk status` is a preflight/next-action coach, `hk summary` is a concise
+human-readable readiness digest for PRs/review, and `hk ready` remains the final
 handoff gate.
 
 `hk decide` records a structured spec-impact mode. `none` means no product/docs
@@ -407,8 +409,8 @@ has a fresh-context review mechanism, the implementation agent should dispatch
 that prompt to it before handoff. Examples include Pi `subagent`, Claude Code
 `Agent`/legacy `Task`, and Codex via the Shell tool running
 `codex review --uncommitted`. Agents should re-run `hk status` after review because
-review tools may create agent-local state. If review is impossible, the agent must record `hk dangerously-skip review --reason ...`,
-which is auditable and renders in handoff. Future review-source config is
+review tools may create agent-local state. If review is impossible, the agent must record `hk dangerously-skip review --label NAME --reason TEXT --mitigation TEXT`,
+which is auditable and renders in summary and handoff. Future review-source config is
 deferred.
 
 Lower-level commands should not be equally promoted when a lifecycle command

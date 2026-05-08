@@ -77,6 +77,16 @@ def dangerous_skip_events(
     ]
 
 
+def dangerous_skip_message(check_id: str, skips: list[dict[str, object]]) -> str:
+    latest = skips[-1] if skips else {}
+    label = str(latest.get("label") or "unlabeled")
+    reason = str(latest.get("reason") or "")
+    mitigation = str(latest.get("mitigation") or "")
+    reason_text = f"; reason: {reason}" if reason else ""
+    mitigation_text = f"; mitigation: {mitigation}" if mitigation else ""
+    return f"{check_id} dangerously skipped: {label}{reason_text}{mitigation_text}"
+
+
 def ready_for_events(
     *,
     work_id: str,
@@ -116,7 +126,8 @@ def ready_for_events(
         has_decision and has_spec_reflection,
         "decision and spec reflection recorded",
     )
-    validation_skipped = bool(dangerous_skip_events(events, "validation"))
+    validation_skips = dangerous_skip_events(events, "validation")
+    validation_skipped = bool(validation_skips)
     passing_evidence_with_why = [
         record for record in evidence if record.why and record.status == "pass"
     ]
@@ -128,13 +139,14 @@ def ready_for_events(
         bool(passing_evidence_with_why) or validation_skipped,
         "validation evidence with rationale recorded"
         if passing_evidence_with_why
-        else "validation dangerously skipped"
+        else dangerous_skip_message("validation", validation_skips)
         if validation_skipped
         else "validation evidence with rationale failed"
         if failed_evidence_with_why
         else "missing validation evidence with --why",
     )
-    review_skipped = bool(dangerous_skip_events(events, "review"))
+    review_skips = dangerous_skip_events(events, "review")
+    review_skipped = bool(review_skips)
     reviews = accepted_review_events(events)
     recorded_reviews = review_events(events)
     add_check(
@@ -142,18 +154,19 @@ def ready_for_events(
         bool(reviews) or review_skipped,
         "external-enough review recorded"
         if reviews
-        else "review dangerously skipped"
+        else dangerous_skip_message("review", review_skips)
         if review_skipped
         else SELF_REVIEW_GUIDANCE
         if recorded_reviews
         else "missing accepted external-enough review record; run a separate reviewer/subagent with fresh context",
     )
+    sync_skips = dangerous_skip_events(events, "sync")
     sync_skipped = sync_status == "sync-dangerously-skipped"
     synced = sync_status == "synced" or sync_skipped
     sync_message = (
         "sync checkpoint fresh"
         if sync_status == "synced"
-        else "sync dangerously skipped"
+        else dangerous_skip_message("sync", sync_skips)
         if sync_skipped
         else "sync checkpoint stale"
     )

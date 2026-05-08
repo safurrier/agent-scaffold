@@ -79,8 +79,8 @@ app = App(
         "hk start <slug> --plan 'Adopted implementation intent'",
         "hk validate --why 'What this proves' -- <native command>",
         "hk status --target .",
-        "hk ready --target . && hk handoff --target .",
-        note="Run `hk instructions` for AGENTS.md guidance and `hk checks --target . --json` for validation hints.",
+        "hk ready --target . && hk summary --target .",
+        note="Run `hk instructions` for AGENTS.md guidance and `hk checks --target . --json` for validation hints. Use `hk status` for agent next actions and `hk summary` for a human-readable readiness digest.",
     ),
 )
 profile_app = App(
@@ -136,7 +136,7 @@ Start by resolving the repo/module workflow:
 {KIT_COMMAND} profile resolve --target . --json
 ```
 
-Use the repo or module that owns the work as `--target`. Profile flags are only for discovery commands such as `{KIT_COMMAND} profile`, `{KIT_COMMAND} checks`, and repo-scope `{KIT_COMMAND} instructions`; do not pass `--profile` or `--profiles-dir` to lifecycle commands unless that command's help shows those options. Then start work with `{KIT_COMMAND} start <slug> --plan "..."`, record validation with `{KIT_COMMAND} validate --why`, and follow `{KIT_COMMAND} status --target .`.
+Use the repo or module that owns the work as `--target`. Profile flags are only for discovery commands such as `{KIT_COMMAND} profile`, `{KIT_COMMAND} checks`, and repo-scope `{KIT_COMMAND} instructions`; do not pass `--profile` or `--profiles-dir` to lifecycle commands unless that command's help shows those options. Then start work with `{KIT_COMMAND} start <slug> --plan "..."`, record validation with `{KIT_COMMAND} validate --why`, and follow `{KIT_COMMAND} status --target .`. Use `{KIT_COMMAND} summary --target .` when a human-readable readiness digest is useful.
 
 If `{KIT_COMMAND}` is unavailable or you are unfamiliar with the workflow, read the Harness Kit agent adoption guide before proceeding:
 {AGENT_ADOPTION_URL}
@@ -166,6 +166,7 @@ Standard agent loop:
 {KIT_COMMAND} validate --why 'What this command proves' --target . -- <native command>
 {KIT_COMMAND} status --target . --json
 {KIT_COMMAND} ready --target . --json
+{KIT_COMMAND} summary --target .
 {KIT_COMMAND} handoff --target .
 ```
 
@@ -185,7 +186,7 @@ Follow `hk status` next actions when it asks for them:
 {KIT_COMMAND} sync --target . --json
 ```
 
-Important: `{KIT_COMMAND}` is shell-first. It may capture exact native command evidence via `validate`, but it must not hide validation behind `hk run`-style task-runner commands. Use profile/check guidance to choose native commands, then capture the selected command with `validate --why`. Only discovery commands such as `{KIT_COMMAND} checks`, `{KIT_COMMAND} profile`, and repo-scope `{KIT_COMMAND} instructions` use profile flags; do not pass `--profile` or `--profiles-dir` to lifecycle commands unless that command's help shows those options.
+Important: `{KIT_COMMAND}` is shell-first. It may capture exact native command evidence via `validate`, but it must not hide validation behind `hk run`-style task-runner commands. Use profile/check guidance to choose native commands, then capture the selected command with `validate --why`. Use `{KIT_COMMAND} status` for next actions and `{KIT_COMMAND} summary` for a human-readable readiness digest. Only discovery commands such as `{KIT_COMMAND} checks`, `{KIT_COMMAND} profile`, and repo-scope `{KIT_COMMAND} instructions` use profile flags; do not pass `--profile` or `--profiles-dir` to lifecycle commands unless that command's help shows those options.
 
 {profile.instructions}
 """
@@ -215,6 +216,7 @@ _PROFILE_FORBIDDEN_COMMANDS = {
     "spec",
     "start",
     "status",
+    "summary",
     "sync",
     "validate",
     "work",
@@ -1178,7 +1180,7 @@ def artifact_attach(
     help_epilogue=examples(
         "hk review add --backend subagent --reviewer fresh --rubric core --summary OK",
         "hk review add --backend codex --reviewer bug-hunter --rubric bugs --summary OK",
-        "hk dangerously-skip review --reason 'No reviewer available' --json",
+        "hk dangerously-skip review --label no-review --reason unavailable --mitigation follow-up --json",
         note=(
             "Review is required by default. Preferred: independent AI/tool reviewer.\n"
             "Minimum fallback: fresh-context subagent, e.g. reviewer-fresh-context.\n"
@@ -1203,7 +1205,7 @@ def review_add(
     Do not record your own implementation self-review. Review is required by
     default. Preferred review is an independent AI/tool reviewer, ideally a
     different model/runtime/context; a fresh-context subagent is the minimum
-    acceptable fallback. Otherwise use `hk dangerously-skip review --reason ...`.
+    acceptable fallback. Otherwise use `hk dangerously-skip review --label ... --reason ... --mitigation ...`.
     """
     try:
         result = lifecycle_app.add_review(
@@ -1333,15 +1335,17 @@ def ready_command(
     name="dangerously-skip",
     group=LIFECYCLE_GROUP,
     help_epilogue=examples(
-        "hk dangerously-skip review --reason 'Docs-only change' --json",
-        "hk dangerously-skip sync --reason 'Only agent-local state changed' --json",
+        "hk dangerously-skip validation --label docker-e2e --reason unavailable --mitigation CI-covers-it",
+        "hk dangerously-skip sync --label agent-state --reason local-only --mitigation no-source-change",
         note="Sync skips are tied to the current diff snapshot; run them as one of the final freshness actions.",
     ),
 )
 def ready_dangerously_skip(
     check: Literal["review", "validation", "sync"],
     *,
+    label: str,
     reason: str,
+    mitigation: str,
     target: Path = Path("."),
     no_local_files: bool = False,
     json: bool = False,
@@ -1353,7 +1357,9 @@ def ready_dangerously_skip(
                 target=target,
                 no_local_files=no_local_files,
                 check=check,
+                label=label,
                 reason=reason,
+                mitigation=mitigation,
             )
         )
     except LocalWorkflowError as e:
@@ -1363,7 +1369,36 @@ def ready_dangerously_skip(
         print(json_dump_dataclass(result))
         return
     print(f"dangerously-skipped={check}")
+    print(f"label={label}")
     print(f"reason={reason}")
+    print(f"mitigation={mitigation}")
+
+
+@app.command(
+    name="summary",
+    group=EVIDENCE_GROUP,
+    help_epilogue=examples(
+        "hk summary --target .",
+        "hk summary --target . --json",
+        note="Use `hk status` for agent next actions; use `hk summary` for a human-readable readiness digest suitable for PRs or review handoff.",
+    ),
+)
+def summary(
+    *,
+    target: Path = Path("."),
+    no_local_files: bool = False,
+    json: bool = False,
+) -> None:
+    """Render a concise human-readable readiness digest."""
+    try:
+        result = lifecycle_app.summary(TargetRequest(target, no_local_files))
+    except LocalWorkflowError as e:
+        print_error(str(e))
+        raise SystemExit(1) from e
+    if json:
+        print(json_dump_dataclass(result))
+        return
+    print(result.content, end="")
 
 
 @app.command(

@@ -122,8 +122,9 @@ hk artifact attach --path <file> --kind <kind> --label "TEXT" --target <repo-or-
 hk sync --exclude <path> --reason "TEXT" --target <repo-or-module> --json
 hk sync --target <repo-or-module> --json
 hk sync --check --target <repo-or-module> --json
-hk dangerously-skip sync --reason "TEXT" --target <repo-or-module> --json
+hk dangerously-skip review|validation|sync --label <name> --reason "TEXT" --mitigation "TEXT" --target <repo-or-module> --json
 hk ready --target <repo-or-module> --json
+hk summary --target <repo-or-module> --json
 hk handoff --target <repo-or-module> --format markdown|pr [--json]
 hk export --target <repo-or-module> --format handoff --json
 hk spec init|status|outline|promote --target <repo-or-module> --json
@@ -132,7 +133,10 @@ hk spec init|status|outline|promote --target <repo-or-module> --json
 Slugs are short human-readable task names; chronological ordering comes from
 HK-generated timestamped work IDs. `hk start --plan` starts work and records the
 first lifecycle plan event; `hk plan` records or refines lifecycle plan text for
-already-active Harness Kit work. Spec impact uses explicit modes (`none`, `updated`, or
+already-active Harness Kit work, including progressive planning when the detailed
+implementation shape emerges after work starts. `hk status` is the agent
+next-action view; `hk summary` is the concise human-readable readiness digest;
+`hk handoff` is the longer transfer artifact. Spec impact uses explicit modes (`none`, `updated`, or
 `not-needed`) plus optional `--spec-ref` file references. Review is required by
 default. Preferred review comes from an independent AI/tool reviewer, ideally a
 different model, runtime, or context. A fresh-context subagent is the minimum
@@ -143,7 +147,8 @@ Code `Agent`/legacy `Task`, and Codex via the Shell tool running
 `codex review --uncommitted`. Agents should re-run `hk status` after review
 because review tools may create agent-local state. If no independent AI/tool
 or fresh-context review is available, the
-agent must use an explicit dangerous review skip. If sync freshness is stale only because of
+agent must use an explicit dangerous review skip with a label, reason, and
+mitigation. If sync freshness is stale only because of
 understood untracked local-only state, the agent should prefer a constrained
 `hk sync --exclude PATH --reason ...`; exclusions are recorded and revalidated
 rather than limited to a hardcoded `.pi`/`.claude` allowlist, while root,
