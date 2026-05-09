@@ -23,6 +23,8 @@ description: >
 - `hk validate --target . --check generated-stack-smoke --why "Template change is limited to the generated harness-kit-profile-authoring skill; validate the skill package structure instead of running full stack smoke." -- python3 .../quick_validate.py templates/.agent/skills/harness-kit-profile-authoring` — pass.
 - `uv run pytest tests/unit/test_portable_workflow.py tests/unit/test_profile_package_boundaries.py -q` — pass, 33 tests after final CLI help/error updates.
 - `hk validate --target . --check fast-gate --why "Final full repository quality gate after plan metadata and review-driven fixes." -- mise run check` — pass, 847 tests.
+- `uv run pytest tests/unit/test_portable_workflow.py tests/unit/test_profile_package_boundaries.py -q` — pass, 33 tests after addressing Codex review suggestions.
+- `hk validate --target . --check fast-gate --why "Full quality gate after addressing Codex review docs/help/hint findings." -- mise run check` — pass, 847 tests.
 
 ## Evidence
 
@@ -32,3 +34,4 @@ description: >
 - HK evidence: `ev_20260509_092708_314894` (`mise run sync-check -- --plan-dir ...`, pass).
 - HK evidence: `ev_20260509_092723_720074` (profile-authoring skill validation, pass).
 - HK evidence: `ev_20260509_092819_344648` (final `mise run check`, pass).
+- HK evidence: `ev_20260509_130345_144543` (`mise run check` after Codex review fixes, pass).

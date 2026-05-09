@@ -11,7 +11,7 @@ instructions supersede it.
 Start by printing current agent instructions:
 
 ```bash
-hk instructions --profile generic --json
+hk instructions --scope user --json
 ```
 
 Then choose target and profile:
@@ -94,7 +94,7 @@ If the current session is not already familiar with the `hk` workflow, it MUST:
 
 1. Print the current instructions:
    ```bash
-   hk instructions --profile generic --json
+   hk instructions --scope user --json
    ```
 2. Read the local Harness Kit workflow reference if one is available.
 

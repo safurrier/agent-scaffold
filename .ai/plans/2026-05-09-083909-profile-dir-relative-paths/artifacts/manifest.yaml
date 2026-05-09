@@ -2,3 +2,6 @@ artifacts:
   - type: report
     path: artifacts/review-summary.md
     note: Fresh-context review findings and final acceptance
+  - type: report
+    path: artifacts/codex-review.md
+    note: Codex multi-agent PR review and follow-up suggestions

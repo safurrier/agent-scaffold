@@ -290,7 +290,8 @@ def _preflight_agent_friendly_errors(argv: list[str]) -> None:
         "hk instructions",
         "hk instructions --scope user --json",
         "hk instructions --scope repo --profile python",
-        "hk instructions --scope repo --profile api --profiles-dir ./profiles --json",
+        "hk instructions --scope repo --profile api --profiles-dir /tmp/ad-hoc-profiles --json",
+        note="Configured profile directories from harness.toml load automatically; use --profiles-dir only for ad hoc repo snippets.",
     ),
 )
 def instructions(
@@ -312,7 +313,8 @@ def instructions(
         Workflow profile to include in the repo snippet. Defaults to `generic`
         for repo snippets.
     profiles_dir
-        Optional directory of custom profile TOML files.
+        Optional ad hoc directory of custom profile TOML files for repo snippets.
+        Directories declared in harness.toml load automatically.
     json
         Print machine-readable JSON with the snippet in `agents_md`.
     """
@@ -399,6 +401,8 @@ def profile_list(
     help_epilogue=examples(
         "hk profile resolve --target . --json",
         "HARNESS_KIT_CONFIG=/tmp/h.toml hk profile resolve --target .",
+        "hk profile resolve --target . --profiles-dir /tmp/ad-hoc-profiles --json",
+        note="Configured profile directories from harness.toml load automatically; use --profiles-dir only for ad hoc catalogs.",
     ),
 )
 def profile_resolve(
@@ -411,6 +415,8 @@ def profile_resolve(
 
     Resolution is explicit, not heuristic: user config target bindings are matched
     by longest path prefix, then default_profile/generic fallback applies.
+    Configured profile directories from harness.toml load automatically;
+    --profiles-dir is only for ad hoc catalogs.
     """
     try:
         catalog = resolve_catalog(profiles_dir)

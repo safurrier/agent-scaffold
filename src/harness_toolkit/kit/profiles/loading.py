@@ -20,13 +20,22 @@ from harness_toolkit.kit.profiles.models import (
 from harness_toolkit.kit.profiles.parser import load_profile_file
 
 
+def _missing_profiles_dir_hint(profiles_dir: Path, *, source: str) -> str:
+    if source == "--profiles-dir":
+        return f"Try: mkdir -p {profiles_dir} or pass a different --profiles-dir"
+    return (
+        f"Try: mkdir -p {profiles_dir} or fix/remove the profiles_dir / "
+        "profiles_dirs setting"
+    )
+
+
 def load_profiles_dir(
     profiles_dir: Path, *, source: str = "--profiles-dir"
 ) -> dict[str, LoadedProfile]:
     if not profiles_dir.exists():
         raise ProfileError(
             f"profiles directory does not exist: {profiles_dir} ({source})\n"
-            f"Try: mkdir -p {profiles_dir} or fix/remove the profiles_dir setting"
+            f"{_missing_profiles_dir_hint(profiles_dir, source=source)}"
         )
     if not profiles_dir.is_dir():
         raise ProfileError(
