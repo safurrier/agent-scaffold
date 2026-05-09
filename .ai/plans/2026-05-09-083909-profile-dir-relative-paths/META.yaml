@@ -1,0 +1,18 @@
+slug: profile-dir-relative-paths
+branch: feat/profile-dir-relative-paths
+created: 2026-05-09
+pr:
+status: complete
+source: user_request
+contract_change: contract_changed
+decision_record: none
+review_mode: external_required
+review_backend: pi-subagents
+review_rubrics:
+  - core-quality
+  - agent-facing-cli
+evidence_required:
+  - commands
+  - report
+continues_from:
+supersedes:

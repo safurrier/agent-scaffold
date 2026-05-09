@@ -185,12 +185,14 @@ For cross-repo use, HK can load a user-level config from:
 2. `$XDG_CONFIG_HOME/harness-toolkit/harness.toml`
 3. `~/.config/harness-toolkit/harness.toml`
 
-The config is explicit routing plus inline profile guidance. It does not auto-run
-checks and does not silently ignore sync paths.
+The config is explicit routing plus inline or directory-backed profile guidance.
+It does not auto-run checks and does not silently ignore sync paths.
 
 ```toml
 version = 1
 default_profile = "generic"
+# Optional: load standalone profile TOML files relative to this config file.
+profiles_dir = "profiles"
 
 [[targets]]
 name = "foreman"
@@ -236,8 +238,14 @@ reviews with `hk review add --review NAME ...`. If the required item is genuinel
 impossible, record an auditable skip whose `--label` matches the check or review
 name.
 
-Path rules use gitignore-style patterns evaluated against repo-root-relative
-changed paths. Important examples:
+Path rules use gitignore-style patterns. Patterns are evaluated against the
+repo-root-relative changed path and, when `--target` points at a subdirectory,
+against the changed path relative to that target. This lets a module profile use
+natural target-relative rules such as `cap/**` while still accepting explicit
+repo-root rules such as `discord_cap/cap/**`. Matched paths in output remain
+repo-root-relative so evidence and review prompts line up with Git.
+
+Important examples:
 
 - `*.md` matches Markdown files at any depth, including `docs/guide.md`.
 - `/*.md` matches Markdown files only at the repo root.
@@ -338,7 +346,23 @@ custom profile like `my-project-api` exists. A Rust repo or crate with `.mise.to
 naming mise gates should choose `rust-mise` unless an exact module/repo profile
 exists.
 
-Custom profiles are explicit TOML files loaded with `--profiles-dir`:
+Custom profiles can be loaded either by declaring a profile directory in
+`harness.toml`:
+
+```toml
+profiles_dir = "profiles"
+# or, for more than one catalog:
+profiles_dirs = ["profiles", "team-profiles"]
+```
+
+Paths are resolved relative to `harness.toml` unless they are absolute. HK loads
+built-ins first, then inline `[profiles.<name>]`, then config-declared profile
+directories, then an explicit CLI `--profiles-dir` when one is provided; later
+sources override earlier profiles with the same name. This means a compact
+`harness.toml` can keep only target bindings while profile bodies live in
+separate files.
+
+Custom profiles can also be loaded ad hoc with `--profiles-dir`:
 
 ```bash
 hk profile create my-project-api \
@@ -374,8 +398,9 @@ Harness Kit lifecycle commands accept:
 - `--no-local-files` — use external state instead of checkout-local ignored files
   for commands that write lifecycle state
 
-Commands that need custom profiles accept `--profiles-dir`; this keeps profile
-catalogs explicit and avoids hidden repo-local adoption.
+Commands that need custom profiles load directories declared in user
+`harness.toml`; they also accept `--profiles-dir` for ad hoc catalogs. This keeps
+profile catalogs explicit and avoids hidden repo-local adoption.
 
 Agent-friendly properties in the current spike:
 

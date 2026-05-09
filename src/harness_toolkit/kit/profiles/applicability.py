@@ -39,23 +39,75 @@ def _matches_pattern(path: str, pattern: str) -> bool:
     return bool(spec.match_file(clean_path))
 
 
+def _target_prefix(target: Path | None, repo_root: Path | None) -> str:
+    if target is None or repo_root is None:
+        return ""
+    try:
+        relative = target.resolve(strict=False).relative_to(
+            repo_root.resolve(strict=False)
+        )
+    except ValueError:
+        return ""
+    return _normalize_changed_path(relative.as_posix())
+
+
+def _candidate_paths(clean_path: str, *, target_prefix: str = "") -> tuple[str, ...]:
+    candidates = [clean_path]
+    if target_prefix:
+        if clean_path == target_prefix:
+            target_relative = ""
+        elif clean_path.startswith(f"{target_prefix}/"):
+            target_relative = clean_path[len(target_prefix) + 1 :]
+        else:
+            target_relative = ""
+        if target_relative:
+            candidates.append(target_relative)
+    return tuple(dict.fromkeys(candidates))
+
+
+def _pattern_matches_candidates(pattern: str, candidates: tuple[str, ...]) -> bool:
+    if not pattern:
+        return False
+    spec = PathSpec.from_lines("gitignore", [pattern])
+    return any(spec.match_file(candidate) for candidate in candidates)
+
+
 def _matched_paths(
-    patterns: tuple[str, ...], changed_paths: tuple[str, ...]
+    patterns: tuple[str, ...],
+    changed_paths: tuple[str, ...],
+    *,
+    target: Path | None = None,
+    repo_root: Path | None = None,
 ) -> tuple[str, ...]:
     clean_patterns = tuple(_normalize_pattern(pattern) for pattern in patterns)
     if not clean_patterns:
         return ()
-    spec = PathSpec.from_lines("gitignore", clean_patterns)
+    target_prefix = _target_prefix(target, repo_root)
     matches: list[str] = []
     for path in changed_paths:
         clean_path = _normalize_changed_path(path)
-        if clean_path and spec.match_file(clean_path):
+        if not clean_path:
+            continue
+        candidates = _candidate_paths(clean_path, target_prefix=target_prefix)
+        included = False
+        for pattern in clean_patterns:
+            if pattern.startswith("!"):
+                if _pattern_matches_candidates(pattern[1:], candidates):
+                    included = False
+            elif _pattern_matches_candidates(pattern, candidates):
+                included = True
+        if included:
             matches.append(clean_path)
     return tuple(dict.fromkeys(matches))
 
 
 def _check_suggestions(
-    profile: WorkflowProfile, changed_paths: tuple[str, ...], *, enforce_required: bool
+    profile: WorkflowProfile,
+    changed_paths: tuple[str, ...],
+    *,
+    enforce_required: bool,
+    target: Path,
+    repo_root: Path,
 ) -> tuple[ProfileSuggestion, ...]:
     suggestions: list[ProfileSuggestion] = []
     for check in profile.checks:
@@ -63,8 +115,12 @@ def _check_suggestions(
             f"hk validate --check {shlex.quote(check.name)} "
             "--why '...' -- <native command>"
         )
-        required_matches = _matched_paths(check.required_when, changed_paths)
-        applies_matches = _matched_paths(check.applies_when, changed_paths)
+        required_matches = _matched_paths(
+            check.required_when, changed_paths, target=target, repo_root=repo_root
+        )
+        applies_matches = _matched_paths(
+            check.applies_when, changed_paths, target=target, repo_root=repo_root
+        )
         if required_matches:
             suggestions.append(
                 ProfileSuggestion(
@@ -97,6 +153,7 @@ def _review_suggestions(
     *,
     enforce_required: bool,
     target: Path,
+    repo_root: Path,
 ) -> tuple[ProfileSuggestion, ...]:
     suggestions: list[ProfileSuggestion] = []
     for review in profile.reviews:
@@ -105,8 +162,12 @@ def _review_suggestions(
             f"--target {shlex.quote(str(target))}"
         )
         record_command = f"hk review add --review {shlex.quote(review.name)} ..."
-        required_matches = _matched_paths(review.required_when, changed_paths)
-        applies_matches = _matched_paths(review.applies_when, changed_paths)
+        required_matches = _matched_paths(
+            review.required_when, changed_paths, target=target, repo_root=repo_root
+        )
+        applies_matches = _matched_paths(
+            review.applies_when, changed_paths, target=target, repo_root=repo_root
+        )
         if required_matches:
             suggestions.append(
                 ProfileSuggestion(
@@ -163,12 +224,17 @@ def checks_view(
         ),
         changed_paths=normalized_changed_paths,
         suggested_checks=_check_suggestions(
-            profile, normalized_changed_paths, enforce_required=enforce_required
+            profile,
+            normalized_changed_paths,
+            enforce_required=enforce_required,
+            target=target,
+            repo_root=repo_root,
         ),
         suggested_reviews=_review_suggestions(
             profile,
             normalized_changed_paths,
             enforce_required=enforce_required,
             target=target,
+            repo_root=repo_root,
         ),
     )

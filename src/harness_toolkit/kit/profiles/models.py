@@ -86,6 +86,7 @@ class HarnessConfig:
     path: str
     default_profile: ProfileName
     targets: tuple[TargetBinding, ...]
+    profiles_dirs: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

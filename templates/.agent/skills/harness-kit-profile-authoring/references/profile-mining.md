@@ -112,9 +112,13 @@ notes = ["This checks recorded evidence; it does not rerun validation."]
   or task runners define recurring checks for more than one stack.
 - Prefer `prompt_file` for non-trivial review instructions; keep TOML concise.
 - Use `applies_when` for suggestions and `required_when` only for checks/reviews
-  that readiness should require when matching files change.
-- For custom profiles, include `--profiles-dir <profiles-dir>` in discovery
-  commands; lifecycle commands resolve user config and do not accept profile flags.
+  that readiness should require when matching files change. Path rules may be
+  repo-root-relative or relative to the selected `--target`; HK reports matched
+  paths as repo-root-relative.
+- For custom profiles, prefer declaring `profiles_dir = "profiles"` or
+  `profiles_dirs = [...]` in `harness.toml` so normal discovery commands load
+  them. Use `--profiles-dir <profiles-dir>` only for ad hoc catalogs; lifecycle
+  commands resolve user config and do not accept profile flags.
 - Do not silently create profiles. Ask before writing the TOML file.
 - If the user declines profile creation, continue with the closest built-in
   profile and note the limitation once.

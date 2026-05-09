@@ -11,8 +11,9 @@ not, to propose a custom profile for user approval.
 
 ## Quickstart
 
-1. Discover available profiles. Include the explicit custom catalog when the
-   user or environment has one:
+1. Discover available profiles. Start with default config; only pass
+   `--profiles-dir` for an ad hoc catalog that is not already declared by
+   `harness.toml`:
    ```bash
    hk profile list --target <repo-or-module> --json
    hk profile list --target <repo-or-module> --profiles-dir ~/.config/harness-toolkit/profiles --json
@@ -36,6 +37,9 @@ not, to propose a custom profile for user approval.
    ```text
    ~/.config/harness-toolkit/profiles/<name>.toml
    ```
+   If the user's `harness.toml` declares `profiles_dir = "profiles"` or
+   `profiles_dirs = [...]`, normal `hk profile` / `hk checks` commands load those
+   files without needing `--profiles-dir`.
 
 ## Profile Mining Sources
 
@@ -66,6 +70,8 @@ non-trivial.
   collapsing everything into a single built-in language profile.
 - Use stable profile names such as `<repo>-root` or `<repo>-<module>`.
 - Do not write `~/.config/harness-toolkit/profiles/*.toml` without user approval.
+- `applies_when` and `required_when` may use repo-root-relative paths or paths
+  relative to the chosen `--target`; HK reports matched paths as repo-root-relative.
 - Do not overwrite an existing profile unless the user explicitly approves the
   overwrite after seeing the existing path.
 

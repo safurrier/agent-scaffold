@@ -20,6 +20,35 @@ from harness_toolkit.kit.profiles.models import (
 from harness_toolkit.kit.profiles.parser import load_profile_file
 
 
+def _missing_profiles_dir_hint(profiles_dir: Path, *, source: str) -> str:
+    if source == "--profiles-dir":
+        return f"Try: mkdir -p {profiles_dir} or pass a different --profiles-dir"
+    return (
+        f"Try: mkdir -p {profiles_dir} or fix/remove the profiles_dir / "
+        "profiles_dirs setting"
+    )
+
+
+def load_profiles_dir(
+    profiles_dir: Path, *, source: str = "--profiles-dir"
+) -> dict[str, LoadedProfile]:
+    if not profiles_dir.exists():
+        raise ProfileError(
+            f"profiles directory does not exist: {profiles_dir} ({source})\n"
+            f"{_missing_profiles_dir_hint(profiles_dir, source=source)}"
+        )
+    if not profiles_dir.is_dir():
+        raise ProfileError(
+            f"profiles path is not a directory: {profiles_dir} ({source})"
+        )
+
+    loaded_profiles: dict[str, LoadedProfile] = {}
+    for path in sorted(profiles_dir.glob("*.toml")):
+        loaded = load_profile_file(path)
+        loaded_profiles[loaded.profile.name] = loaded
+    return loaded_profiles
+
+
 def load_profile_catalog(
     profiles_dir: Path | None = None,
 ) -> tuple[dict[str, LoadedProfile], HarnessConfig | None]:
@@ -27,16 +56,15 @@ def load_profile_catalog(
     config = load_harness_config(default_config_path())
     if config is not None:
         catalog.update(load_config_profiles(Path(config.path)))
+        for configured_dir in config.profiles_dirs:
+            catalog.update(
+                load_profiles_dir(
+                    Path(configured_dir), source=f"configured in {config.path}"
+                )
+            )
 
     if profiles_dir is not None:
-        if not profiles_dir.exists():
-            raise ProfileError(f"profiles directory does not exist: {profiles_dir}")
-        if not profiles_dir.is_dir():
-            raise ProfileError(f"profiles path is not a directory: {profiles_dir}")
-
-        for path in sorted(profiles_dir.glob("*.toml")):
-            loaded = load_profile_file(path)
-            catalog[loaded.profile.name] = loaded
+        catalog.update(load_profiles_dir(profiles_dir))
     return catalog, config
 
 

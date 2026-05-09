@@ -272,6 +272,28 @@ def test_profile_applicability_supports_gitignore_negation() -> None:
     ) == ("src/demo/cli.py",)
 
 
+def test_profile_applicability_negation_can_mix_root_and_target_relative_paths() -> (
+    None
+):
+    from harness_toolkit.kit.profiles import _matched_paths
+
+    target = Path("/tmp/repo/discord_cap")
+    repo_root = Path("/tmp/repo")
+
+    assert _matched_paths(
+        ("discord_cap/cap/**", "!cap/generated/**"),
+        ("discord_cap/cap/generated/bot.py", "discord_cap/cap/bot.py"),
+        target=target,
+        repo_root=repo_root,
+    ) == ("discord_cap/cap/bot.py",)
+    assert _matched_paths(
+        ("cap/**", "!discord_cap/cap/generated/**"),
+        ("discord_cap/cap/generated/bot.py", "discord_cap/cap/bot.py"),
+        target=target,
+        repo_root=repo_root,
+    ) == ("discord_cap/cap/bot.py",)
+
+
 def test_checks_changed_suggests_applicable_profile_items(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -356,6 +378,219 @@ def test_named_profile_review_prompt_uses_prompt_file(
     assert "Review CLI changes for non-interactive defaults" in result.stdout
     assert "hk review add --review agent-friendly-cli-review" in result.stdout
     assert "src/harness_toolkit/kit/cli.py" in result.stdout
+
+
+def test_user_harness_config_loads_profiles_dir(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+    profiles_dir = tmp_path / "profiles"
+    profiles_dir.mkdir()
+    (profiles_dir / "repo-profile.toml").write_text(
+        f"""
+name = "repo-profile"
+title = "Repo Profile"
+summary = "Profile loaded from a configured directory."
+target_hint = "Use --target {repo}."
+instructions = "Run native commands and record HK evidence."
+
+[[checks]]
+name = "unit-tests"
+purpose = "Run unit tests."
+command_template = "pytest -q"
+run_from = "repo-root"
+""".lstrip()
+    )
+    config = tmp_path / "harness.toml"
+    config.write_text(
+        f'''
+version = 1
+profiles_dir = "profiles"
+
+[[targets]]
+name = "repo"
+path = "{repo}"
+profile = "repo-profile"
+'''.lstrip()
+    )
+    monkeypatch.setenv("HARNESS_KIT_CONFIG", str(config))
+
+    resolved = _run_workflow("profile", "resolve", "--target", str(repo), "--json")
+    checks = _run_workflow("checks", "--target", str(repo), "--json")
+
+    assert resolved.returncode == 0, resolved.stderr
+    assert json.loads(resolved.stdout)["profile"] == "repo-profile"
+    assert checks.returncode == 0, checks.stderr
+    payload = json.loads(checks.stdout)
+    assert payload["profile"] == "repo-profile"
+    assert payload["checks"][0]["command_template"] == "pytest -q"
+
+
+def test_configured_profiles_dir_errors_are_actionable_but_create_still_works(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+    missing = tmp_path / "missing-profiles"
+    config = tmp_path / "harness.toml"
+    config.write_text(
+        f'''
+version = 1
+profiles_dir = "{missing}"
+'''.lstrip()
+    )
+    monkeypatch.setenv("HARNESS_KIT_CONFIG", str(config))
+
+    listed = _run_workflow("profile", "list", "--json")
+    created = _run_workflow(
+        "profile",
+        "create",
+        "demo-profile",
+        "--target",
+        str(repo),
+        "--stdout",
+    )
+
+    assert listed.returncode == 1
+    assert "profiles directory does not exist" in listed.stderr
+    assert f"configured in {config}" in listed.stderr
+    assert "Try: mkdir -p" in listed.stderr
+    assert created.returncode == 0, created.stderr
+    assert 'name = "demo-profile"' in created.stdout
+
+
+def test_configured_profiles_dirs_and_cli_profiles_dir_precedence(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+    config_dir = tmp_path / "config-profiles"
+    cli_dir = tmp_path / "cli-profiles"
+    config_dir.mkdir()
+    cli_dir.mkdir()
+    profile_template_text = """
+name = "repo-profile"
+title = "Repo Profile"
+summary = "Profile loaded from {source}."
+target_hint = "Use --target {repo}."
+instructions = "Run native commands and record HK evidence."
+
+[[checks]]
+name = "unit-tests"
+purpose = "Run unit tests."
+command_template = "{command}"
+run_from = "repo-root"
+"""
+    (config_dir / "repo-profile.toml").write_text(
+        profile_template_text.format(
+            source="configured dir", repo=repo, command="pytest from-config-dir"
+        ).lstrip()
+    )
+    (cli_dir / "repo-profile.toml").write_text(
+        profile_template_text.format(
+            source="cli dir", repo=repo, command="pytest from-cli-dir"
+        ).lstrip()
+    )
+    config = tmp_path / "harness.toml"
+    config.write_text(
+        f'''
+version = 1
+profiles_dirs = ["{config_dir}"]
+
+[[targets]]
+name = "repo"
+path = "{repo}"
+profile = "repo-profile"
+
+[profiles.repo-profile]
+title = "Inline Repo Profile"
+summary = "Inline profile."
+target_hint = "Use --target {repo}."
+instructions = "Run native commands and record HK evidence."
+
+[[profiles.repo-profile.checks]]
+name = "unit-tests"
+purpose = "Run unit tests."
+command_template = "pytest from-inline"
+run_from = "repo-root"
+'''.lstrip()
+    )
+    monkeypatch.setenv("HARNESS_KIT_CONFIG", str(config))
+
+    configured = _run_workflow("checks", "--target", str(repo), "--json")
+    ad_hoc = _run_workflow(
+        "checks",
+        "--target",
+        str(repo),
+        "--profiles-dir",
+        str(cli_dir),
+        "--json",
+    )
+
+    assert configured.returncode == 0, configured.stderr
+    assert json.loads(configured.stdout)["checks"][0]["command_template"] == (
+        "pytest from-config-dir"
+    )
+    assert ad_hoc.returncode == 0, ad_hoc.stderr
+    assert json.loads(ad_hoc.stdout)["checks"][0]["command_template"] == (
+        "pytest from-cli-dir"
+    )
+
+
+def test_changed_path_rules_accept_target_relative_patterns(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "monorepo"
+    repo.mkdir()
+    _git_init(repo)
+    target = repo / "discord_cap"
+    (target / "cap").mkdir(parents=True)
+    (target / "cap" / "bot.py").write_text("print('changed')\n")
+    config = tmp_path / "harness.toml"
+    config.write_text(
+        f'''
+version = 1
+
+[[targets]]
+name = "cap"
+path = "{target}"
+profile = "cap-profile"
+
+[profiles.cap-profile]
+title = "Cap"
+summary = "Subdirectory target profile."
+target_hint = "Use --target {target}."
+instructions = "Run target checks."
+
+[[profiles.cap-profile.checks]]
+name = "target-relative"
+purpose = "Check target-relative changed path matching."
+command_template = "uv run pytest"
+run_from = "target"
+required_when = ["cap/**"]
+
+[[profiles.cap-profile.reviews]]
+name = "target-relative-review"
+purpose = "Review target-relative changed path matching."
+backend = "fresh-context-subagent"
+rubric = "target-relative"
+applies_when = ["cap/**"]
+'''.lstrip()
+    )
+    monkeypatch.setenv("HARNESS_KIT_CONFIG", str(config))
+
+    result = _run_workflow("checks", "--target", str(target), "--changed", "--json")
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["changed_paths"] == ["discord_cap/cap/bot.py"]
+    assert payload["suggested_checks"][0]["name"] == "target-relative"
+    assert payload["suggested_checks"][0]["matched_paths"] == ["discord_cap/cap/bot.py"]
+    assert payload["suggested_reviews"][0]["name"] == "target-relative-review"
 
 
 def test_ready_requires_matching_profile_check_and_review(

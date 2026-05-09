@@ -43,6 +43,7 @@ from harness_toolkit.kit.profiles import (
     ProfileError,
     ProfileName,
     checks_to_json,
+    profile_template,
     resolution_to_json,
 )
 from harness_toolkit.kit.state.repo import RepoStateError, git_root
@@ -289,7 +290,8 @@ def _preflight_agent_friendly_errors(argv: list[str]) -> None:
         "hk instructions",
         "hk instructions --scope user --json",
         "hk instructions --scope repo --profile python",
-        "hk instructions --scope repo --profile api --profiles-dir ./profiles --json",
+        "hk instructions --scope repo --profile api --profiles-dir /tmp/ad-hoc-profiles --json",
+        note="Configured profile directories from harness.toml load automatically; use --profiles-dir only for ad hoc repo snippets.",
     ),
 )
 def instructions(
@@ -311,7 +313,8 @@ def instructions(
         Workflow profile to include in the repo snippet. Defaults to `generic`
         for repo snippets.
     profiles_dir
-        Optional directory of custom profile TOML files.
+        Optional ad hoc directory of custom profile TOML files for repo snippets.
+        Directories declared in harness.toml load automatically.
     json
         Print machine-readable JSON with the snippet in `agents_md`.
     """
@@ -345,7 +348,8 @@ def instructions(
     help_epilogue=examples(
         "hk profile list",
         "hk profile list --target /work/repo --json",
-        "hk profile list --profiles-dir ~/.config/harness-toolkit/profiles --json",
+        "hk profile list --profiles-dir /tmp/ad-hoc-profiles --json",
+        note="Configured profile directories from harness.toml load automatically; use --profiles-dir only for ad hoc catalogs.",
     ),
 )
 def profile_list(
@@ -362,7 +366,8 @@ def profile_list(
         Target repository or scoped path. Included in output for the agent's
         own profile-selection pass; profiles are not auto-ranked.
     profiles_dir
-        Optional directory of custom profile TOML files.
+        Optional ad hoc directory of custom profile TOML files. Directories
+        declared in harness.toml load automatically.
     json
         Print machine-readable JSON.
     """
@@ -396,6 +401,8 @@ def profile_list(
     help_epilogue=examples(
         "hk profile resolve --target . --json",
         "HARNESS_KIT_CONFIG=/tmp/h.toml hk profile resolve --target .",
+        "hk profile resolve --target . --profiles-dir /tmp/ad-hoc-profiles --json",
+        note="Configured profile directories from harness.toml load automatically; use --profiles-dir only for ad hoc catalogs.",
     ),
 )
 def profile_resolve(
@@ -408,6 +415,8 @@ def profile_resolve(
 
     Resolution is explicit, not heuristic: user config target bindings are matched
     by longest path prefix, then default_profile/generic fallback applies.
+    Configured profile directories from harness.toml load automatically;
+    --profiles-dir is only for ad hoc catalogs.
     """
     try:
         catalog = resolve_catalog(profiles_dir)
@@ -431,7 +440,9 @@ def profile_resolve(
     name="show",
     help_epilogue=examples(
         "hk profile show python",
-        "hk profile show api --profiles-dir ./profiles --json",
+        "hk profile show api --json",
+        "hk profile show api --profiles-dir /tmp/ad-hoc-profiles --json",
+        note="Configured profile directories from harness.toml load automatically; use --profiles-dir only for ad hoc catalogs.",
     ),
 )
 def profile_show(
@@ -447,7 +458,8 @@ def profile_show(
     name
         Profile name.
     profiles_dir
-        Optional directory of custom profile TOML files.
+        Optional ad hoc directory of custom profile TOML files. Directories
+        declared in harness.toml load automatically.
     json
         Print machine-readable JSON.
     """
@@ -530,7 +542,7 @@ def profile_create(
         Print machine-readable result metadata when writing a file.
     """
     try:
-        content = ProfileCatalog.load().template(name, target=target, preset=preset)
+        content = profile_template(name, target=target, preset=preset)
     except ProfileError as e:
         print_error(str(e))
         raise SystemExit(1) from e
@@ -574,7 +586,10 @@ def profile_create(
     print()
     print("Next:")
     print("  1. Edit TODOs and confirm commands.")
-    print("  2. Run:")
+    print("  2. If this directory is declared in harness.toml, run:")
+    print(f"     hk profile show {name} --json")
+    print(f"     hk checks --target {target} --profile {name} --json")
+    print("  3. Otherwise inspect it as an ad hoc catalog:")
     print(f"     hk profile show {name} --profiles-dir {destination.parent} --json")
     print(
         f"     hk checks --target {target} --profile {name} --profiles-dir {destination.parent} --json"
@@ -586,7 +601,9 @@ def profile_create(
     help_epilogue=examples(
         "hk checks --target /work/my-python-package --json",
         "hk checks --target . --changed --json",
-        "hk checks --profile api --profiles-dir ./profiles --target api --json",
+        "hk checks --profile api --target api --json",
+        "hk checks --profile api --profiles-dir /tmp/ad-hoc-profiles --target api --json",
+        note="Path rules match repo-root paths and, for subdirectory targets, target-relative paths; output stays repo-root-relative. Configured profile directories from harness.toml load automatically.",
     ),
 )
 def checks(
@@ -607,9 +624,12 @@ def checks(
     target
         Target repository or scoped path. Used to resolve repo-root guidance.
     profiles_dir
-        Optional directory of custom profile TOML files.
+        Optional ad hoc directory of custom profile TOML files. Directories
+        declared in harness.toml load automatically.
     changed
-        Include diff-based suggestions using profile applies_when/required_when rules.
+        Include diff-based suggestions using profile applies_when/required_when
+        rules. Rules match repo-root paths and, for subdirectory targets,
+        target-relative paths; matched output stays repo-root-relative.
     json
         Print machine-readable JSON.
     """

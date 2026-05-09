@@ -22,6 +22,7 @@ from harness_toolkit.kit.profiles.loading import (
     get_loaded_profile,
     get_profile,
     load_profile_catalog,
+    load_profiles_dir,
     profile_names,
 )
 from harness_toolkit.kit.profiles.models import (
@@ -88,6 +89,7 @@ __all__ = [
     "load_harness_config",
     "load_profile_catalog",
     "load_profile_file",
+    "load_profiles_dir",
     "normalize_config_path",
     "parse_profile_data",
     "profile_names",
