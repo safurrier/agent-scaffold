@@ -17,15 +17,17 @@ hk instructions --profile generic --json
 Then choose target and profile:
 
 ```bash
-hk profile list --target <repo-or-module> --profiles-dir ~/.config/harness-toolkit/profiles --json
+hk profile list --target <repo-or-module> --json
 hk start <slug> --plan 'Adopted implementation intent' --target <repo-or-module> --json
 hk status --target <repo-or-module> --json
-hk checks --target <repo-or-module> --profile <profile> --profiles-dir ~/.config/harness-toolkit/profiles --json
+hk checks --target <repo-or-module> --profile <profile> --json
 hk sync --target <repo-or-module> --json
 hk ready --target <repo-or-module> --json
 ```
 
-Omit `--profiles-dir` only when intentionally using built-in profiles only.
+Only pass `--profiles-dir` for an ad hoc catalog not already declared by user
+config. User-level `harness.toml` can declare `profiles_dir = "profiles"` or
+`profiles_dirs = [...]` so standalone profile files load by default.
 
 ## Rules
 
@@ -33,9 +35,11 @@ Omit `--profiles-dir` only when intentionally using built-in profiles only.
 - Run profile-suggested validation commands directly in the shell.
 - Record exact command/result evidence with `hk validate --why`; use
   `hk validate --check NAME --why` when satisfying a named profile check.
-- Use the same `--target`, `--profile`, and `--profiles-dir` consistently for
-  profile/check discovery commands. Lifecycle status/ready state is target-scoped
-  and does not accept profile flags.
+- Use the same `--target` and `--profile` consistently for profile/check
+  discovery commands. Use `--profiles-dir` only for ad hoc catalogs. Lifecycle
+  status/ready state is target-scoped and does not accept profile flags.
+- Path rules in `applies_when` / `required_when` can be repo-root-relative or
+  relative to the selected `--target`; HK reports matched paths as repo-root-relative.
 - Do not commit `.ai/`, `.agent/`, `.mise/`, or `.gitignore` workflow files
   unless explicitly asked. Harness Kit local state lives under `.harness-local/`.
 - For repos that already have committed scaffold/task-contract infrastructure
@@ -45,7 +49,7 @@ Omit `--profiles-dir` only when intentionally using built-in profiles only.
 
 1. Run:
    ```bash
-   hk profile list --target <repo-or-module> --profiles-dir ~/.config/harness-toolkit/profiles --json
+   hk profile list --target <repo-or-module> --json
    ```
 2. Choose the closest profile:
    - exact target/module profile
@@ -98,7 +102,7 @@ If already familiar with the workflow, do not reload the full reference just for
 ceremony. Still use the managed profile catalog when selecting profiles:
 
 ```bash
-hk profile list --target <repo-or-module> --profiles-dir ~/.config/harness-toolkit/profiles --json
+hk profile list --target <repo-or-module> --json
 ```
 
 Rules to remember:
@@ -107,6 +111,7 @@ Rules to remember:
 - Run validation directly and record exact command/result evidence with `hk validate --why`.
 - Use `hk checks --changed` to see path-based check/review suggestions when profiles define them.
 - Keep profile flags on discovery commands (`hk profile`, `hk checks`, repo-scope `hk instructions`); lifecycle commands do not accept `--profile` or `--profiles-dir`.
+- Path rules in `applies_when` / `required_when` can be repo-root-relative or relative to the selected `--target`.
 - If no good profile exists, use the profile-authoring workflow to propose one;
   do not create profiles silently.
 ````

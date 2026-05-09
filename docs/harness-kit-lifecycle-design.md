@@ -288,7 +288,8 @@ recommended command or confidence score.
 
 Profiles and dumb repo scripts fit into Harness Kit as guidance and stable native
 command surfaces for `hk validate`, not as a task-runner layer. A user-level
-`harness.toml` can bind known repo/module paths to inline profiles:
+`harness.toml` can bind known repo/module paths to inline profiles or to
+standalone profiles loaded from `profiles_dir`:
 
 ```toml
 [[targets]]
@@ -321,7 +322,10 @@ harness and record accepted results with `hk review add`; HK does not launch the
 Profiles are not the same thing as `.harness/harness.toml`: a profile is named
 validation/review workflow guidance, while `.harness/harness.toml` is the future
 optional committed repo config/adoption root that can select defaults, policies,
-and repo-specific profile locations. For example, `hk profile show python` or
+and repo-specific profile locations. Path rules may be repo-root-relative or
+relative to the selected module `--target`, which keeps subdirectory profiles
+natural to author while still rendering matched paths in Git's repo-root-relative
+form. For example, `hk profile show python` or
 `hk checks` may point an agent at `mise run check`, `uv run pytest`, or
 `scripts/check`, but the proof should still be captured as:
 
