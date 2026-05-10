@@ -47,6 +47,8 @@ def build_parser() -> argparse.ArgumentParser:
     group = sync_parser.add_mutually_exclusive_group()
     group.add_argument("--plan-dir", default=None)
     group.add_argument("--changed-plans", default=None)
+    group.add_argument("--changed-hk-exports", default=None)
+    group.add_argument("--hk-exports-only", action="store_true")
 
     render_parser = subparsers.add_parser("render", help="Render a slice prompt")
     render_parser.add_argument("phase", choices=["planner", "implementer", "reviewer"])
@@ -73,7 +75,11 @@ def run(args: argparse.Namespace) -> int:
         return run_check(root, command, plan_dir=args.plan_dir)
     if command == "sync-check":
         return run_sync_check(
-            root, plan_dir=args.plan_dir, changed_plans=args.changed_plans
+            root,
+            plan_dir=args.plan_dir,
+            changed_plans=args.changed_plans,
+            changed_hk_exports=args.changed_hk_exports,
+            hk_exports_only=args.hk_exports_only,
         )
     if command == "render":
         result = render_phase_prompt(

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -13,6 +14,51 @@ SKILL_CLI_PATHS = (
     "templates/.agent/skills/slice-workflow/cli",
 )
 CLI_CANDIDATES = tuple(PROJECT_ROOT / path for path in SKILL_CLI_PATHS)
+
+
+def is_harness_toolkit_checkout() -> bool:
+    result = subprocess.run(
+        ["git", "remote", "get-url", "origin"],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+    if result.returncode != 0:
+        return False
+    remote = result.stdout.strip().lower()
+    return (
+        "safurrier/harness-toolkit" in remote
+        or remote.endswith("/harness-toolkit.git")
+        or remote.endswith("/harness-toolkit")
+        or remote.endswith(":harness-toolkit.git")
+    )
+
+
+def print_hk_migration() -> int:
+    slug = shlex.quote(sys.argv[1] if len(sys.argv) > 1 else "example-work")
+    print(
+        "Harness Toolkit repo work is HK-native now; .ai/plans is legacy scaffold history."
+    )
+    print()
+    print("Use:")
+    print(
+        f'  hk start {slug} --plan "Describe the intended change and validation approach" --target .'
+    )
+    print("  hk checks --target . --changed --json")
+    print('  hk validate --why "Fast gate passes" -- mise run check')
+    print("  hk review prompt --target .")
+    print(
+        '  hk review add --backend subagent --reviewer fresh-context --rubric core-quality --summary "No blockers." --target .'
+    )
+    print("  hk sync --target . && hk ready --target .")
+    print(
+        "  WORK_ID=$(hk status --target . --json | python3 -c 'import json,sys; print(json.load(sys.stdin)[\"active_work\"])')"
+    )
+    print('  hk export --format handoff-dir --output ".ai/hk/$WORK_ID" --target .')
+    print()
+    print("Generated/scaffolded repos still use the slice-workflow plan task.")
+    return 1
 
 
 def cli_project() -> Path:
@@ -26,6 +72,8 @@ def cli_project() -> Path:
 
 
 def main() -> int:
+    if is_harness_toolkit_checkout():
+        return print_hk_migration()
     command = [
         "uv",
         "run",

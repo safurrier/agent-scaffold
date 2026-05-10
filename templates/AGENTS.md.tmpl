@@ -33,7 +33,7 @@ mise run setup      # install tools and dependencies (one-time)
 mise run check      # fast quality gate: fmt + lint + typecheck + test  ← before committing
 mise run sync-check # plan/spec/evidence/review handoff gate            ← before handing off or pushing
 mise run verify     # heavier validation: integration, security, docker  ← before merging
-{% if project_shape == "apps" %}mise run dev -- <module>  # start local development for a module{% else %}mise run dev        # start local development{% endif %}
+{% if project_shape == "apps" %}mise run dev -- api  # start local development for a module{% else %}mise run dev        # start local development{% endif %}
 ```
 
 CI calls `mise run ci` (= `check`) and `mise run sync-check`. Pull request CI
@@ -48,8 +48,8 @@ validation.
 ## Starting Work
 
 ```bash
-git checkout -b feat/<slug>
-mise run plan -- <slug>    # creates .ai/plans/YYYY-MM-DD-HHmmSS-<slug>/
+git checkout -b feat/demo-work
+mise run plan -- demo-work    # creates .ai/plans/YYYY-MM-DD-HHmmSS-demo-work/
 mise run slice-plan -- --task path/to/task.md # renders prompts/planner.md
 mise -q run slice-status -- --json # inspect active slice state as JSON
 ```

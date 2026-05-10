@@ -61,7 +61,12 @@ jobs:
       - name: Sync check
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            mise run sync-check -- --changed-plans "origin/${{ github.base_ref }}...HEAD"
+            REFSPEC="origin/${{ github.base_ref }}...HEAD"
+            if git diff --name-only "$REFSPEC" | grep -q '^.ai/plans/'; then
+              mise run sync-check -- --changed-plans "$REFSPEC"
+            else
+              mise run sync-check -- --changed-hk-exports "$REFSPEC"
+            fi
           else
             mise run sync-check
           fi

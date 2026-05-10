@@ -228,6 +228,16 @@ class HandoffResult:
 
 
 @dataclass(frozen=True)
+class ExportResult:
+    work_id: str
+    path: str
+    format: str
+    checked: bool = False
+    fresh: bool = True
+    message: str = ""
+
+
+@dataclass(frozen=True)
 class ArtifactResult:
     work_id: str
     seq: int
@@ -256,6 +266,7 @@ JsonDataclass = (
     | SpecResult
     | SpecOutline
     | HandoffResult
+    | ExportResult
     | ArtifactResult
 )
 
@@ -395,30 +406,7 @@ def git_status_for_path(path: Path, candidate: str) -> str:
     return result.stdout if result.returncode == 0 else ""
 
 
-def git_diff_hash(path: Path, exclude_paths: tuple[str, ...] = ()) -> str:
-    """Hash unstaged, staged, and status state for sync freshness."""
-    hasher = hashlib.sha256()
-    pathspec = (
-        ["--", ".", *git_pathspec_excludes(exclude_paths)] if exclude_paths else []
-    )
-    commands = (
-        ["git", "diff", "--no-ext-diff", "--binary", *pathspec],
-        ["git", "diff", "--cached", "--no-ext-diff", "--binary", *pathspec],
-        ["git", "status", "--porcelain", *pathspec],
-    )
-    for command in commands:
-        result = subprocess.run(
-            command,
-            cwd=path,
-            capture_output=True,
-            check=False,
-        )
-        if result.returncode != 0:
-            return ""
-        hasher.update("\0".join(command).encode("utf-8"))
-        hasher.update(b"\0")
-        hasher.update(result.stdout)
-        hasher.update(b"\0")
+def _hash_untracked_paths(hasher, path: Path, pathspec: list[str]) -> None:
     untracked = subprocess.run(
         ["git", "ls-files", "--others", "--exclude-standard", "-z", *pathspec],
         cwd=path,
@@ -426,7 +414,7 @@ def git_diff_hash(path: Path, exclude_paths: tuple[str, ...] = ()) -> str:
         check=False,
     )
     if untracked.returncode != 0:
-        return ""
+        return
     for raw_name in untracked.stdout.split(b"\0"):
         if not raw_name:
             continue
@@ -458,6 +446,58 @@ def git_diff_hash(path: Path, exclude_paths: tuple[str, ...] = ()) -> str:
             except OSError:
                 hasher.update(b"<unreadable>")
         hasher.update(b"\0")
+
+
+def git_diff_hash(path: Path, exclude_paths: tuple[str, ...] = ()) -> str:
+    """Hash unstaged, staged, and status state for sync freshness."""
+    hasher = hashlib.sha256()
+    pathspec = (
+        ["--", ".", *git_pathspec_excludes(exclude_paths)] if exclude_paths else []
+    )
+    commands = (
+        ["git", "diff", "--no-ext-diff", "--binary", *pathspec],
+        ["git", "diff", "--cached", "--no-ext-diff", "--binary", *pathspec],
+        ["git", "status", "--porcelain", *pathspec],
+    )
+    for command in commands:
+        result = subprocess.run(
+            command,
+            cwd=path,
+            capture_output=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            return ""
+        hasher.update("\0".join(command).encode("utf-8"))
+        hasher.update(b"\0")
+        hasher.update(result.stdout)
+        hasher.update(b"\0")
+    _hash_untracked_paths(hasher, path, pathspec)
+    return "sha256:" + hasher.hexdigest()
+
+
+def git_work_diff_hash(
+    path: Path, *, base_sha: str, exclude_paths: tuple[str, ...] = ()
+) -> str:
+    """Hash the work diff from the HK work start SHA to the current tree."""
+    if not base_sha.strip():
+        return git_diff_hash(path, exclude_paths)
+    hasher = hashlib.sha256()
+    pathspec = ["--", ".", *git_pathspec_excludes(exclude_paths)]
+    result = subprocess.run(
+        ["git", "diff", "--no-ext-diff", "--binary", base_sha, *pathspec],
+        cwd=path,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        return ""
+    hasher.update(b"work-diff\0")
+    hasher.update(base_sha.encode("utf-8"))
+    hasher.update(b"\0")
+    hasher.update(result.stdout)
+    hasher.update(b"\0")
+    _hash_untracked_paths(hasher, path, pathspec)
     return "sha256:" + hasher.hexdigest()
 
 
@@ -608,7 +648,9 @@ def create_work(
 def require_work(state: LocalState) -> Path:
     work_dir = active_work_dir(state)
     if work_dir is None:
-        raise LocalWorkflowError("No active work. Run `hk start <slug>` first.")
+        raise LocalWorkflowError(
+            "No active work. Run `hk start demo-work --plan 'Describe the intended change'` first."
+        )
     return work_dir
 
 
@@ -1492,7 +1534,7 @@ def status(target: Path, *, no_local_files: bool = False) -> StatusResult:
             phase="not-started",
             checks=[],
             next_actions=[
-                "start: hk start <slug> --plan 'Describe the intended change and validation approach'"
+                "start: hk start demo-work --plan 'Describe the intended change and validation approach'"
             ],
         )
 
@@ -1501,7 +1543,7 @@ def status(target: Path, *, no_local_files: bool = False) -> StatusResult:
     actions: list[str] = []
     if not notes_by_kind(events, "plan"):
         actions.append(
-            "plan: hk plan 'Describe the intended change and validation approach' (next time: hk start <slug> --plan '...')"
+            "plan: hk plan 'Describe the intended change and validation approach' (next time: hk start demo-work --plan '...')"
         )
     if not notes_by_kinds(events, ("context", "background")):
         actions.append(
@@ -1516,7 +1558,7 @@ def status(target: Path, *, no_local_files: bool = False) -> StatusResult:
     check_map = {check.id: check for check in readiness.checks}
     if check_map.get("validation") and check_map["validation"].status == "fail":
         actions.append(
-            "validation: hk validate --why 'What this proves' -- <native command>"
+            "validation: hk validate --why 'Fast gate passes' -- mise run check"
         )
     if check_map.get("review") and check_map["review"].status == "fail":
         actions.append(
@@ -1594,6 +1636,325 @@ def handoff(
         output_path.write_text(content)
         path_text = str(output_path)
     return HandoffResult(work_id=work_dir.name, content=content, path=path_text)
+
+
+def _relative_to_root(path: Path, root: Path) -> str:
+    try:
+        return (
+            path.resolve(strict=False)
+            .relative_to(root.resolve(strict=False))
+            .as_posix()
+        )
+    except ValueError:
+        return str(path.resolve(strict=False))
+
+
+def _export_relevant_events(events: list[EventRecord]) -> list[EventRecord]:
+    return [event for event in events if event.type not in SYNC_IGNORED_EVENT_TYPES]
+
+
+def _event_count(events: list[EventRecord]) -> int:
+    return len(_export_relevant_events(events))
+
+
+def _max_event_seq(events: list[EventRecord]) -> int:
+    return max((event.seq for event in _export_relevant_events(events)), default=0)
+
+
+def _text_hash(content: str) -> str:
+    return "sha256:" + hashlib.sha256(content.encode("utf-8")).hexdigest()
+
+
+def _file_hash(path: Path) -> str:
+    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _handoff_dir_metadata(
+    *,
+    state: LocalState,
+    work_dir: Path,
+    output_path: Path,
+    events: list[EventRecord],
+    evidence: list[EvidenceRecord],
+    readiness: ReadyResult,
+    file_hashes: dict[str, str] | None = None,
+) -> dict[str, object]:
+    output_relative = _relative_to_root(output_path, state.target_root)
+    return {
+        "schema_version": 1,
+        "generated_by": "hk export --format handoff-dir",
+        "generated_at": datetime.now(UTC).isoformat(),
+        "work_id": work_dir.name,
+        "target_root": ".",
+        "target_scope": _relative_to_root(state.target_scope, state.target_root),
+        "branch": git_branch(state.target_root),
+        "git_sha": git_sha(state.target_root),
+        "dirty": git_dirty(state.target_root),
+        "sync_status": sync_status_for(state),
+        "ready_status": readiness.status,
+        "ready": readiness.ready,
+        "diff_hash": git_work_diff_hash(
+            state.target_root,
+            base_sha=work_start_git_sha(events),
+            exclude_paths=(output_relative,),
+        ),
+        "event_count": _event_count(events),
+        "event_seq": _max_event_seq(events),
+        "evidence_count": len(evidence),
+        "evidence_ids": [record.id for record in evidence],
+        "output_path": output_relative,
+        "files": [
+            "README.md",
+            "meta.json",
+            "artifacts/README.md",
+        ],
+        "file_hashes": file_hashes or {},
+    }
+
+
+def _export_readme(work_id: str, handoff_content: str, output_relative: str) -> str:
+    handoff_body = handoff_content.removeprefix("# Handoff\n\n")
+    return (
+        f"# HK export: `{work_id}`\n\n"
+        "This directory is a generated review/handoff package from the Harness Kit "
+        "ledger. Do not hand-edit it; update HK with `hk plan`, `hk decide`, "
+        "`hk validate`, `hk review add`, and `hk sync`, then regenerate.\n\n"
+        "## Freshness\n"
+        "Validate this export against local HK state with:\n\n"
+        "```bash\n"
+        f"hk export --format handoff-dir --output {shlex.quote(output_relative)} --target . --check\n"
+        "```\n\n"
+        "Historical hand-authored slice plans live under `.ai/plans/`; new "
+        "Harness Toolkit repo work should use HK and generated `.ai/hk/` exports.\n\n"
+        "## Handoff\n\n"
+        f"{handoff_body}"
+    )
+
+
+def _artifacts_readme() -> str:
+    return (
+        "# Artifacts\n\n"
+        "Artifacts are intentionally explicit. Raw validation transcripts stay in "
+        "local/external HK state and are referenced from `README.md`; attach durable, "
+        "reviewable files with `hk artifact attach` before export when they should be "
+        "shared.\n"
+    )
+
+
+def _safe_export_relative(value: object) -> str | None:
+    relative = str(value)
+    path = Path(relative)
+    if path.is_absolute() or ".." in path.parts or not relative.strip():
+        return None
+    return path.as_posix()
+
+
+def _previous_export_files(destination: Path) -> set[str]:
+    generated_names = {
+        "AGENTS.md",
+        "SUMMARY.md",
+        "HANDOFF.md",
+        "VALIDATION.md",
+        "REVIEW.md",
+        "DECISIONS.md",
+        "META.json",
+    }
+    previous: set[str] = set()
+    for metadata_name in ("meta.json", "META.json"):
+        metadata_path = destination / metadata_name
+        if not metadata_path.exists():
+            continue
+        try:
+            metadata = json.loads(metadata_path.read_text())
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(metadata, dict):
+            continue
+        files = metadata.get("files", [])
+        if isinstance(files, list):
+            previous.update(
+                relative for item in files if (relative := _safe_export_relative(item))
+            )
+    previous.update(name for name in generated_names if (destination / name).exists())
+    return previous
+
+
+def _remove_obsolete_export_files(destination: Path, keep: set[str]) -> None:
+    destination_root = destination.resolve(strict=False)
+    for relative in sorted(_previous_export_files(destination) - keep):
+        path = destination / relative
+        try:
+            path.resolve(strict=False).relative_to(destination_root)
+        except ValueError:
+            continue
+        if path.exists() and path.is_file():
+            path.unlink()
+
+
+def _sanitize_export_content(content: str, state: LocalState) -> str:
+    root = str(state.target_root)
+    return content.replace(root + "/", "").replace(root, ".")
+
+
+def _compare_export_metadata(
+    current: dict[str, object], recorded: dict[str, object]
+) -> list[str]:
+    ignored = {
+        "generated_at",
+        "dirty",
+        "sync_status",
+        "ready_status",
+        "ready",
+        "git_sha",
+        "target_root",
+        "target_scope",
+        "file_hashes",
+    }
+    mismatches: list[str] = []
+    for key, value in current.items():
+        if key in ignored:
+            continue
+        if recorded.get(key) != value:
+            mismatches.append(key)
+    return mismatches
+
+
+def _regenerate_export_hint(destination: Path) -> str:
+    return (
+        "Try: regenerate with `hk export --format handoff-dir "
+        f"--output {shlex.quote(str(destination))} --target .`."
+    )
+
+
+def export_handoff_dir(
+    target: Path,
+    *,
+    output_path: Path | None = None,
+    check: bool = False,
+    no_local_files: bool = False,
+) -> ExportResult:
+    state = ensure_state(target, no_local_files=no_local_files)
+    work_dir = require_work(state)
+    destination = output_path or (state.target_root / ".ai" / "hk" / work_dir.name)
+    if not destination.is_absolute():
+        destination = state.target_root / destination
+    events = read_events(work_dir)
+    evidence = read_evidence(work_dir)
+    readiness = ready_for_work(work_dir, state, check_handoff=False)
+    metadata = _handoff_dir_metadata(
+        state=state,
+        work_dir=work_dir,
+        output_path=destination,
+        events=events,
+        evidence=evidence,
+        readiness=readiness,
+    )
+    meta_path = destination / "meta.json"
+    if check:
+        if not meta_path.exists():
+            raise LocalWorkflowError(
+                f"HK export metadata missing: {meta_path}\n"
+                + _regenerate_export_hint(destination)
+            )
+        try:
+            recorded = json.loads(meta_path.read_text())
+        except json.JSONDecodeError as e:
+            raise LocalWorkflowError(
+                f"invalid HK export metadata {meta_path}: {e}\n"
+                + _regenerate_export_hint(destination)
+            ) from e
+        if not isinstance(recorded, dict):
+            raise LocalWorkflowError(
+                f"invalid HK export metadata {meta_path}: expected JSON object\n"
+                + _regenerate_export_hint(destination)
+            )
+        expected_files = metadata.get("files", [])
+        if not isinstance(expected_files, list):
+            raise LocalWorkflowError(
+                f"HK export metadata files field is invalid: {meta_path}"
+            )
+        missing_files = [
+            str(item)
+            for item in expected_files
+            if not (destination / str(item)).exists()
+        ]
+        recorded_hashes = recorded.get("file_hashes", {})
+        if not isinstance(recorded_hashes, dict):
+            raise LocalWorkflowError(
+                f"HK export metadata file_hashes field is invalid: {meta_path}\n"
+                + _regenerate_export_hint(destination)
+            )
+        hash_mismatches = [
+            str(relative)
+            for relative, expected_hash in recorded_hashes.items()
+            if (destination / str(relative)).exists()
+            and _file_hash(destination / str(relative)) != expected_hash
+        ]
+        mismatches = _compare_export_metadata(metadata, recorded)
+        if missing_files or mismatches or hash_mismatches:
+            details = []
+            if missing_files:
+                details.append("missing files: " + ", ".join(missing_files))
+            if mismatches:
+                details.append("stale metadata: " + ", ".join(mismatches))
+            if hash_mismatches:
+                details.append(
+                    "modified generated files: " + ", ".join(hash_mismatches)
+                )
+            raise LocalWorkflowError(
+                "HK export is stale or incomplete: "
+                + "; ".join(details)
+                + "\n"
+                + _regenerate_export_hint(destination)
+            )
+        return ExportResult(
+            work_id=work_dir.name,
+            path=str(destination),
+            format="handoff-dir",
+            checked=True,
+            fresh=True,
+            message="HK export is fresh",
+        )
+
+    destination.mkdir(parents=True, exist_ok=True)
+    artifacts_dir = destination / "artifacts"
+    if artifacts_dir.is_symlink():
+        artifacts_dir.unlink()
+    artifacts_dir.mkdir(exist_ok=True)
+    output_relative = _relative_to_root(destination, state.target_root)
+    handoff_content = _sanitize_export_content(
+        render_handoff(work_dir, state, format="markdown"), state
+    )
+    files = {
+        "README.md": _export_readme(
+            work_dir.name,
+            handoff_content,
+            output_relative,
+        ),
+        "artifacts/README.md": _artifacts_readme(),
+    }
+    file_hashes = {relative: _text_hash(content) for relative, content in files.items()}
+    metadata = _handoff_dir_metadata(
+        state=state,
+        work_dir=work_dir,
+        output_path=destination,
+        events=events,
+        evidence=evidence,
+        readiness=readiness,
+        file_hashes=file_hashes,
+    )
+    files["meta.json"] = json.dumps(metadata, indent=2, sort_keys=True) + "\n"
+    _remove_obsolete_export_files(destination, set(files))
+    for relative, content in files.items():
+        path = destination / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content)
+    return ExportResult(
+        work_id=work_dir.name,
+        path=str(destination),
+        format="handoff-dir",
+        message="HK handoff directory exported",
+    )
 
 
 def init_spec(target: Path, *, no_local_files: bool = False) -> SpecResult:

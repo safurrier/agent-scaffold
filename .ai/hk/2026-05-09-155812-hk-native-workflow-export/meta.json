@@ -1,0 +1,52 @@
+{
+  "branch": "feat/hk-native-workflow",
+  "diff_hash": "sha256:14baf6da50a1619e4740ab856cf9cf23778462d3439e052aa16189a3dafe2fce",
+  "dirty": true,
+  "event_count": 32,
+  "event_seq": 43,
+  "evidence_count": 22,
+  "evidence_ids": [
+    "ev_20260509_161320_702793",
+    "ev_20260509_161334_615215",
+    "ev_20260509_161353_968862",
+    "ev_20260509_161446_151536",
+    "ev_20260509_161454_061144",
+    "ev_20260509_161500_780237",
+    "ev_20260509_161528_141528",
+    "ev_20260509_163226_502962",
+    "ev_20260509_170855_202987",
+    "ev_20260509_171924_851213",
+    "ev_20260509_172345_561969",
+    "ev_20260509_172355_317792",
+    "ev_20260509_172759_945209",
+    "ev_20260509_172820_698102",
+    "ev_20260509_174808_358343",
+    "ev_20260509_174826_533603",
+    "ev_20260509_193354_753231",
+    "ev_20260509_193416_705221",
+    "ev_20260509_194426_705212",
+    "ev_20260509_194440_555614",
+    "ev_20260509_195203_289268",
+    "ev_20260509_195216_460694"
+  ],
+  "file_hashes": {
+    "README.md": "sha256:9a805fb83fec026fc2ee6a2c0e6aae2e06f02cfc0e34fb160e5e86c042526249",
+    "artifacts/README.md": "sha256:c4bad9d4652f296a7e4dcf175fe1dd0c66a99ec0b74941cd45c499e84792436c"
+  },
+  "files": [
+    "README.md",
+    "meta.json",
+    "artifacts/README.md"
+  ],
+  "generated_at": "2026-05-10T02:58:22.172881+00:00",
+  "generated_by": "hk export --format handoff-dir",
+  "git_sha": "3a03baf",
+  "output_path": ".ai/hk/2026-05-09-155812-hk-native-workflow-export",
+  "ready": true,
+  "ready_status": "ready",
+  "schema_version": 1,
+  "sync_status": "synced",
+  "target_root": ".",
+  "target_scope": ".",
+  "work_id": "2026-05-09-155812-hk-native-workflow-export"
+}

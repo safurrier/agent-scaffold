@@ -73,8 +73,8 @@ without committing ceremony:
 
 ```bash
 hk brief --target . --json
-hk start <slug> --plan 'Adopted implementation intent' --target . --json
-hk validate --why 'What this proves' --target . -- <native validation command>
+hk start demo-work --plan 'Adopted implementation intent' --target . --json
+hk validate --why 'Fast gate passes' --target . -- mise run check
 hk status --target . --json
 hk ready --target . --json
 hk handoff --target . --format markdown
@@ -130,9 +130,9 @@ Standard loop:
 
 ```bash
 hk brief --target . --json
-hk start <slug> --plan 'Adopted implementation intent' --target . --json
+hk start demo-work --plan 'Adopted implementation intent' --target . --json
 hk checks --target . --json
-hk validate --why 'What this proves' --target . -- <native command>
+hk validate --why 'Fast gate passes' --target . -- mise run check
 hk status --target . --json
 hk ready --target . --json
 hk handoff --target .
@@ -160,8 +160,8 @@ compaction, or when skipped validation needs to be explicit.
 The minimal path is:
 
 ```bash
-hk start <slug> --plan 'Adopted implementation intent'
-hk validate --why 'What this command proves' -- <native command>
+hk start demo-work --plan 'Adopted implementation intent'
+hk validate --why 'Fast gate passes' -- mise run check
 hk status
 hk ready
 hk summary
@@ -233,7 +233,7 @@ paths. `required_when` makes readiness expect that named check/review when the
 path rule matches **when that profile is the target's resolved user-config
 profile**. Profiles inspected with `--profile` / `--profiles-dir` are discovery
 only unless they are also bound through user config. Agents satisfy required
-checks with `hk validate --check NAME --why ... -- <native command>` and required
+checks with `hk validate --check fast-gate --why "Fast gate passes" -- mise run check` using the matching native command, and required
 reviews with `hk review add --review NAME ...`. If the required item is genuinely
 impossible, record an auditable skip whose `--label` matches the check or review
 name.
@@ -281,16 +281,17 @@ persistent sync ignore config are deferred.
 |---|---|
 | `hk brief` | Print a read-only repo brief without choosing validation commands |
 | `hk init` | Initialize ignored local Harness Kit state |
-| `hk start <slug> --plan <text>` | Start a lifecycle work item and optionally seed context/plan records; same-slug retries resume the active work item |
+| `hk start demo-work --plan <text>` | Start a lifecycle work item and optionally seed context/plan records; same-slug retries resume the active work item |
 | `hk work start` | Advanced compatibility surface for ledger-backed local work units |
 | `hk note` | Advanced: append typed plan, background, learning, decision, gap, or spec-impact notes |
 | `hk status` | Show active work, readiness checks, and next-action guidance for the agent loop |
 | `hk sync` | Record or check a freshness checkpoint for the active work snapshot; use `--exclude PATH --reason TEXT` for explicit one-shot untracked local-state exclusions; HK records/revalidates excluded path metadata instead of using a tiny hardcoded allowlist |
 | `hk capture` | Advanced: run a native command and record exact evidence |
 | `hk artifact attach` | Attach a real harness/tool-produced file such as an agent session transcript, Codex review transcript, HAR file, or validation artifact; HK copies/references it, hashes it, and renders metadata in handoff |
-| `hk review prompt [REVIEW_NAME]` | Print a generic or profile-named reviewer prompt to dispatch to an independent AI/tool or fresh-context reviewer, e.g. Pi `subagent`, Claude Code `Agent`/`Task` alias, or Codex via Shell tool running `codex review --uncommitted`; re-run `hk status` after review tools run |
+| `hk review prompt core-review` | Print a generic or profile-named reviewer prompt to dispatch to an independent AI/tool or fresh-context reviewer, e.g. Pi `subagent`, Claude Code `Agent`/`Task` alias, or Codex via Shell tool running `codex review --uncommitted`; re-run `hk status` after review tools run |
 | `hk summary` | Render a concise human-readable readiness digest for PRs/review |
 | `hk handoff` | Render a longer transfer artifact from the work ledger |
+| `hk export --format handoff-dir` | Generate a compact committed handoff package such as `.ai/hk/2026-05-09-120000-demo/` from the HK ledger (`README.md`, `meta.json`, explicit-only `artifacts/`); use `--check` to validate freshness against local HK state |
 | `hk spec` | Manage optional local/external spec drafts |
 | `hk instructions` | Print the compact user-level `AGENTS.md` snippet; use `--scope repo` for a fuller profile-specific repo snippet |
 | `hk profile list` | List built-in/custom/user-config profile contracts and model-directed selection guidance |
@@ -302,7 +303,12 @@ persistent sync ignore config are deferred.
 | `hk dangerously-skip review\|validation\|sync --label <name> --reason <text> --mitigation <text>` | Explicitly record an auditable dangerous skip when a lifecycle guarantee cannot be satisfied; skips render in summary, handoff, and PR handoff |
 
 Portable plan-artifact commands have been removed from `hk`. Use scaffold `mise run
-plan` and `mise run sync-check` for committed plan packages.
+plan` and `mise run sync-check` for generated-repo committed plan packages. For
+HK-native repos that want durable review artifacts, generate compact committed
+packages with `hk export --format handoff-dir --output .ai/hk/2026-05-09-120000-demo`
+instead of hand-authoring `.ai/plans` files. The export is a projection, not a
+second ledger: `README.md` is the human handoff, `meta.json` is machine
+freshness/integrity data, and `artifacts/` is for explicit attachments only.
 
 Profiles are small workflow contracts for agentic engineering checks and
 reviews. They describe what exists for an environment; they do **not** run those

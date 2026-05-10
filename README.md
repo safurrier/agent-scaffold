@@ -111,10 +111,10 @@ The happy-path agent loop is intentionally short:
 
 ```bash
 hk profile resolve --target . --json   # optional; uses explicit user config if present
-hk start <slug> --plan 'Adopted implementation intent'
+hk start demo-work --plan 'Adopted implementation intent'
 # work normally in the repo
 hk checks --target . --changed --json  # suggests configured checks/reviews, does not run them
-hk validate --why 'What this command proves' -- <native command>
+hk validate --why 'Fast gate passes' -- mise run check
 hk status
 hk ready
 hk summary
@@ -139,13 +139,13 @@ are the common commands to reach for when the coach asks for something specific:
 | Need | Command |
 |---|---|
 | Read repo shape without mutating state | `hk brief --target . --json` |
-| Start or inspect active work | `hk start <slug> --plan "..."`, `hk status`, `hk work status` |
+| Start or inspect active work | `hk start demo-work --plan "..."`, `hk status`, `hk work status` |
 | Record useful framing | `hk context "..."` |
 | Record or refine the adopted plan | `hk plan "..."` / `hk plan --from-file FILE` |
 | Record decisions and spec impact | `hk decide "..." --spec-impact none\|updated\|not-needed` |
 | See configured guidance without running it | `hk profile ...`, `hk checks --target . --changed --json` |
-| Capture validation evidence | `hk validate --why "..." -- <native command>`, `hk validate --check NAME --why "..." -- <native command>` |
-| Record external-enough review | `hk review prompt [NAME]`, `hk review add --review NAME --backend ... --reviewer ... --rubric ... --summary ...` |
+| Capture validation evidence | `hk validate --why "Fast gate passes" -- mise run check`, `hk validate --check fast-gate --why "Fast gate passes" -- mise run check` |
+| Record external-enough review | `hk review prompt core-review`, `hk review add --review core-review --backend subagent --reviewer fresh-context --rubric core-quality --summary "No blockers."` |
 | Attach real tool/harness files | `hk artifact attach --path FILE --kind KIND` |
 | Reconcile local changes before handoff | `hk sync`, `hk sync --exclude PATH --reason "..."` |
 | Check readiness or explain it to humans | `hk ready`, `hk status`, `hk summary`, `hk handoff`, `hk export` |
@@ -157,9 +157,14 @@ are inspection/escape hatches, not the promoted path.
 `hk` now exposes the Harness Kit lifecycle only: local agent memory, compact adopted
 plans, exact command evidence with rationale, review records, readiness checks,
 and generated handoffs without committed ceremony. Use `hk start --plan`,
-`hk validate`, `hk status`, and then follow the next actions. Removed portable plan-artifact commands (`hk attach`, `hk legacy plan`, and
-`hk legacy sync-check`) are no longer part of `hk`. Scaffolded repos still use
-`mise run plan` and `mise run sync-check` through the separate slice-workflow CLI.
+`hk validate`, `hk status`, and then follow the next actions. For meaningful
+Harness Toolkit repo work, export a compact committed handoff package with
+`hk export --format handoff-dir --output .ai/hk/2026-05-09-120000-demo`; the export
+contains a human `README.md`, machine `meta.json`, and explicit-only `artifacts/`.
+Do not hand-author new `.ai/plans` slices for this repo. Removed portable plan-artifact commands
+(`hk attach`, `hk legacy plan`, and `hk legacy sync-check`) are no longer part of
+`hk`. Scaffolded repos still use `mise run plan` and `mise run sync-check`
+through the separate slice-workflow CLI.
 
 Planning can happen outside HK; agents translate the agreed intent into compact
 HK context/plan/decision records rather than asking HK to infer it. `hk start
