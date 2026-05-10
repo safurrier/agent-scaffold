@@ -14,6 +14,7 @@ from harness_toolkit.kit.app.lifecycle import (
     ArtifactAttachRequest,
     CaptureRequest,
     DangerousSkipRequest,
+    ExportRequest,
     HandoffRequest,
     LifecycleApp,
     NoteRequest,
@@ -79,7 +80,7 @@ app = App(
     help="Use the Harness Kit lifecycle in any repo without committing scaffold files.",
     group_commands=LIFECYCLE_GROUP,
     help_epilogue=examples(
-        "hk start <slug> --plan 'Adopted implementation intent'",
+        "hk start demo-work --plan 'Adopted implementation intent'",
         "hk checks --target . --changed --json",
         "hk status --target .",
         "hk ready --target . && hk summary --target .",
@@ -147,7 +148,7 @@ Start by resolving the repo/module workflow:
 {KIT_COMMAND} profile resolve --target . --json
 ```
 
-Use the repo or module that owns the work as `--target`. Profile flags are only for discovery commands such as `{KIT_COMMAND} profile`, `{KIT_COMMAND} checks`, and repo-scope `{KIT_COMMAND} instructions`; do not pass `--profile` or `--profiles-dir` to lifecycle commands unless that command's help shows those options. Then start work with `{KIT_COMMAND} start <slug> --plan "..."`, record validation with `{KIT_COMMAND} validate --why`, and follow `{KIT_COMMAND} status --target .`. Use `{KIT_COMMAND} summary --target .` when a human-readable readiness digest is useful.
+Use the repo or module that owns the work as `--target`. Profile flags are only for discovery commands such as `{KIT_COMMAND} profile`, `{KIT_COMMAND} checks`, and repo-scope `{KIT_COMMAND} instructions`; do not pass `--profile` or `--profiles-dir` to lifecycle commands unless that command's help shows those options. Then start work with `{KIT_COMMAND} start demo-work --plan "..."`, record validation with `{KIT_COMMAND} validate --why`, and follow `{KIT_COMMAND} status --target .`. Use `{KIT_COMMAND} summary --target .` when a human-readable readiness digest is useful.
 
 If `{KIT_COMMAND}` is unavailable or you are unfamiliar with the workflow, read the Harness Kit agent adoption guide before proceeding:
 {AGENT_ADOPTION_URL}
@@ -172,10 +173,10 @@ Standard agent loop:
 
 ```bash
 {KIT_COMMAND} brief --target . --json
-{KIT_COMMAND} start <slug> --plan 'Adopted implementation intent' --target . --json
+{KIT_COMMAND} start demo-work --plan 'Adopted implementation intent' --target . --json
 # work normally in the repo
 {KIT_COMMAND} checks --target . --changed --json
-{KIT_COMMAND} validate --why 'What this command proves' --target . -- <native command>
+{KIT_COMMAND} validate --why 'Fast gate passes' --target . -- mise run check
 {KIT_COMMAND} status --target . --json
 {KIT_COMMAND} ready --target . --json
 {KIT_COMMAND} summary --target .
@@ -190,7 +191,7 @@ Follow `hk status` next actions when it asks for them:
 {KIT_COMMAND} decide 'Decision/spec reflection' --spec-impact none --target . --json
 {KIT_COMMAND} checks --target . --profile {profile.name}{profiles_dir_arg} --changed --json
 # review is required by default: preferred independent AI/tool reviewer; minimum fresh-context subagent
-{KIT_COMMAND} review prompt [REVIEW_NAME] --target .
+{KIT_COMMAND} review prompt core-review --target .
 # dispatch via your harness if available (Pi subagent tool, Claude Code Agent/Task tool, Codex Shell tool: codex review --uncommitted)
 {KIT_COMMAND} review add --backend subagent --reviewer reviewer-fresh-context --rubric core-quality --summary 'Review summary' --target . --json
 # review tools may create local agent state; check status again before syncing
@@ -379,7 +380,7 @@ def profile_list(
             resolved_target = target.resolve()
             resolved_root = git_root(resolved_target)
     except (RepoStateError, ProfileError) as e:
-        print_error(f"{e}\nTry: hk profile list --target <repo> --json")
+        print_error(f"{e}\nTry: hk profile list --target . --json")
         raise SystemExit(1) from e
 
     if json:
@@ -821,7 +822,7 @@ def start(
         )
     if not plan.strip():
         print("  hk plan 'Adopted implementation intent'")
-    print("  hk validate --why 'What this proves' -- <native command>")
+    print("  hk validate --why 'Fast gate passes' -- mise run check")
     print("  hk status  # follow next actions for decision/review/sync when needed")
     print("  hk ready && hk handoff")
 
@@ -882,7 +883,7 @@ def context_command(
     name="start",
     help_epilogue=examples(
         "hk work start experiment --target . --json",
-        note="Advanced compatibility surface. Prefer `hk start <slug> --plan ...` for normal lifecycle work.",
+        note="Advanced compatibility surface. Prefer `hk start demo-work --plan ...` for normal lifecycle work.",
     ),
 )
 def work_start(
@@ -1363,11 +1364,13 @@ def evidence_default(
     json: bool = False,
 ) -> None:
     """Show the evidence-list subcommand hint for bare `hk evidence`."""
-    message = "hk evidence requires a subcommand. Try: hk evidence list --target <repo> --json"
+    message = (
+        "hk evidence requires a subcommand. Try: hk evidence list --target . --json"
+    )
     if json:
         print(
             json_dump_object(
-                {"error": message, "try": "hk evidence list --target <repo> --json"}
+                {"error": message, "try": "hk evidence list --target . --json"}
             )
         )
     else:
@@ -1506,19 +1509,38 @@ def summary(
 @app.command(
     name="export",
     group=EVIDENCE_GROUP,
-    help_epilogue=examples("hk export --target .", "hk export --target . --json"),
+    help_epilogue=examples(
+        "hk export --target .",
+        "hk export --format handoff-dir --output .ai/hk/2026-05-09-120000-demo --target .",
+        "hk export --format handoff-dir --output .ai/hk/2026-05-09-120000-demo --check --target .",
+    ),
 )
 def export_command(
     *,
     target: Path = Path("."),
-    format: Literal["handoff"] = "handoff",
+    format: Literal["handoff", "handoff-dir"] = "handoff",
+    output: Path | None = None,
+    check: bool = False,
     no_local_files: bool = False,
     json: bool = False,
 ) -> None:
     """Export generated lifecycle views from the active ledger."""
-    _ = format
+    if format == "handoff" and (output is not None or check):
+        print_error(
+            "hk export --output/--check require --format handoff-dir\n"
+            "Try: hk export --format handoff-dir --output .ai/hk/2026-05-09-120000-demo --target ."
+        )
+        raise SystemExit(1)
     try:
-        result = lifecycle_app.materialize(TargetRequest(target, no_local_files))
+        result = lifecycle_app.export(
+            ExportRequest(
+                target=target,
+                no_local_files=no_local_files,
+                format=format,
+                output_path=output,
+                check=check,
+            )
+        )
     except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e

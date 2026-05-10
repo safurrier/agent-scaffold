@@ -123,6 +123,7 @@ def test_ci_workflow_runs_sync_check_and_stack_smokes() -> None:
     assert "name: Sync Contract" in workflow
     assert "mise run sync-check" in workflow
     assert "--changed-plans" in workflow
+    assert "--changed-hk-exports" in workflow
     assert "fetch-depth: 0" in workflow
     assert "stack: python" in workflow
     assert "stack: go" in workflow

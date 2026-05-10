@@ -87,6 +87,13 @@ class HandoffRequest(TargetRequest):
     format: Literal["markdown", "pr"] = "markdown"
 
 
+@dataclass(frozen=True)
+class ExportRequest(TargetRequest):
+    format: Literal["handoff", "handoff-dir"] = "handoff"
+    output_path: Path | None = None
+    check: bool = False
+
+
 def _work_started_slug(work_dir: Path) -> str:
     for event in local.read_events(work_dir):
         if event.type == "work_started":
@@ -239,6 +246,20 @@ class LifecycleApp:
     def materialize(self, request: TargetRequest) -> local.HandoffResult:
         return local.materialize_work(
             request.target, no_local_files=request.no_local_files
+        )
+
+    def export(
+        self, request: ExportRequest
+    ) -> local.HandoffResult | local.ExportResult:
+        if request.format == "handoff":
+            return local.materialize_work(
+                request.target, no_local_files=request.no_local_files
+            )
+        return local.export_handoff_dir(
+            request.target,
+            output_path=request.output_path,
+            check=request.check,
+            no_local_files=request.no_local_files,
         )
 
     def handoff(self, request: HandoffRequest) -> local.HandoffResult:

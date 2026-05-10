@@ -319,6 +319,12 @@ dispatch_hint = "codex review --uncommitted"
 
 Review entries are guidance just like checks: agents dispatch them via the current
 harness and record accepted results with `hk review add`; HK does not launch them.
+When a repo wants committed handoff artifacts, `hk export --format handoff-dir
+--output .ai/hk/2026-05-09-120000-demo` writes a compact generated package from
+the ledger. The ledger remains the source of truth; the package should not become
+a Markdown mirror of every ledger event type. By default, `README.md` is the
+human review/handoff document, `meta.json` is machine freshness/integrity data,
+and `artifacts/` is reserved for explicit durable attachments.
 Profiles are not the same thing as `.harness/harness.toml`: a profile is named
 validation/review workflow guidance, while `.harness/harness.toml` is the future
 optional committed repo config/adoption root that can select defaults, policies,

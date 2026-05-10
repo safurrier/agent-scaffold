@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
 
 from .contract import (
@@ -316,6 +318,203 @@ def run_contract_for_plan(root: Path, plan_dir: str) -> int:
     return 0
 
 
+REGENERATE_HK_EXPORT_HINT = (
+    "Try: regenerate with `WORK_ID=$(hk status --target . --json | "
+    "python3 -c 'import json,sys; print(json.load(sys.stdin)[\"active_work\"])')` "
+    'then `hk export --format handoff-dir --output ".ai/hk/$WORK_ID" --target .`.'
+)
+
+HK_EXPORT_REQUIRED_FILES = (
+    "README.md",
+    "meta.json",
+    "artifacts/README.md",
+)
+HK_EXPORT_HASHED_FILES = frozenset({"README.md", "artifacts/README.md"})
+HK_EXPORT_OBSOLETE_GENERATED_FILES = (
+    "AGENTS.md",
+    "SUMMARY.md",
+    "HANDOFF.md",
+    "VALIDATION.md",
+    "REVIEW.md",
+    "DECISIONS.md",
+    "META.json",
+)
+
+
+def hk_export_dirs_from_paths(root: Path, paths: list[str]) -> list[Path]:
+    exports: list[Path] = []
+    for raw_path in paths:
+        parts = Path(raw_path).parts
+        if len(parts) >= 4 and parts[0] == ".ai" and parts[1] == "hk":
+            candidate = root / parts[0] / parts[1] / parts[2]
+            if candidate.is_dir() and candidate not in exports:
+                exports.append(candidate)
+    return exports
+
+
+def validate_hk_export_dir(root: Path, export_dir: Path) -> None:
+    if not export_dir.exists() or not export_dir.is_dir():
+        raise ContractCheckError(
+            f"HK export directory is missing: {export_dir.relative_to(root)}\n"
+            + REGENERATE_HK_EXPORT_HINT
+        )
+    missing = [
+        filename
+        for filename in HK_EXPORT_REQUIRED_FILES
+        if not (export_dir / filename).exists()
+    ]
+    present_top_level_names = {path.name for path in export_dir.iterdir()}
+    obsolete = [
+        filename
+        for filename in HK_EXPORT_OBSOLETE_GENERATED_FILES
+        if filename in present_top_level_names
+    ]
+    if missing:
+        lines = "\n".join(f"  - {item}" for item in missing)
+        raise ContractCheckError(
+            f"HK export is missing required files: {export_dir.relative_to(root)}\n"
+            + lines
+            + "\n"
+            + REGENERATE_HK_EXPORT_HINT
+        )
+    if obsolete:
+        lines = "\n".join(f"  - {item}" for item in obsolete)
+        raise ContractCheckError(
+            f"HK export contains obsolete generated files: {export_dir.relative_to(root)}\n"
+            + lines
+            + "\n"
+            + REGENERATE_HK_EXPORT_HINT
+        )
+    meta_path = export_dir / "meta.json"
+    try:
+        metadata = json.loads(meta_path.read_text())
+    except json.JSONDecodeError as e:
+        raise ContractCheckError(
+            f"Invalid HK export metadata {meta_path}: {e}\n" + REGENERATE_HK_EXPORT_HINT
+        ) from e
+    if not isinstance(metadata, dict):
+        raise ContractCheckError(
+            f"Invalid HK export metadata {meta_path}: expected JSON object\n"
+            + REGENERATE_HK_EXPORT_HINT
+        )
+    required = {
+        "schema_version",
+        "generated_by",
+        "work_id",
+        "git_sha",
+        "diff_hash",
+        "event_count",
+        "event_seq",
+        "evidence_count",
+        "output_path",
+        "files",
+    }
+    missing_keys = sorted(key for key in required if key not in metadata)
+    if missing_keys:
+        raise ContractCheckError(
+            f"HK export metadata missing keys in {meta_path.relative_to(root)}: "
+            + ", ".join(missing_keys)
+            + "\n"
+            + REGENERATE_HK_EXPORT_HINT
+        )
+    if metadata.get("generated_by") != "hk export --format handoff-dir":
+        raise ContractCheckError(
+            f"HK export metadata has unexpected generated_by in {meta_path.relative_to(root)}\n"
+            + REGENERATE_HK_EXPORT_HINT
+        )
+    if metadata.get("output_path") != export_dir.relative_to(root).as_posix():
+        raise ContractCheckError(
+            f"HK export metadata output_path does not match directory: {meta_path.relative_to(root)}\n"
+            + REGENERATE_HK_EXPORT_HINT
+        )
+    if metadata.get("files") != list(HK_EXPORT_REQUIRED_FILES):
+        raise ContractCheckError(
+            f"HK export metadata files list does not match compact package shape: {meta_path.relative_to(root)}\n"
+            + REGENERATE_HK_EXPORT_HINT
+        )
+    if not str(metadata.get("diff_hash", "")).startswith("sha256:"):
+        raise ContractCheckError(
+            f"HK export metadata diff_hash is invalid: {meta_path.relative_to(root)}\n"
+            + REGENERATE_HK_EXPORT_HINT
+        )
+    try:
+        event_count = int(metadata.get("event_count") or 0)
+    except (TypeError, ValueError) as e:
+        raise ContractCheckError(
+            f"HK export metadata event_count must be an integer: {meta_path.relative_to(root)}\n"
+            + REGENERATE_HK_EXPORT_HINT
+        ) from e
+    if event_count <= 0:
+        raise ContractCheckError(
+            f"HK export metadata event_count must be positive: {meta_path.relative_to(root)}\n"
+            + REGENERATE_HK_EXPORT_HINT
+        )
+    file_hashes = metadata.get("file_hashes", {})
+    if not isinstance(file_hashes, dict):
+        raise ContractCheckError(
+            f"HK export metadata file_hashes is invalid: {meta_path.relative_to(root)}\n"
+            + REGENERATE_HK_EXPORT_HINT
+        )
+    missing_hashes = sorted(HK_EXPORT_HASHED_FILES - set(file_hashes))
+    if missing_hashes:
+        raise ContractCheckError(
+            f"HK export metadata file_hashes missing generated files in {meta_path.relative_to(root)}: "
+            + ", ".join(missing_hashes)
+            + "\n"
+            + REGENERATE_HK_EXPORT_HINT
+        )
+    for relative, expected_hash in file_hashes.items():
+        file_path = export_dir / str(relative)
+        if not file_path.exists():
+            raise ContractCheckError(
+                f"HK export hashed file is missing: {file_path.relative_to(root)}\n"
+                + REGENERATE_HK_EXPORT_HINT
+            )
+        actual_hash = "sha256:" + hashlib.sha256(file_path.read_bytes()).hexdigest()
+        if actual_hash != expected_hash:
+            raise ContractCheckError(
+                f"HK export file hash mismatch: {file_path.relative_to(root)}\n"
+                + REGENERATE_HK_EXPORT_HINT
+            )
+
+
+def run_changed_hk_exports(root: Path, refspec: str) -> int:
+    try:
+        changed_paths = git_diff_paths(root, refspec)
+    except PlanContractError as e:
+        raise ContractCheckError(str(e)) from e
+    exports = hk_export_dirs_from_paths(root, changed_paths)
+    if not exports:
+        ignored = {".ai/hk/AGENTS.md"}
+        meaningful = [path for path in changed_paths if path not in ignored]
+        if meaningful:
+            lines = "\n".join(f"  - {path}" for path in meaningful)
+            raise ContractCheckError(
+                "Meaningful branch changes exist, but no changed HK export was found.\n"
+                + lines
+                + '\nRun `hk export --format handoff-dir --output ".ai/hk/$WORK_ID" --target .` and commit the generated export.'
+            )
+        log_ok("No changed HK exports and no meaningful branch changes")
+        return 0
+    log_step("Checking changed HK exports")
+    for export_dir in exports:
+        validate_hk_export_dir(root, export_dir)
+        log_ok(f"HK export ready: {export_dir.relative_to(root)}")
+    return 0
+
+
+def run_all_hk_exports(root: Path) -> int:
+    exports_root = root / ".ai" / "hk"
+    if not exports_root.exists():
+        log_ok("No HK exports")
+        return 0
+    log_step("Checking HK exports")
+    for export_dir in sorted(path for path in exports_root.iterdir() if path.is_dir()):
+        validate_hk_export_dir(root, export_dir)
+        log_ok(f"HK export ready: {export_dir.relative_to(root)}")
+    return 0
+
+
 def run_changed_plans(root: Path, refspec: str) -> int:
     try:
         contexts = changed_plan_contexts(root, refspec)
@@ -366,15 +565,30 @@ def run_sync_check(
     *,
     plan_dir: str | None = None,
     changed_plans: str | None = None,
+    changed_hk_exports: str | None = None,
+    hk_exports_only: bool = False,
 ) -> int:
     log_step("Running sync-check")
-    if plan_dir and changed_plans:
-        raise ContractCheckError("Use either --plan-dir or --changed-plans, not both.")
+    modes = [
+        bool(plan_dir),
+        bool(changed_plans),
+        bool(changed_hk_exports),
+        hk_exports_only,
+    ]
+    if sum(modes) > 1:
+        raise ContractCheckError(
+            "Use only one of --plan-dir, --changed-plans, --changed-hk-exports, or --hk-exports-only."
+        )
     if plan_dir:
         run_contract_for_plan(root, plan_dir)
     elif changed_plans:
         run_changed_plans(root, changed_plans)
+    elif changed_hk_exports:
+        run_changed_hk_exports(root, changed_hk_exports)
+    elif hk_exports_only:
+        run_all_hk_exports(root)
     else:
+        run_all_hk_exports(root)
         for task_name in CONTRACT_TASKS:
             run_check(root, task_name)
     log_ok("Sync-check passed")

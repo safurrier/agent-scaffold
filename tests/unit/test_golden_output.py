@@ -131,8 +131,8 @@ class TestPythonSingleGolden:
 
     def test_agents_md_includes_plan_workflow(self) -> None:
         content = (self._root / "AGENTS.md").read_text()
-        assert "git checkout -b feat/<slug>" in content
-        assert "mise run plan -- <slug>" in content
+        assert "git checkout -b feat/demo-work" in content
+        assert "mise run plan -- demo-work" in content
 
     def test_agents_md_no_frontmatter(self) -> None:
         content = (self._root / "AGENTS.md").read_text()
@@ -244,7 +244,7 @@ class TestPythonSingleGolden:
     def test_readme_dev_command_no_module(self) -> None:
         content = (self._root / "README.md").read_text()
         assert "mise run dev" in content
-        assert "mise run dev -- <module>" not in content
+        assert "mise run dev -- api" not in content
 
     def test_agent_skills_generated(self) -> None:
         assert (self._root / ".agent" / "skills" / "README.md").exists()
@@ -337,7 +337,7 @@ class TestPythonAppsGolden:
 
     def test_agents_md_dev_command_shows_module(self) -> None:
         content = (self._root / "AGENTS.md").read_text()
-        assert "mise run dev -- <module>" in content
+        assert "mise run dev -- api" in content
 
     def test_ci_workflow_apps_artifacts(self) -> None:
         content = (self._root / ".github" / "workflows" / "ci.yml").read_text()
@@ -434,8 +434,8 @@ class TestGoSingleGolden:
 
     def test_agents_md_includes_plan_workflow(self) -> None:
         content = (self._root / "AGENTS.md").read_text()
-        assert "git checkout -b feat/<slug>" in content
-        assert "mise run plan -- <slug>" in content
+        assert "git checkout -b feat/demo-work" in content
+        assert "mise run plan -- demo-work" in content
 
     def test_spec_md_has_frontmatter(self) -> None:
         assert has_frontmatter(self._root / "SPEC.md")
@@ -492,7 +492,7 @@ class TestGoSingleGolden:
     def test_readme_dev_command_no_module(self) -> None:
         content = (self._root / "README.md").read_text()
         assert "mise run dev" in content
-        assert "mise run dev -- <module>" not in content
+        assert "mise run dev -- api" not in content
 
     def test_agent_skills_generated(self) -> None:
         assert (self._root / ".agent" / "skills" / "README.md").exists()
@@ -598,7 +598,7 @@ class TestGoAppsGolden:
 
     def test_agents_md_dev_command_shows_module(self) -> None:
         content = (self._root / "AGENTS.md").read_text()
-        assert "mise run dev -- <module>" in content
+        assert "mise run dev -- api" in content
 
     def test_ci_workflow_apps_artifacts(self) -> None:
         content = (self._root / ".github" / "workflows" / "ci.yml").read_text()
@@ -683,8 +683,8 @@ class TestRustSingleGolden:
 
     def test_agents_md_includes_plan_workflow(self) -> None:
         content = (self._root / "AGENTS.md").read_text()
-        assert "git checkout -b feat/<slug>" in content
-        assert "mise run plan -- <slug>" in content
+        assert "git checkout -b feat/demo-work" in content
+        assert "mise run plan -- demo-work" in content
 
     def test_spec_md_has_frontmatter(self) -> None:
         assert has_frontmatter(self._root / "SPEC.md")
@@ -751,7 +751,7 @@ class TestRustSingleGolden:
     def test_readme_dev_command_no_module(self) -> None:
         content = (self._root / "README.md").read_text()
         assert "mise run dev" in content
-        assert "mise run dev -- <module>" not in content
+        assert "mise run dev -- api" not in content
 
     def test_agent_skills_generated(self) -> None:
         assert (self._root / ".agent" / "skills" / "README.md").exists()
@@ -857,7 +857,7 @@ class TestRustAppsGolden:
 
     def test_agents_md_dev_command_shows_module(self) -> None:
         content = (self._root / "AGENTS.md").read_text()
-        assert "mise run dev -- <module>" in content
+        assert "mise run dev -- api" in content
 
     def test_ci_workflow_apps_artifacts(self) -> None:
         content = (self._root / ".github" / "workflows" / "ci.yml").read_text()

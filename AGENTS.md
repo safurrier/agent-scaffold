@@ -16,10 +16,15 @@ the stable operator interface.
 The local checkout path is `~/git_repositories/harness-toolkit`; older notes or
 session summaries may still refer to the pre-rename path `~/git_repositories/agent-scaffold`.
 
-Use `mise run plan -- <slug>` for meaningful work, keep the active plan current,
-and close the slice with evidence and review before handoff. Treat `SPEC.md` as
-the correctness envelope and `docs/task-contract.md` as the task-surface
-reference.
+Use Harness Kit (`hk`) as the canonical workflow for this repo: `hk start
+demo-work --plan "..."`, record validation with `hk validate`, record
+external-enough review with `hk review add`, then `hk sync` and `hk ready`. For
+meaningful PR-sized work, set `WORK_ID` from `hk status --json` and export a
+committed generated handoff under `.ai/hk/$WORK_ID/` with `hk export --format
+handoff-dir --output ".ai/hk/$WORK_ID"`. Exports are compact packages (`README.md`,
+`meta.json`, explicit-only `artifacts/`), not hand-authored plan directories. Treat
+`SPEC.md` as the correctness envelope and `docs/task-contract.md` as the
+scaffolded/generated-repo task-surface reference.
 
 ## Commands
 
@@ -27,7 +32,12 @@ reference.
 
 **Fast gate**: `mise run check`.
 
-**Handoff gate**: `mise run sync-check`.
+**HK readiness**: `hk sync --target . && hk ready --target .`.
+
+**Exported handoff**: `WORK_ID=$(hk status --target . --json | python3 -c 'import json,sys; print(json.load(sys.stdin)["active_work"])') && hk export --format handoff-dir --output ".ai/hk/$WORK_ID" --target .`.
+
+**Generated export gate**: `mise run sync-check` validates `.ai/hk` exports and
+legacy `.ai/plans` artifacts when present.
 
 **Focused tests**: `uv run pytest -m "not slow"`.
 
@@ -35,8 +45,8 @@ reference.
 preserving the caller cwd; use it for dogfood before the installed `hk` is
 updated.
 
-**Slice prompt rendering**: `mise run slice-plan -- --task <task.md>`, then
-`mise run slice-implement` and `mise run slice-review` when useful.
+**Legacy scaffold slice prompt rendering**: `mise run slice-plan -- --task docs/task.md`, then
+`mise run slice-implement` and `mise run slice-review` when useful for generated-repo compatibility work.
 
 **Docs preview**: `mise run docs`.
 
@@ -56,20 +66,21 @@ use it only in a copied scaffold or throwaway init target.
 - **DO** edit `.mise/tasks/<task>` to change task behavior. **NOT** `.mise.toml`
   task definitions. **BECAUSE** the command contract is file-based task scripts.
 
-- **DO** keep `templates/.agent/skills/slice-workflow/cli` and the slice-related
-  `.mise/tasks/*` wrappers aligned. **NOT** duplicate the slice contract in
-  repo-local Python scripts. **BECAUSE** the skill-local CLI is the portable
-  implementation and mise is the compatibility surface.
+- **DO** keep `templates/.agent/skills/slice-workflow/cli` and generated-repo
+  slice task wrappers aligned. **NOT** make hand-authored `.ai/plans` the normal
+  Harness Toolkit repo workflow. **BECAUSE** generated repos still need the
+  slice contract, while this repo should dogfood HK as the canonical lifecycle.
 
 - **DO** update the stack registry package, stack templates, and affected mise
   task dispatch handlers together when adding stack behavior. **NOT** by editing
   only one layer. **BECAUSE** init owns generated files while the task contract
   owns how generated projects run stack tools.
 
-- **DO** keep small durable plan evidence committed when it helps review. **NOT**
-  commit raw scratch transcripts or ignored artifact subtrees. **BECAUSE**
-  `sync-check` treats manifest entries as promises that evidence exists and is
-  reviewable.
+- **DO** commit generated `.ai/hk/<work-id>/` exports for meaningful PR-sized
+  Harness Toolkit work when durable review context helps. **NOT** hand-author new
+  `.ai/plans` slices for normal repo work. **BECAUSE** HK ledger state is the
+  source of truth and committed artifacts should be generated views; `.ai/plans`
+  is historical/scaffold compatibility.
 
 - **DO** use Cyclopts for portable/agent-facing CLIs like `hk` and
   `harness-scaffold`. **NOT** add new Click surfaces there. **BECAUSE** typed

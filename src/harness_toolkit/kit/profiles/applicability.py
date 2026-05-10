@@ -112,8 +112,9 @@ def _check_suggestions(
     suggestions: list[ProfileSuggestion] = []
     for check in profile.checks:
         record_command = (
+            "COMMAND_FROM_PROFILE='copy the profile command_template here'; "
             f"hk validate --check {shlex.quote(check.name)} "
-            "--why '...' -- <native command>"
+            "--why '...' -- bash -lc \"$COMMAND_FROM_PROFILE\""
         )
         required_matches = _matched_paths(
             check.required_when, changed_paths, target=target, repo_root=repo_root

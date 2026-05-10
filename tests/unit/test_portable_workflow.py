@@ -167,7 +167,7 @@ def test_workflow_instructions_default_to_user_level_snippet() -> None:
     assert payload["scope"] == "user"
     assert "## Harness Kit" in payload["agents_md"]
     assert "hk profile resolve --target . --json" in payload["agents_md"]
-    assert "hk start <slug> --plan" in payload["agents_md"]
+    assert "hk start demo-work --plan" in payload["agents_md"]
     assert (
         "do not pass `--profile` or `--profiles-dir` to lifecycle commands"
         in payload["agents_md"]
@@ -190,7 +190,7 @@ def test_workflow_instructions_print_repo_profile_snippet() -> None:
     assert payload["profile"] == "python"
     assert "hk brief --target . --json" in payload["agents_md"]
     assert (
-        "hk start <slug> --plan 'Adopted implementation intent' --target . --json"
+        "hk start demo-work --plan 'Adopted implementation intent' --target . --json"
         in payload["agents_md"]
     )
     assert "hk status --target . --json" in payload["agents_md"]

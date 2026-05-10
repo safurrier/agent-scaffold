@@ -53,6 +53,10 @@ Thumbs.db
 !.ai/plans/**/artifacts/*.txt
 !.ai/plans/**/artifacts/*.log
 !.ai/plans/**/artifacts/*.png
+.ai/hk/*/artifacts/**
+!.ai/hk/*/artifacts/
+!.ai/hk/*/artifacts/README.md
+!.ai/hk/*/artifacts/manifest.json
 
 # Harness-local settings
 .claude/settings.local.json

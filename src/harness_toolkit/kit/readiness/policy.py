@@ -203,7 +203,7 @@ def ready_for_events(
             if matching_evidence
             else dangerous_skip_message("validation", matching_skips)
             if matching_skips
-            else f"missing required profile check `{item.name}` ({_paths_text(item.matched_paths)}); run `hk validate --check {item.name} --why ... -- <native command>` or `hk dangerously-skip validation --label {item.name} --reason ... --mitigation ...`",
+            else f"missing required profile check `{item.name}` ({_paths_text(item.matched_paths)}); run `hk validate --check {item.name} --why 'Fast gate passes' -- mise run check` using the matching native command, or `hk dangerously-skip validation --label {item.name} --reason ... --mitigation ...`",
         )
 
     for item in required_profile_reviews:

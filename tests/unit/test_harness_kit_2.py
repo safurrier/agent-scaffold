@@ -16,6 +16,7 @@ from harness_toolkit.kit.local import (
     brief,
     capture_command,
     create_work,
+    export_handoff_dir,
     git_diff_hash,
     handoff,
     init_spec,
@@ -261,6 +262,165 @@ def test_cli_artifact_attach_json_is_parseable(tmp_path: Path) -> None:
     assert payload["kind"] == "agent-session"
     assert payload["copied"] is True
     assert Path(payload["artifact_path"]).exists()
+
+
+def test_handoff_dir_export_writes_generated_package_and_checks_freshness(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "export-package")
+    add_note(target, kind="plan", text="Export a generated HK handoff package.")
+    add_note(target, kind="decision", text="HK ledger remains canonical.")
+    add_note(target, kind="spec-impact", text="Spec updated for generated exports.")
+    capture_command(
+        target,
+        ("python3", "-c", "print('ok')"),
+        kind="test",
+        why="Synthetic validation for export package.",
+    )
+    add_review(
+        target,
+        backend="subagent",
+        reviewer="fresh-context",
+        rubrics=("export",),
+        summary="No blockers.",
+    )
+    sync_checkpoint(target)
+    output = target / ".ai" / "hk" / "demo-export"
+    output.mkdir(parents=True)
+    escaped_file = output.parent / "outside.txt"
+    escaped_file.write_text("must survive cleanup\n")
+    outside_artifacts = target / "outside-artifacts"
+    outside_artifacts.mkdir()
+    symlink_victim = outside_artifacts / "victim.txt"
+    symlink_victim.write_text("must also survive cleanup\n")
+    (output / "artifacts").symlink_to(outside_artifacts, target_is_directory=True)
+    (output / "SUMMARY.md").write_text("old generated shape\n")
+    (output / "META.json").write_text(
+        json.dumps(
+            {
+                "files": [
+                    "SUMMARY.md",
+                    "META.json",
+                    "../outside.txt",
+                    "artifacts/victim.txt",
+                ]
+            }
+        )
+    )
+
+    exported = export_handoff_dir(target, output_path=output)
+    checked = export_handoff_dir(target, output_path=output, check=True)
+    sync_checkpoint(target)
+    checked_after_sync = export_handoff_dir(target, output_path=output, check=True)
+
+    assert exported.path == str(output)
+    assert checked.checked is True
+    assert checked.fresh is True
+    assert checked_after_sync.fresh is True
+    readme = (output / "README.md").read_text()
+    assert readme.startswith("# HK export")
+    assert "Export a generated HK handoff package" in readme
+    assert "Synthetic validation" in readme
+    assert "hk export --format handoff-dir" in readme
+    assert not (output / "SUMMARY.md").exists()
+    assert escaped_file.read_text() == "must survive cleanup\n"
+    assert symlink_victim.read_text() == "must also survive cleanup\n"
+    assert not (output / "artifacts").is_symlink()
+    metadata = json.loads((output / "meta.json").read_text())
+    assert metadata["work_id"] == exported.work_id
+    assert metadata["event_count"] >= 5
+    assert metadata["evidence_count"] == 1
+    assert metadata["diff_hash"].startswith("sha256:")
+    assert metadata["files"] == ["README.md", "meta.json", "artifacts/README.md"]
+    assert metadata["file_hashes"]["README.md"].startswith("sha256:")
+
+    (target / "src.py").write_text("print('new source change')\n")
+    with pytest.raises(LocalWorkflowError, match="stale metadata: diff_hash"):
+        export_handoff_dir(target, output_path=output, check=True)
+    (target / "src.py").unlink()
+    export_handoff_dir(target, output_path=output)
+
+    (output / "README.md").write_text("tampered\n")
+    with pytest.raises(LocalWorkflowError, match="modified generated files"):
+        export_handoff_dir(target, output_path=output, check=True)
+    export_handoff_dir(target, output_path=output)
+
+    add_note(target, kind="learning", text="Exports become stale after ledger changes.")
+    with pytest.raises(LocalWorkflowError, match="stale metadata"):
+        export_handoff_dir(target, output_path=output, check=True)
+
+
+def test_cli_export_rejects_check_without_handoff_dir_format(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    assert _run_hk("init", "--target", str(target), "--json").returncode == 0
+    assert (
+        _run_hk(
+            "start",
+            "cli-export-error",
+            "--target",
+            str(target),
+            "--plan",
+            "Check export error.",
+        ).returncode
+        == 0
+    )
+
+    result = _run_hk("export", "--check", "--target", str(target))
+
+    assert result.returncode == 1
+    assert "require --format handoff-dir" in result.stderr
+
+
+def test_cli_handoff_dir_export_json_is_parseable(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    output = target / ".ai" / "hk" / "cli-export"
+    assert _run_hk("init", "--target", str(target), "--json").returncode == 0
+    assert (
+        _run_hk(
+            "start",
+            "cli-export",
+            "--target",
+            str(target),
+            "--plan",
+            "Export through the CLI.",
+            "--json",
+        ).returncode
+        == 0
+    )
+
+    result = _run_hk(
+        "export",
+        "--format",
+        "handoff-dir",
+        "--output",
+        str(output),
+        "--target",
+        str(target),
+        "--json",
+    )
+    check = _run_hk(
+        "export",
+        "--format",
+        "handoff-dir",
+        "--output",
+        str(output),
+        "--target",
+        str(target),
+        "--check",
+        "--json",
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["format"] == "handoff-dir"
+    assert payload["path"] == str(output)
+    assert check.returncode == 0, check.stderr
+    assert json.loads(check.stdout)["checked"] is True
 
 
 def test_external_state_creates_no_checkout_files(
@@ -598,7 +758,7 @@ def test_cli_evidence_bare_command_gives_list_hint() -> None:
     result = _run_hk("evidence", "--target", ".")
 
     assert result.returncode != 0
-    assert "hk evidence list --target <repo> --json" in result.stderr
+    assert "hk evidence list --target . --json" in result.stderr
 
 
 def test_cli_root_help_removes_legacy_commands() -> None:
@@ -1403,7 +1563,7 @@ def test_cli_plan_without_active_work_points_to_start(tmp_path: Path) -> None:
     result = _run_hk("plan", "legacy-looking-slug", "--target", str(target))
 
     assert result.returncode != 0
-    assert "No active work. Run `hk start <slug>` first." in result.stderr
+    assert "No active work. Run `hk start demo-work --plan" in result.stderr
     assert "hk legacy" not in result.stderr
 
 

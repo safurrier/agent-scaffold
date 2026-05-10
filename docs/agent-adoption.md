@@ -32,7 +32,7 @@ Start by resolving the repo/module workflow:
 hk profile resolve --target . --json
 ```
 
-Use the repo or module that owns the work as `--target`. Profile flags are only for discovery commands such as `hk profile`, `hk checks`, and repo-scope `hk instructions`; do not pass `--profile` or `--profiles-dir` to lifecycle commands unless that command's help shows those options. Then start work with `hk start <slug> --plan "..."`, record validation with `hk validate --why`, and follow `hk status --target .`.
+Use the repo or module that owns the work as `--target`. Profile flags are only for discovery commands such as `hk profile`, `hk checks`, and repo-scope `hk instructions`; do not pass `--profile` or `--profiles-dir` to lifecycle commands unless that command's help shows those options. Then start work with `hk start demo-work --plan "..."`, record validation with `hk validate --why`, and follow `hk status --target .`.
 
 If `hk` is unavailable or you are unfamiliar with the workflow, read the Harness Kit agent adoption guide before proceeding:
 https://safurrier.github.io/harness-toolkit/agent-adoption/
@@ -64,7 +64,7 @@ After installation, start from the target repo or module:
 
 ```bash
 hk profile resolve --target . --json
-hk start <slug> --plan "Adopted implementation intent" --target .
+hk start demo-work --plan "Adopted implementation intent" --target .
 ```
 
 Then work normally in the repository. If you accidentally retry `hk start` with
@@ -77,7 +77,7 @@ own commands for tests, linters, type checks, builds, or other validation.
 Record validation evidence with the exact native command:
 
 ```bash
-hk validate --why "What this command proves" --target . -- <native command>
+hk validate --why "Fast gate passes" --target . -- mise run check
 ```
 
 Let `hk status` guide the rest:

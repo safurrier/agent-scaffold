@@ -15,6 +15,25 @@ SKILL_CLI_PATHS = (
 CLI_CANDIDATES = tuple(PROJECT_ROOT / path for path in SKILL_CLI_PATHS)
 
 
+def is_harness_toolkit_checkout() -> bool:
+    result = subprocess.run(
+        ["git", "remote", "get-url", "origin"],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+    if result.returncode != 0:
+        return False
+    remote = result.stdout.strip().lower()
+    return (
+        "safurrier/harness-toolkit" in remote
+        or remote.endswith("/harness-toolkit.git")
+        or remote.endswith("/harness-toolkit")
+        or remote.endswith(":harness-toolkit.git")
+    )
+
+
 def cli_project() -> Path:
     for candidate in CLI_CANDIDATES:
         if (candidate / "pyproject.toml").exists():
@@ -35,7 +54,10 @@ def main() -> int:
         "--repo",
         str(PROJECT_ROOT),
         "sync-check",
-        *sys.argv[1:],
+        *(
+            sys.argv[1:]
+            or (["--hk-exports-only"] if is_harness_toolkit_checkout() else [])
+        ),
     ]
     env = os.environ.copy()
     env.pop("VIRTUAL_ENV", None)
