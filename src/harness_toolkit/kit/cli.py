@@ -25,18 +25,10 @@ from harness_toolkit.kit.app.lifecycle import (
 )
 from harness_toolkit.kit.local import (
     LocalWorkflowError,
-    active_work_dir,
     brief_markdown,
-    changed_paths,
-    changed_paths_for_work,
     json_dump_dataclass,
     json_dump_object,
     print_capture_and_exit,
-    read_evidence,
-    resolve_local_state,
-)
-from harness_toolkit.kit.local import (
-    brief as local_brief,
 )
 from harness_toolkit.kit.profiles import (
     PROFILE_SELECTION_GUIDANCE,
@@ -126,11 +118,7 @@ def resolve_catalog(profiles_dir: Path | None) -> ProfileCatalog:
 
 
 def changed_paths_for_target(target: Path) -> tuple[str, ...]:
-    state = resolve_local_state(target)
-    work_dir = active_work_dir(state) if state.state_dir.exists() else None
-    if work_dir is not None:
-        return tuple(changed_paths_for_work(state.target_root, work_dir))
-    return tuple(changed_paths(state.target_root))
+    return lifecycle_app.changed_paths_for_target(TargetRequest(target))
 
 
 AGENT_ADOPTION_URL = "https://safurrier.github.io/harness-toolkit/agent-adoption/"
@@ -735,7 +723,7 @@ def brief(
     """Print a read-only repo brief without selecting validation commands."""
     _ = markdown
     try:
-        result = local_brief(target, no_local_files=no_local_files)
+        result = lifecycle_app.brief(TargetRequest(target, no_local_files))
     except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e
@@ -924,12 +912,10 @@ def work_status(
 ) -> None:
     """Show active local work status."""
     try:
-        state = resolve_local_state(target, no_local_files=no_local_files)
-        result = local_brief(target, no_local_files=no_local_files)
+        result = lifecycle_app.brief(TargetRequest(target, no_local_files))
     except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e
-    _ = state
     if json:
         print(json_dump_dataclass(result))
         return
@@ -1402,9 +1388,7 @@ def evidence_list(
 ) -> None:
     """List captured evidence for the active work unit."""
     try:
-        state = resolve_local_state(target, no_local_files=no_local_files)
-        work_dir = active_work_dir(state)
-        records = read_evidence(work_dir) if work_dir is not None else []
+        records = lifecycle_app.evidence_records(TargetRequest(target, no_local_files))
     except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e

@@ -115,6 +115,25 @@ def _note_exists(work_dir: Path, *, kind: str, text: str) -> bool:
 class LifecycleApp:
     """Deep Harness Kit lifecycle Module over local state primitives."""
 
+    def brief(self, request: TargetRequest) -> local.Brief:
+        return local.brief(request.target, no_local_files=request.no_local_files)
+
+    def changed_paths_for_target(self, request: TargetRequest) -> tuple[str, ...]:
+        state = local.resolve_local_state(
+            request.target, no_local_files=request.no_local_files
+        )
+        work_dir = local.active_work_dir(state) if state.state_dir.exists() else None
+        if work_dir is not None:
+            return tuple(local.changed_paths_for_work(state.target_root, work_dir))
+        return tuple(local.changed_paths(state.target_root))
+
+    def evidence_records(self, request: TargetRequest) -> list[local.EvidenceRecord]:
+        state = local.resolve_local_state(
+            request.target, no_local_files=request.no_local_files
+        )
+        work_dir = local.active_work_dir(state)
+        return local.read_evidence(work_dir) if work_dir is not None else []
+
     def init(self, request: TargetRequest) -> local.InitResult:
         return local.init_state(request.target, no_local_files=request.no_local_files)
 
