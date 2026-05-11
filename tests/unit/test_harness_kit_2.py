@@ -40,6 +40,10 @@ def _git_env() -> dict[str, str]:
     env = os.environ.copy()
     for name in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE"):
         env.pop(name, None)
+    env.setdefault("GIT_AUTHOR_NAME", "Test")
+    env.setdefault("GIT_AUTHOR_EMAIL", "test@example.com")
+    env.setdefault("GIT_COMMITTER_NAME", "Test")
+    env.setdefault("GIT_COMMITTER_EMAIL", "test@example.com")
     return env
 
 

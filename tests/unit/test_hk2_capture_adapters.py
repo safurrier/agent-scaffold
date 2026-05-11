@@ -79,9 +79,9 @@ def test_process_adapter_preserves_timeout_marker_when_truncated(
 
     result = run_process_to_transcript(
         [
-            sys.executable,
+            "sh",
             "-c",
-            "import time; print('x' * 200, flush=True); time.sleep(5)",
+            "printf '%s' 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'; sleep 5",
         ],
         cwd=tmp_path,
         use_shell=False,
