@@ -152,22 +152,6 @@ def run_process_to_transcript(
         deadline = time.monotonic() + timeout_seconds if timeout_seconds > 0 else None
         try:
             while True:
-                if deadline is not None and time.monotonic() >= deadline:
-                    timed_out = True
-                    _terminate_process_group(process)
-                    truncated = (
-                        _read_available(
-                            fd,
-                            output,
-                            max_log_bytes=max_log_bytes,
-                            raw_log=raw_log,
-                            stream_file=stream_file,
-                            capture_output=not no_log,
-                        )
-                        or truncated
-                    )
-                    exit_code = TIMEOUT_EXIT_CODE
-                    break
                 for _key, _mask in selector.select(timeout=0.05):
                     truncated = (
                         _read_available(
@@ -193,6 +177,22 @@ def run_process_to_transcript(
                         or truncated
                     )
                     exit_code = process.returncode
+                    break
+                if deadline is not None and time.monotonic() >= deadline:
+                    timed_out = True
+                    _terminate_process_group(process)
+                    truncated = (
+                        _read_available(
+                            fd,
+                            output,
+                            max_log_bytes=max_log_bytes,
+                            raw_log=raw_log,
+                            stream_file=stream_file,
+                            capture_output=not no_log,
+                        )
+                        or truncated
+                    )
+                    exit_code = TIMEOUT_EXIT_CODE
                     break
         finally:
             selector.close()

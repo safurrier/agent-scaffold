@@ -1113,6 +1113,7 @@ def sync(
     group=LIFECYCLE_GROUP,
     help_epilogue=examples(
         "hk validate --why 'Focused test' -- uv run pytest -q",
+        "hk validate --why 'Env-specific test' -- env PYTHONPATH=src pytest -q",
         "hk validate --check repo-native-fast-gate --why 'Fast gate' -- mise run check",
     ),
 )

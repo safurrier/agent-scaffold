@@ -1,10 +1,10 @@
 {
   "branch": "hk-safe-refactor",
-  "diff_hash": "sha256:e73e1f07363c831bf4af17362652cbe7770b8e975889c38a9b73c8c6e26f56de",
-  "dirty": false,
-  "event_count": 53,
-  "event_seq": 68,
-  "evidence_count": 23,
+  "diff_hash": "sha256:aba2e8bc8720675b5a10e80378a4fe5d384d7f69fbff8ac80eb1556a6c447992",
+  "dirty": true,
+  "event_count": 57,
+  "event_seq": 74,
+  "evidence_count": 26,
   "evidence_ids": [
     "ev_20260510_155024_461669",
     "ev_20260510_160635_969252",
@@ -28,10 +28,13 @@
     "ev_20260510_213931_722808",
     "ev_20260510_214346_415693",
     "ev_20260510_214516_270906",
-    "ev_20260511_070720_796073"
+    "ev_20260511_070720_796073",
+    "ev_20260511_093941_129722",
+    "ev_20260511_100304_332798",
+    "ev_20260511_101254_803280"
   ],
   "file_hashes": {
-    "README.md": "sha256:7cbcbb886767ebec5cf05d8050e6ba148786ccea0e5ccc676dbc74eba4939941",
+    "README.md": "sha256:34bc15e46186f1cf930261ceeee2c21cf905590f380d4470a5572920d23b4363",
     "artifacts/README.md": "sha256:c4bad9d4652f296a7e4dcf175fe1dd0c66a99ec0b74941cd45c499e84792436c"
   },
   "files": [
@@ -39,12 +42,12 @@
     "meta.json",
     "artifacts/README.md"
   ],
-  "generated_at": "2026-05-11T14:07:31.465203+00:00",
+  "generated_at": "2026-05-11T17:13:04.846906+00:00",
   "generated_by": "hk export --format handoff-dir",
-  "git_sha": "15765e3",
+  "git_sha": "d2fbd36",
   "output_path": ".ai/hk/2026-05-10-152248-harness-kit-refactor-plan",
-  "ready": true,
-  "ready_status": "ready-with-dangerous-skips",
+  "ready": false,
+  "ready_status": "not-ready",
   "schema_version": 1,
   "sync_status": "synced",
   "target_root": ".",

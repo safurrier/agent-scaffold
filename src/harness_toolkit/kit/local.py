@@ -341,8 +341,9 @@ def agent_local_state_warning(path: Path) -> str:
     examples = " ".join(f"--exclude {item}" for item in paths)
     return (
         " Common agent-local state is present in git status "
-        f"({', '.join(paths)}); remove/ignore it, or record a constrained "
-        f"checkpoint with `hk sync {examples} --reason ...`."
+        f"({', '.join(paths)}); it is blocking sync readiness. If disposable, "
+        "remove or git-ignore it. If expected harness-local state, run exactly: "
+        f"`hk sync {examples} --reason agent-local-state`."
     )
 
 
@@ -740,6 +741,13 @@ def command_display(command: tuple[str, ...], shell_command: str) -> str:
     return " ".join(shlex.quote(part) for part in command)
 
 
+def _looks_like_env_assignment(value: str) -> bool:
+    name, sep, rest = value.partition("=")
+    return bool(
+        sep and rest and name.replace("_", "a").isalnum() and not name[0].isdigit()
+    )
+
+
 def capture_command(
     target: Path,
     command: tuple[str, ...],
@@ -760,6 +768,12 @@ def capture_command(
     if command and shell_command:
         raise LocalWorkflowError(
             "capture accepts either --shell TEXT or argv after --, not both"
+        )
+    if command and _looks_like_env_assignment(command[0]):
+        raise LocalWorkflowError(
+            "captured commands run argv directly; environment assignments like "
+            f"`{command[0]}` are not shell syntax here. Use `env {command[0]} ...` "
+            "after --, or use --shell 'KEY=value command ...'."
         )
     if kind not in VALID_EVIDENCE_KINDS:
         valid = ", ".join(VALID_EVIDENCE_KINDS)
@@ -1381,6 +1395,7 @@ def ready_for_work(
         handoff_check=lambda: render_handoff(work_dir, state),
         required_profile_checks=required_checks,
         required_profile_reviews=required_reviews,
+        changed_paths=tuple(changed_paths_for_work(state.target_root, work_dir)),
     )
 
 
@@ -1430,7 +1445,7 @@ def status(target: Path, *, no_local_files: bool = False) -> StatusResult:
         )
     if check_map.get("review") and check_map["review"].status == "fail":
         actions.append(
-            "review required: preferred independent AI/tool reviewer; minimum fresh-context subagent. Run `hk review prompt`; dispatch it via your harness if available (Pi `subagent` tool, Claude Code `Agent` tool/`Task` alias, Codex Shell tool running `codex review --uncommitted`); record with `hk review add ...`, then re-run `hk status`; or explicitly `hk dangerously-skip review --label no-review --reason ... --mitigation ...`; self-review does not count"
+            "review required: do not skip just because the implementation agent cannot self-review. Run `hk review prompt`, dispatch that prompt through an independent AI/tool or fresh-context subagent if your harness supports one (Pi `subagent` tool, Claude Code `Agent` tool/`Task` alias, Codex Shell tool running `codex review --uncommitted`), record with `hk review add ...`, then re-run `hk status`; only use `hk dangerously-skip review --label no-review --reason ... --mitigation ...` when no independent review path is available"
         )
     for check in readiness.checks:
         if check.status == "fail" and check.id.startswith("profile-check:"):
@@ -1438,8 +1453,12 @@ def status(target: Path, *, no_local_files: bool = False) -> StatusResult:
         if check.status == "fail" and check.id.startswith("profile-review:"):
             actions.append(f"review: {check.message}")
     if check_map.get("sync") and check_map["sync"].status == "fail":
-        sync_action = "sync: hk sync after reconciling changes"
         warning = agent_local_state_warning(state.target_root)
+        sync_action = (
+            "sync: agent-local state is blocking readiness."
+            if warning
+            else "sync: hk sync after reconciling changes"
+        )
         if warning:
             sync_action += warning
         actions.append(sync_action)

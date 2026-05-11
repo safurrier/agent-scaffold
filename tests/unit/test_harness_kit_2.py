@@ -1385,7 +1385,49 @@ def test_status_coaches_next_actions(tmp_path: Path) -> None:
     )
     assert any(action.startswith("decision:") for action in result.next_actions)
     assert any(action.startswith("validation:") for action in result.next_actions)
-    assert any(action.startswith("review required:") for action in result.next_actions)
+    review_actions = [
+        action
+        for action in result.next_actions
+        if action.startswith("review required:")
+    ]
+    assert review_actions
+    assert "do not skip just because" in review_actions[0]
+    assert "fresh-context subagent" in review_actions[0]
+
+
+def test_status_prompts_exact_agent_local_sync_exclusion(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "agent-local-sync")
+    add_note(target, kind="plan", text="Exercise local state guidance.")
+    add_note(target, kind="decision", text="No spec impact.")
+    add_note(target, kind="spec-impact", text="not-needed")
+    capture_command(
+        target,
+        ("python3", "-c", "print('ok')"),
+        kind="test",
+        why="Validation covers current diff.",
+    )
+    add_review(
+        target,
+        backend="subagent",
+        reviewer="reviewer-fresh-context",
+        rubrics=("core-quality",),
+        summary="Review covers current diff.",
+    )
+    sync_checkpoint(target)
+    (target / ".pi").mkdir()
+    (target / ".pi" / "session.json").write_text("{}\n")
+
+    result = status(target)
+
+    sync_actions = [
+        action for action in result.next_actions if action.startswith("sync:")
+    ]
+    assert sync_actions
+    assert "agent-local state is blocking readiness" in sync_actions[0]
+    assert "hk sync --exclude .pi --reason agent-local-state" in sync_actions[0]
 
 
 def test_generated_handoff_views_do_not_make_synced_work_stale(
@@ -1891,7 +1933,31 @@ def test_ready_rejects_stale_validation_and_review_after_diff_changes(
     assert result.ready is False
     messages = {check.id: check.message for check in result.checks}
     assert "validation evidence is stale" in messages["validation"]
+    assert "README.md" in messages["validation"]
     assert "accepted review is stale" in messages["review"]
+    assert "README.md" in messages["review"]
+
+
+def test_capture_rejects_bare_env_assignment_with_actionable_hint(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "env-assignment")
+
+    with pytest.raises(LocalWorkflowError) as exc_info:
+        capture_command(
+            target,
+            ("PYTHONPATH=src", "pytest", "-q"),
+            kind="test",
+            why="Exercise env assignment guidance.",
+        )
+
+    message = str(exc_info.value)
+    assert "environment assignments" in message
+    assert "env PYTHONPATH=src" in message
+    assert "--shell 'KEY=value command ...'" in message
 
 
 def test_dangerous_sync_skip_does_not_hide_source_diff_from_freshness(

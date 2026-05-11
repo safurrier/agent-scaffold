@@ -155,6 +155,14 @@ def _paths_text(paths: tuple[str, ...]) -> str:
     return f"matched {preview}{suffix}"
 
 
+def _changed_paths_text(paths: tuple[str, ...]) -> str:
+    if not paths:
+        return ""
+    preview = ", ".join(paths[:5])
+    suffix = "" if len(paths) <= 5 else f", +{len(paths) - 5} more"
+    return f" Current changed paths: {preview}{suffix}."
+
+
 def ready_for_events(
     *,
     work_id: str,
@@ -168,6 +176,7 @@ def ready_for_events(
     handoff_check: Callable[[], None] | None = None,
     required_profile_checks: tuple[RequiredProfileItem, ...] = (),
     required_profile_reviews: tuple[RequiredProfileItem, ...] = (),
+    changed_paths: tuple[str, ...] = (),
 ) -> ReadyResult:
     checks: list[ReadyCheck] = []
 
@@ -237,7 +246,8 @@ def ready_for_events(
         if passing_evidence_with_why
         else dangerous_skip_message("validation", validation_skips)
         if validation_skipped
-        else "validation evidence is stale for current diff; rerun hk validate or dangerously-skip validation"
+        else "validation evidence is stale for current diff; rerun hk validate or dangerously-skip validation."
+        + _changed_paths_text(changed_paths)
         if stale_passing_evidence_with_why
         else "validation evidence with rationale failed"
         if failed_evidence_with_why
@@ -267,11 +277,12 @@ def ready_for_events(
         if reviews
         else dangerous_skip_message("review", review_skips)
         if review_skipped
-        else "accepted review is stale for current diff; rerun independent review or dangerously-skip review"
+        else "accepted review is stale for current diff; rerun independent review or dangerously-skip review."
+        + _changed_paths_text(changed_paths)
         if stale_reviews
         else SELF_REVIEW_GUIDANCE
         if recorded_reviews
-        else "missing accepted external-enough review record; run a separate reviewer/subagent with fresh context",
+        else "missing accepted external-enough review record; dispatch a separate reviewer/subagent with fresh context via your harness, then record it with hk review add",
     )
     for item in required_profile_checks:
         matching_evidence = [
