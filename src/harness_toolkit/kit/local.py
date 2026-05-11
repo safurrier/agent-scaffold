@@ -189,6 +189,9 @@ class CaptureResult:
     transcript_path: str
     why: str = ""
     check_name: str = ""
+    timed_out: bool = False
+    truncated: bool = False
+    transcript_bytes: int = 0
 
 
 @dataclass(frozen=True)
@@ -742,6 +745,8 @@ def capture_command(
     raw_log: bool = False,
     no_local_files: bool = False,
     stream_to_stderr: bool = False,
+    timeout_seconds: int = 0,
+    max_log_bytes: int = 0,
 ) -> CaptureResult:
     if not command and not shell_command:
         raise LocalWorkflowError("capture requires a command after -- or --shell TEXT")
@@ -752,6 +757,10 @@ def capture_command(
     if kind not in VALID_EVIDENCE_KINDS:
         valid = ", ".join(VALID_EVIDENCE_KINDS)
         raise LocalWorkflowError(f"invalid evidence kind '{kind}'. Valid: {valid}")
+    if timeout_seconds < 0:
+        raise LocalWorkflowError("capture timeout must be >= 0 seconds")
+    if max_log_bytes < 0:
+        raise LocalWorkflowError("capture max log bytes must be >= 0")
     state = ensure_state(target, no_local_files=no_local_files)
     clean_check_name = check_name.strip()
     if clean_check_name:
@@ -790,6 +799,8 @@ def capture_command(
         no_log=no_log,
         raw_log=raw_log,
         stream_to_stderr=stream_to_stderr,
+        timeout_seconds=timeout_seconds,
+        max_log_bytes=max_log_bytes,
     )
     exit_code = process_result.exit_code
     ended = utc_now()
@@ -831,6 +842,9 @@ def capture_command(
             state.target_root, base_sha=work_start_git_sha(read_events(work_dir))
         ),
         changed_paths=changed_paths_for_work(state.target_root, work_dir),
+        timed_out=process_result.timed_out,
+        truncated=process_result.truncated,
+        transcript_bytes=process_result.transcript_bytes,
     )
     with (work_dir / "evidence.jsonl").open("a") as file:
         file.write(json.dumps(asdict(record), sort_keys=True) + "\n")
@@ -853,6 +867,9 @@ def capture_command(
         transcript_path=str(transcript if not no_log else ""),
         why=why,
         check_name=clean_check_name,
+        timed_out=process_result.timed_out,
+        truncated=process_result.truncated,
+        transcript_bytes=process_result.transcript_bytes,
     )
 
 

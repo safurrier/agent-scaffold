@@ -1142,6 +1142,8 @@ def validate(
     shell: str = "",
     no_log: bool = False,
     raw_log: bool = False,
+    timeout_seconds: int = 0,
+    max_log_bytes: int = 0,
     no_local_files: bool = False,
     json: bool = False,
 ) -> None:
@@ -1161,6 +1163,8 @@ def validate(
                 no_log=no_log,
                 raw_log=raw_log,
                 stream_to_stderr=json,
+                timeout_seconds=timeout_seconds,
+                max_log_bytes=max_log_bytes,
             )
         )
     except LocalWorkflowError as e:
@@ -1196,6 +1200,8 @@ def capture(
     shell: str = "",
     no_log: bool = False,
     raw_log: bool = False,
+    timeout_seconds: int = 0,
+    max_log_bytes: int = 0,
     no_local_files: bool = False,
     json: bool = False,
 ) -> None:
@@ -1211,6 +1217,8 @@ def capture(
                 no_log=no_log,
                 raw_log=raw_log,
                 stream_to_stderr=json,
+                timeout_seconds=timeout_seconds,
+                max_log_bytes=max_log_bytes,
             )
         )
     except LocalWorkflowError as e:

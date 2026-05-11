@@ -41,3 +41,6 @@ class EvidenceRecord:
     check_name: str = ""
     diff_hash: str = ""
     changed_paths: list[str] | None = None
+    timed_out: bool = False
+    truncated: bool = False
+    transcript_bytes: int = 0

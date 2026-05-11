@@ -392,6 +392,13 @@ def parse_evidence(
         changed_paths=_optional_str_list(
             data, "changed_paths", path=path, line_number=line_number, kind=kind
         ),
+        timed_out=data.get("timed_out") is True,
+        truncated=data.get("truncated") is True,
+        transcript_bytes=_required_int(
+            data, "transcript_bytes", path=path, line_number=line_number, kind=kind
+        )
+        if "transcript_bytes" in data
+        else 0,
     )
 
 

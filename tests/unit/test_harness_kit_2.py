@@ -2207,6 +2207,35 @@ def test_cli_capture_json_stdout_is_parseable(tmp_path: Path) -> None:
 
 
 @pytest.mark.cli
+def test_cli_capture_timeout_json_is_parseable(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    assert _run_hk("init", "--target", str(target), "--json").returncode == 0
+    assert (
+        _run_hk("work", "start", "capture-timeout", "--target", str(target)).returncode
+        == 0
+    )
+
+    result = _run_hk(
+        "capture",
+        "--target",
+        str(target),
+        "--json",
+        "--timeout-seconds",
+        "1",
+        "--",
+        "python3",
+        "-c",
+        "import time; time.sleep(5)",
+    )
+
+    assert result.returncode == 124
+    payload = json.loads(result.stdout)
+    assert payload["timed_out"] is True
+    assert payload["exit_code"] == 124
+
+
+@pytest.mark.cli
 def test_cli_capture_preserves_wrapped_exit_code(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
