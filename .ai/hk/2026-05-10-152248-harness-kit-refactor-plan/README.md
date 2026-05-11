@@ -16,7 +16,7 @@ Historical hand-authored slice plans live under `.ai/plans/`; new Harness Toolki
 ## Summary
 - Work: `2026-05-10-152248-harness-kit-refactor-plan`
 - Branch: `hk-safe-refactor`
-- Git SHA: `c050682`
+- Git SHA: `15765e3`
 - Dirty: `false`
 - Sync status: `synced`
 
@@ -1383,6 +1383,7 @@ For each implementation slice:
 - `mise run check`: pass (exit 0) — validates: Final full quality gate passes after all planned refactor phases through LifecycleApp/profile/export/capture/freshness cleanup. — `.harness-local/harness-kit/root/work/2026-05-10-152248-harness-kit-refactor-plan/artifacts/ev_20260510_213931_722808.transcript.log`
 - `mise run sync-check`: pass (exit 0) — validates: Final HK export sync-check passes after all refactor phases. — `.harness-local/harness-kit/root/work/2026-05-10-152248-harness-kit-refactor-plan/artifacts/ev_20260510_214346_415693.transcript.log`
 - `scripts/hk-dev status --target . --json`: pass (exit 0) — validates: Required hk-dev dogfood check: current checkout hk status runs through scripts/hk-dev. — `.harness-local/harness-kit/root/work/2026-05-10-152248-harness-kit-refactor-plan/artifacts/ev_20260510_214516_270906.transcript.log`
+- `bash -lc 'test -s /tmp/hk-agent-adoption-trial/reports/adoption-synthesis.md && grep -q "Worker: fresh-context" /tmp/hk-agent-adoption-trial/reports/adoption-synthesis.md && grep -q "profile resolve" /tmp/hk-agent-adoption-trial/reports/adoption-synthesis.md'`: pass (exit 0) — validates: Fresh-context worker subagent adoption trial used HK through the logged wrapper and produced a synthesis report. — `.harness-local/harness-kit/root/work/2026-05-10-152248-harness-kit-refactor-plan/artifacts/ev_20260511_070720_796073.transcript.log`
 
 ## Readiness
 - Status: `ready-with-dangerous-skips`
@@ -1413,6 +1414,13 @@ For each implementation slice:
 - subagent / reviewer-fresh-context [codex-review] (correctness-regression-test-adequacy): Final refactor review gates have passed across phases: marker taxonomy/agent simulations, sync exclusion revalidation, typed lifecycle event queries, validation/review freshness, command capture hardening, export symlink safety, ProfileContext, and LifecycleApp delegation. No open reviewer blockers remain. [accepted]
 - subagent / reviewer-fresh-context [hk-lifecycle-review] (hk-lifecycle-readiness-safety): HK lifecycle review completed across the refactor: sync exclusions, validation/review freshness, command capture, handoff export safety, ProfileContext, and LifecycleApp delegation were reviewed with no remaining blockers. [accepted]
 
+## Attached artifacts
+- agent-simulation: `.harness-local/harness-kit/root/work/2026-05-10-152248-harness-kit-refactor-plan/artifacts/artifact_20260511_070717_868701_agent-simulation_adoption-synthesis.md` (copied, 3935 bytes, sha256:b5fb7b7ea9774000281e2a2f302919b5798598277133132cf6f652a9825fd30a) — hk-agent-adoption-trial
+- agent-session-report: `.harness-local/harness-kit/root/work/2026-05-10-152248-harness-kit-refactor-plan/artifacts/artifact_20260511_070718_618499_agent-session-report_worker-report.md` (copied, 2209 bytes, sha256:1d4eaf9c462d471fb51724d8d71e55f2548bc7f2f608e9ecf051ed0b389d500f) — hk-agent-adoption-worker-report
+- command-log: `.harness-local/harness-kit/root/work/2026-05-10-152248-harness-kit-refactor-plan/artifacts/artifact_20260511_070719_346938_command-log_hk-commands.jsonl` (copied, 12572 bytes, sha256:0e755b738a4e0695d6ba3b4dd226d21def9164fbab151a4748832734aa908c5b) — hk-agent-adoption-command-log
+- hk-ready-json: `.harness-local/harness-kit/root/work/2026-05-10-152248-harness-kit-refactor-plan/artifacts/artifact_20260511_070720_072823_hk-ready-json_final-ready.json` (copied, 1183 bytes, sha256:f0f83bd7b66c681ffc0dc0ed51b426ec78c6a9e015400c522640590479cdbbbf) — hk-agent-adoption-final-ready
+
 ## Dangerous skips
 - validation: hk-readiness — reason: Current repo profile has a circular hk-readiness required check for any change: hk ready cannot pass until hk-readiness evidence exists, but the evidence command itself is hk ready.; mitigation: Recorded required fast-gate and handoff-sync-check evidence, recorded fresh-context review, and added plan follow-up to update repo HK profile/check matchers after the refactor.
 - validation: hk-readiness — reason: Current repo profile still has circular hk-readiness required check: hk ready requires hk-readiness evidence, whose command is hk ready.; mitigation: Recorded fast-gate, handoff-sync-check, hk-dev-dogfood, codex-review, hk-lifecycle-review, and final sync/export checks; plan includes follow-up to update repo HK profile matchers/readiness rules.
+- sync: generated-export-churn — reason: Final generated .ai/hk export changes after the last sync checkpoint.; mitigation: mise run sync-check and hk export --check both pass for the generated handoff package.
