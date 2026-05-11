@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from harness_toolkit.kit.ledger import lifecycle_events
 from harness_toolkit.kit.ledger.models import EventRecord, EvidenceRecord
 from harness_toolkit.kit.readiness.diagnostics import ReadyCheck, ReadyResult
 
@@ -39,13 +40,7 @@ def notes_by_kind(events: list[EventRecord], kind: str) -> list[str]:
 
 
 def notes_by_kinds(events: list[EventRecord], kinds: tuple[str, ...]) -> list[str]:
-    rows: list[str] = []
-    for event in events:
-        if event.type != "note_added":
-            continue
-        if event.data.get("kind") in kinds:
-            rows.append(str(event.data.get("text", "")))
-    return rows
+    return lifecycle_events.note_texts(events, kinds)
 
 
 def is_self_review_identity(value: str) -> bool:
@@ -56,7 +51,7 @@ def is_self_review_identity(value: str) -> bool:
 
 
 def review_events(events: list[EventRecord]) -> list[dict[str, object]]:
-    return [event.data for event in events if event.type == "review_added"]
+    return lifecycle_events.review_payloads(events)
 
 
 def accepted_review_events(events: list[EventRecord]) -> list[dict[str, object]]:
@@ -79,9 +74,9 @@ def dangerous_skip_events(
     events: list[EventRecord], check_id: str
 ) -> list[dict[str, object]]:
     return [
-        event.data
-        for event in events
-        if event.type == "dangerous_skip_added" and event.data.get("check") == check_id
+        skip
+        for skip in lifecycle_events.dangerous_skip_payloads(events)
+        if skip.get("check") == check_id
     ]
 
 
