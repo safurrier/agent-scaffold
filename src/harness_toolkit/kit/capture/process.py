@@ -19,6 +19,10 @@ TIMEOUT_EXIT_CODE = 124
 TRUNCATION_MARKER = "\n[hk transcript truncated]\n"
 TIMEOUT_MARKER = "\n[hk command timed out]\n"
 READ_CHUNK_SIZE = 8192
+LIVE_REDACTION_BUFFER_LIMIT = 64 * 1024
+LIVE_SUPPRESSION_MARKER = (
+    "\n[hk live output suppressed until whitespace/newline redaction boundary]\n"
+)
 
 
 @dataclass(frozen=True)
@@ -75,11 +79,14 @@ def _terminate_process_group(process: subprocess.Popen[bytes]) -> None:
 
 
 class _StreamingRedactor:
-    """Line-buffered live-output redactor.
+    """Boundary-buffered live-output redactor.
 
     Redacting each os.read chunk independently can leak a secret suffix when a
-    token crosses chunk boundaries. Buffer until a line boundary so every
-    non-raw live write sees the same context as transcript redaction.
+    token crosses chunk boundaries. Buffer until a whitespace/control boundary so
+    every non-raw live write sees enough context for secret redaction. If a
+    command emits one huge delimiter-free token, suppress that token in live
+    output instead of growing memory without bound; transcript capture remains
+    governed by the separate transcript byte cap.
     """
 
     def __init__(self, *, raw_log: bool, stream_file: TextIO) -> None:
@@ -87,6 +94,52 @@ class _StreamingRedactor:
         self._stream_file = stream_file
         self._decoder = codecs.getincrementaldecoder("utf-8")("replace")
         self._pending = ""
+        self._suppressing = False
+        self._suppression_reported = False
+
+    @staticmethod
+    def _last_boundary(value: str) -> int:
+        for index in range(len(value) - 1, -1, -1):
+            if value[index].isspace() or value[index] in {"\r", "\n"}:
+                return index
+        return -1
+
+    def _emit(self, value: str) -> None:
+        if not value:
+            return
+        print(
+            redact_text(value, raw_log=False),
+            end="",
+            file=self._stream_file,
+            flush=True,
+        )
+
+    def _report_suppression(self) -> None:
+        if self._suppression_reported:
+            return
+        print(LIVE_SUPPRESSION_MARKER, end="", file=self._stream_file, flush=True)
+        self._suppression_reported = True
+
+    def _feed_redacted(self, rendered: str) -> None:
+        if self._suppressing:
+            boundary = self._last_boundary(rendered)
+            if boundary < 0:
+                return
+            self._suppressing = False
+            self._pending = rendered[boundary + 1 :]
+        else:
+            self._pending += rendered
+
+        boundary = self._last_boundary(self._pending)
+        if boundary >= 0:
+            safe = self._pending[: boundary + 1]
+            self._pending = self._pending[boundary + 1 :]
+            self._emit(safe)
+
+        if len(self._pending) > LIVE_REDACTION_BUFFER_LIMIT:
+            self._report_suppression()
+            self._pending = ""
+            self._suppressing = True
 
     def feed(self, chunk: bytes) -> None:
         if not chunk:
@@ -95,15 +148,7 @@ class _StreamingRedactor:
         if self._raw_log:
             print(rendered, end="", file=self._stream_file, flush=True)
             return
-        self._pending += rendered
-        line_end = self._pending.rfind("\n")
-        if line_end < 0:
-            return
-        safe = self._pending[: line_end + 1]
-        self._pending = self._pending[line_end + 1 :]
-        print(
-            redact_text(safe, raw_log=False), end="", file=self._stream_file, flush=True
-        )
+        self._feed_redacted(rendered)
 
     def flush(self) -> None:
         rendered = self._decoder.decode(b"", final=True)
@@ -111,14 +156,13 @@ class _StreamingRedactor:
             if rendered:
                 print(rendered, end="", file=self._stream_file, flush=True)
             return
-        self._pending += rendered
+        self._feed_redacted(rendered)
+        if self._suppressing:
+            self._suppressing = False
+            self._pending = ""
+            return
         if self._pending:
-            print(
-                redact_text(self._pending, raw_log=False),
-                end="",
-                file=self._stream_file,
-                flush=True,
-            )
+            self._emit(self._pending)
             self._pending = ""
 
 

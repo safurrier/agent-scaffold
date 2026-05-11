@@ -16,7 +16,7 @@ Historical hand-authored slice plans live under `.ai/plans/`; new Harness Toolki
 ## Summary
 - Work: `2026-05-10-152248-harness-kit-refactor-plan`
 - Branch: `hk-safe-refactor`
-- Git SHA: `5a17aa8`
+- Git SHA: `6f20ffe`
 - Dirty: `true`
 - Sync status: `synced`
 
@@ -1392,6 +1392,8 @@ For each implementation slice:
 - `mise run sync-check`: pass (exit 0) — validates: HK export sync-check passes after CI git identity fixture fix. — `.harness-local/harness-kit/root/work/2026-05-10-152248-harness-kit-refactor-plan/artifacts/ev_20260511_113043_993477.transcript.log`
 - `mise run check`: pass (exit 0) — validates: Codex feedback fixes: full quality gate passes after streaming redaction boundary fix and sync dangerous-skip hash acceptance fix. — `.harness-local/harness-kit/root/work/2026-05-10-152248-harness-kit-refactor-plan/artifacts/ev_20260511_114819_478357.transcript.log`
 - `mise run sync-check`: pass (exit 0) — validates: HK export sync-check passes before Codex feedback fix export refresh. — `.harness-local/harness-kit/root/work/2026-05-10-152248-harness-kit-refactor-plan/artifacts/ev_20260511_115248_035603.transcript.log`
+- `mise run check`: pass (exit 0) — validates: Codex follow-up fix: full quality gate passes after bounding live redaction buffer for newline-free output. — `.harness-local/harness-kit/root/work/2026-05-10-152248-harness-kit-refactor-plan/artifacts/ev_20260511_120447_697119.transcript.log`
+- `mise run sync-check`: pass (exit 0) — validates: HK export sync-check passes before bounded live redaction export refresh. — `.harness-local/harness-kit/root/work/2026-05-10-152248-harness-kit-refactor-plan/artifacts/ev_20260511_120915_795291.transcript.log`
 
 ## Readiness
 - Status: `not-ready`
@@ -1424,6 +1426,7 @@ For each implementation slice:
 - subagent / reviewer-fresh-context [codex-review] (correctness-regression-test-adequacy): Dogfood follow-up review found no blockers. Reviewed CLI guidance changes for review dispatch and agent-local sync, stale validation path diagnostics, env-assignment capture hint, and timeout drain reorder. Reviewer reported focused pytest for harness kit/readiness/capture tests passed. [accepted]
 - subagent / reviewer-fresh-context [hk-lifecycle-review] (hk-lifecycle-readiness-safety): Reviewed dogfood follow-up changes: review dispatch guidance, agent-local sync guidance, stale changed-path diagnostics, env-assignment hint, and timeout drain robustness. No blockers. [accepted]
 - github-codex / codex-pr-review [codex-review] (correctness-security-regression): Codex reported two actionable findings: streaming redaction could leak secrets across os.read boundaries, and sync-dangerously-skipped readiness could mark evidence stale when unchanged agent-local state existed before validation. Both were fixed with regression tests. [accepted]
+- github-codex / codex-pr-review [codex-review] (correctness-security-regression): Codex follow-up found unbounded live redaction buffering for newline-free output. Fixed by bounding the non-raw live redaction buffer and suppressing huge delimiter-free tokens until a whitespace/newline boundary; added regression coverage. [accepted]
 
 ## Attached artifacts
 - agent-simulation: `.harness-local/harness-kit/root/work/2026-05-10-152248-harness-kit-refactor-plan/artifacts/artifact_20260511_070717_868701_agent-simulation_adoption-synthesis.md` (copied, 3935 bytes, sha256:b5fb7b7ea9774000281e2a2f302919b5798598277133132cf6f652a9825fd30a) — hk-agent-adoption-trial

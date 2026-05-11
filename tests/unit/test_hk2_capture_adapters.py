@@ -6,6 +6,8 @@ from pathlib import Path
 import pytest
 
 from harness_toolkit.kit.capture.process import (
+    LIVE_REDACTION_BUFFER_LIMIT,
+    LIVE_SUPPRESSION_MARKER,
     READ_CHUNK_SIZE,
     run_process_to_transcript,
 )
@@ -134,6 +136,36 @@ def test_process_adapter_redacts_streamed_secret_across_read_boundary(
     assert "supersecretvalue" not in captured.out
     assert "persecretvalue" not in captured.out
     assert "supersecretvalue" not in content
+
+
+@pytest.mark.integration
+def test_process_adapter_bounds_live_redaction_for_newline_free_output(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    transcript = tmp_path / "newline-free.log"
+    payload_size = LIVE_REDACTION_BUFFER_LIMIT + READ_CHUNK_SIZE
+
+    result = run_process_to_transcript(
+        [
+            sys.executable,
+            "-c",
+            "import sys; sys.stdout.write('x' * int(sys.argv[1])); sys.stdout.flush()",
+            str(payload_size),
+        ],
+        cwd=tmp_path,
+        use_shell=False,
+        transcript=transcript,
+        no_log=False,
+        raw_log=False,
+        stream_to_stderr=False,
+        max_log_bytes=128,
+    )
+
+    captured = capsys.readouterr()
+    assert result.exit_code == 0
+    assert LIVE_SUPPRESSION_MARKER in captured.out
+    assert len(captured.out) < payload_size
+    assert transcript.read_text().startswith("x" * 128)
 
 
 @pytest.mark.integration
