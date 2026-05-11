@@ -174,24 +174,11 @@ use it only in a copied scaffold or throwaway init target.
   **BECAUSE** the refactor is safest when every seam move is protected by
   conformance, smoke, and simulation tests before implementation.
 
-- **DO** treat short-lived Harness Kit internals and recent local ledgers as
-  disposable during the major refactor when that simplifies the final design.
-  **NOT** overbuild long-term backwards compatibility for one-day-old prototypes.
-  **BECAUSE** temporary wrappers and compatibility fixtures are useful during the
-  refactor, but the merged result does not need to preserve every pre-refactor
-  internal format.
-
 - **DO** run an agent-friendly CLI design review whenever changing `hk` command
   names, help text, JSON output, exit behavior, or examples. **NOT** rely only on
   implementation review for CLI-facing changes. **BECAUSE** Harness Kit is an
   agent-facing CLI and must stay non-interactive, structured, discoverable, and
   easy for agents to repair after mistakes.
-
-- **DO** update this repo's Harness Kit profile/check path matchers after moving
-  modules, task files, templates, or exported HK artifacts. **NOT** assume profile
-  guidance stays correct after architecture refactors. **BECAUSE** HK dogfoods
-  profile-driven checks in this repo, and stale file matchers can silently stop
-  requiring the right validation or review.
 
 ## Related Context
 

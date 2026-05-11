@@ -144,7 +144,7 @@ are the common commands to reach for when the coach asks for something specific:
 | Record or refine the adopted plan | `hk plan "..."` / `hk plan --from-file FILE` |
 | Record decisions and spec impact | `hk decide "..." --spec-impact none\|updated\|not-needed` |
 | See configured guidance without running it | `hk profile ...`, `hk checks --target . --changed --json` |
-| Capture validation evidence | `hk validate --why "Fast gate passes" -- mise run check`, `hk validate --check fast-gate --why "Fast gate passes" -- mise run check` |
+| Capture validation evidence | `hk validate --why "Fast gate passes" -- mise run check`, `hk validate --why "Env-specific test" -- env PYTHONPATH=src pytest -q`, `hk validate --timeout-seconds 120 --max-log-bytes 200000 --why "Bounded test" -- pytest -q` |
 | Record external-enough review | `hk review prompt core-review`, `hk review add --review core-review --backend subagent --reviewer fresh-context --rubric core-quality --summary "No blockers."` |
 | Attach real tool/harness files | `hk artifact attach --path FILE --kind KIND` |
 | Reconcile local changes before handoff | `hk sync`, `hk sync --exclude PATH --reason "..."` |
@@ -187,9 +187,13 @@ human-readable readiness digest, and `hk handoff` for the longer transfer
 artifact. Explicit untracked local-only state can
 be handled with recorded one-shot sync exclusions rather than silent ignores;
 `hk sync --exclude` is not limited to a hardcoded `.pi`/`.claude` allowlist, but
-it still rejects root, pathspec, tracked, staged, or missing paths. Today,
-scaffolded plan artifacts represent that lifecycle as Markdown/YAML files. The current direction is to make the ledger canonical and export durable handoff views
-only when needed.
+it still rejects root, pathspec, tracked, staged, or missing paths. Validation
+capture can bound process runtime and transcript size with `--timeout-seconds`
+and `--max-log-bytes`; timeout/truncation are recorded in evidence, and non-raw
+live output uses the same built-in secret redaction guarantees as transcripts.
+Today, scaffolded plan artifacts represent that lifecycle as Markdown/YAML files.
+The current direction is to make the ledger canonical and export durable handoff
+views only when needed.
 
 ## Task Contract
 
