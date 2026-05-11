@@ -43,7 +43,8 @@ from harness_toolkit.kit.ledger.store import (
 from harness_toolkit.kit.ledger.store import (
     read_evidence as ledger_read_evidence,
 )
-from harness_toolkit.kit.profiles import ProfileCatalog, ProfileError, profile_names
+from harness_toolkit.kit.profiles import ProfileError, profile_names
+from harness_toolkit.kit.profiles.context import ProfileContext
 from harness_toolkit.kit.readiness.diagnostics import ReadyCheck, ReadyResult
 from harness_toolkit.kit.readiness.policy import (
     SELF_REVIEW_GUIDANCE,
@@ -771,15 +772,11 @@ def capture_command(
     clean_check_name = check_name.strip()
     if clean_check_name:
         try:
-            catalog = ProfileCatalog.load()
-            profile = catalog.get(catalog.resolve(state.target_scope).profile)
+            ProfileContext.resolve(state.target_scope).validate_check_name(
+                clean_check_name
+            )
         except (KeyError, ProfileError) as e:
             raise LocalWorkflowError(str(e)) from e
-        if clean_check_name not in {check.name for check in profile.checks}:
-            valid = ", ".join(check.name for check in profile.checks) or "none"
-            raise LocalWorkflowError(
-                f"unknown profile check '{clean_check_name}'. Valid checks: {valid}"
-            )
     work_dir = active_work_dir(state)
     if work_dir is None:
         created = create_work(target, "implicit-work", no_local_files=no_local_files)
@@ -1174,23 +1171,11 @@ def review_prompt(
     profile_review = None
     if review_name.strip():
         try:
-            catalog = ProfileCatalog.load()
-            profile = catalog.get(catalog.resolve(state.target_scope).profile)
+            profile_review = ProfileContext.resolve(state.target_scope).review_named(
+                review_name.strip()
+            )
         except (KeyError, ProfileError) as e:
             raise LocalWorkflowError(str(e)) from e
-        profile_review = next(
-            (
-                review
-                for review in profile.reviews
-                if review.name == review_name.strip()
-            ),
-            None,
-        )
-        if profile_review is None:
-            valid = ", ".join(review.name for review in profile.reviews) or "none"
-            raise LocalWorkflowError(
-                f"unknown profile review '{review_name}'. Valid reviews: {valid}"
-            )
     prompt = render_review_prompt(
         work_id=work_dir.name,
         target_root=str(state.target_root),
@@ -1230,15 +1215,9 @@ def add_review(
     clean_review_name = review_name.strip()
     if clean_review_name:
         try:
-            catalog = ProfileCatalog.load()
-            profile = catalog.get(catalog.resolve(state.target_scope).profile)
+            ProfileContext.resolve(state.target_scope).review_named(clean_review_name)
         except (KeyError, ProfileError) as e:
             raise LocalWorkflowError(str(e)) from e
-        if clean_review_name not in {review.name for review in profile.reviews}:
-            valid = ", ".join(review.name for review in profile.reviews) or "none"
-            raise LocalWorkflowError(
-                f"unknown profile review '{clean_review_name}'. Valid reviews: {valid}"
-            )
     record_data: dict[str, object] = {
         "backend": backend.strip(),
         "reviewer": reviewer.strip(),
@@ -1334,16 +1313,15 @@ def required_profile_items_for_work(
     state: LocalState, work_dir: Path
 ) -> tuple[tuple[RequiredProfileItem, ...], tuple[RequiredProfileItem, ...]]:
     try:
-        catalog = ProfileCatalog.load()
-        profile_name = catalog.resolve(state.target_scope).profile
-        view = catalog.checks_view(
-            profile_name,
-            target=state.target_scope,
+        context = ProfileContext.resolve(
+            state.target_scope,
             repo_root=state.target_root,
             changed_paths=tuple(changed_paths_for_work(state.target_root, work_dir)),
         )
     except (KeyError, ProfileError) as e:
         raise LocalWorkflowError(str(e)) from e
+    assert context.view is not None
+    view = context.view
     required_checks = tuple(
         RequiredProfileItem(
             name=item.name,
