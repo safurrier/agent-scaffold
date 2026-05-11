@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import codecs
 import os
 import selectors
 import signal
@@ -73,11 +74,52 @@ def _terminate_process_group(process: subprocess.Popen[bytes]) -> None:
             pass
 
 
-def _stream_bytes(chunk: bytes, *, raw_log: bool, stream_file: TextIO) -> None:
-    if not chunk:
-        return
-    rendered = chunk.decode("utf-8", errors="replace")
-    print(redact_text(rendered, raw_log=raw_log), end="", file=stream_file, flush=True)
+class _StreamingRedactor:
+    """Line-buffered live-output redactor.
+
+    Redacting each os.read chunk independently can leak a secret suffix when a
+    token crosses chunk boundaries. Buffer until a line boundary so every
+    non-raw live write sees the same context as transcript redaction.
+    """
+
+    def __init__(self, *, raw_log: bool, stream_file: TextIO) -> None:
+        self._raw_log = raw_log
+        self._stream_file = stream_file
+        self._decoder = codecs.getincrementaldecoder("utf-8")("replace")
+        self._pending = ""
+
+    def feed(self, chunk: bytes) -> None:
+        if not chunk:
+            return
+        rendered = self._decoder.decode(chunk, final=False)
+        if self._raw_log:
+            print(rendered, end="", file=self._stream_file, flush=True)
+            return
+        self._pending += rendered
+        line_end = self._pending.rfind("\n")
+        if line_end < 0:
+            return
+        safe = self._pending[: line_end + 1]
+        self._pending = self._pending[line_end + 1 :]
+        print(
+            redact_text(safe, raw_log=False), end="", file=self._stream_file, flush=True
+        )
+
+    def flush(self) -> None:
+        rendered = self._decoder.decode(b"", final=True)
+        if self._raw_log:
+            if rendered:
+                print(rendered, end="", file=self._stream_file, flush=True)
+            return
+        self._pending += rendered
+        if self._pending:
+            print(
+                redact_text(self._pending, raw_log=False),
+                end="",
+                file=self._stream_file,
+                flush=True,
+            )
+            self._pending = ""
 
 
 def _read_available(
@@ -85,8 +127,7 @@ def _read_available(
     buffer: bytearray,
     *,
     max_log_bytes: int,
-    raw_log: bool,
-    stream_file: TextIO,
+    stream_redactor: _StreamingRedactor,
     capture_output: bool,
 ) -> bool:
     any_truncated = False
@@ -99,7 +140,7 @@ def _read_available(
             break
         if not chunk:
             break
-        _stream_bytes(chunk, raw_log=raw_log, stream_file=stream_file)
+        stream_redactor.feed(chunk)
         if capture_output:
             _appended, truncated = _append_capped(
                 buffer, chunk, max_log_bytes=max_log_bytes
@@ -126,6 +167,7 @@ def run_process_to_transcript(
     transcript_bytes = 0
     output = bytearray()
     stream_file = sys.stderr if stream_to_stderr else sys.stdout
+    stream_redactor = _StreamingRedactor(raw_log=raw_log, stream_file=stream_file)
     try:
         process = subprocess.Popen(
             popen_args,
@@ -137,7 +179,7 @@ def run_process_to_transcript(
         )
     except OSError as e:
         message = f"failed to start command: {e}\n".encode()
-        _stream_bytes(message, raw_log=raw_log, stream_file=stream_file)
+        stream_redactor.feed(message)
         if not no_log:
             _appended, truncated = _append_capped(
                 output, message, max_log_bytes=max_log_bytes
@@ -158,8 +200,7 @@ def run_process_to_transcript(
                             fd,
                             output,
                             max_log_bytes=max_log_bytes,
-                            raw_log=raw_log,
-                            stream_file=stream_file,
+                            stream_redactor=stream_redactor,
                             capture_output=not no_log,
                         )
                         or truncated
@@ -170,8 +211,7 @@ def run_process_to_transcript(
                             fd,
                             output,
                             max_log_bytes=max_log_bytes,
-                            raw_log=raw_log,
-                            stream_file=stream_file,
+                            stream_redactor=stream_redactor,
                             capture_output=not no_log,
                         )
                         or truncated
@@ -186,8 +226,7 @@ def run_process_to_transcript(
                             fd,
                             output,
                             max_log_bytes=max_log_bytes,
-                            raw_log=raw_log,
-                            stream_file=stream_file,
+                            stream_redactor=stream_redactor,
                             capture_output=not no_log,
                         )
                         or truncated
@@ -203,6 +242,7 @@ def run_process_to_transcript(
     rendered, transcript_bytes = _render_output(
         bytes(output), raw_log=raw_log, timed_out=timed_out, truncated=truncated
     )
+    stream_redactor.flush()
     marker_text = ""
     if timed_out:
         marker_text += TIMEOUT_MARKER

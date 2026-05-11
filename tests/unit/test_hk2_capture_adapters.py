@@ -5,7 +5,10 @@ from pathlib import Path
 
 import pytest
 
-from harness_toolkit.kit.capture.process import run_process_to_transcript
+from harness_toolkit.kit.capture.process import (
+    READ_CHUNK_SIZE,
+    run_process_to_transcript,
+)
 from harness_toolkit.kit.capture.redaction import redact_argv, redact_text
 from harness_toolkit.kit.capture.transcripts import transcript_path
 
@@ -99,6 +102,38 @@ def test_process_adapter_preserves_timeout_marker_when_truncated(
     assert result.truncated is True
     assert "[hk command timed out]" in content
     assert "[hk transcript truncated]" in content
+
+
+@pytest.mark.integration
+def test_process_adapter_redacts_streamed_secret_across_read_boundary(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    transcript = tmp_path / "boundary-secret.log"
+    prefix = "x" * (READ_CHUNK_SIZE - len("token=su"))
+
+    result = run_process_to_transcript(
+        [
+            sys.executable,
+            "-c",
+            "import sys; sys.stdout.write(sys.argv[1] + 'token=supersecretvalue\\n'); sys.stdout.flush()",
+            prefix,
+        ],
+        cwd=tmp_path,
+        use_shell=False,
+        transcript=transcript,
+        no_log=False,
+        raw_log=False,
+        stream_to_stderr=False,
+    )
+
+    captured = capsys.readouterr()
+    content = transcript.read_text()
+    assert result.exit_code == 0
+    assert "token=[REDACTED]" in captured.out
+    assert "token=[REDACTED]" in content
+    assert "supersecretvalue" not in captured.out
+    assert "persecretvalue" not in captured.out
+    assert "supersecretvalue" not in content
 
 
 @pytest.mark.integration

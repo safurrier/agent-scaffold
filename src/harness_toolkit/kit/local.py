@@ -1371,6 +1371,9 @@ def ready_for_work(
                 base_sha=work_start_git_sha(events),
                 extra_excludes=COMMON_AGENT_LOCAL_STATE_PATHS,
             ),
+            validation_diff_hash(
+                state.target_root, base_sha=work_start_git_sha(events)
+            ),
         )
     else:
         sync_excludes = latest_sync_excluded_paths(events)

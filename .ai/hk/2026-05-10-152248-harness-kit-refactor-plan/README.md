@@ -16,8 +16,8 @@ Historical hand-authored slice plans live under `.ai/plans/`; new Harness Toolki
 ## Summary
 - Work: `2026-05-10-152248-harness-kit-refactor-plan`
 - Branch: `hk-safe-refactor`
-- Git SHA: `334cc38`
-- Dirty: `false`
+- Git SHA: `5a17aa8`
+- Dirty: `true`
 - Sync status: `synced`
 
 ## Context
@@ -1388,20 +1388,24 @@ For each implementation slice:
 - `mise run check`: pass (exit 0) — validates: Full quality gate passes after dogfood follow-up CLI guidance improvements and timeout drain robustness. — `.harness-local/harness-kit/root/work/2026-05-10-152248-harness-kit-refactor-plan/artifacts/ev_20260511_100304_332798.transcript.log`
 - `mise run sync-check`: pass (exit 0) — validates: HK export sync-check passes before dogfood follow-up export refresh. — `.harness-local/harness-kit/root/work/2026-05-10-152248-harness-kit-refactor-plan/artifacts/ev_20260511_101254_803280.transcript.log`
 - `scripts/hk-dev status --target . --json`: pass (exit 0) — validates: Dogfood follow-up used scripts/hk-dev lifecycle and status after CLI guidance changes. — `.harness-local/harness-kit/root/work/2026-05-10-152248-harness-kit-refactor-plan/artifacts/ev_20260511_101325_420541.transcript.log`
+- `mise run check`: fail (exit 1) — attempted to validate: Full quality gate passes after CI git identity fixture fix. — `.harness-local/harness-kit/root/work/2026-05-10-152248-harness-kit-refactor-plan/artifacts/ev_20260511_112528_872936.transcript.log`
+- `mise run sync-check`: pass (exit 0) — validates: HK export sync-check passes after CI git identity fixture fix. — `.harness-local/harness-kit/root/work/2026-05-10-152248-harness-kit-refactor-plan/artifacts/ev_20260511_113043_993477.transcript.log`
+- `mise run check`: pass (exit 0) — validates: Codex feedback fixes: full quality gate passes after streaming redaction boundary fix and sync dangerous-skip hash acceptance fix. — `.harness-local/harness-kit/root/work/2026-05-10-152248-harness-kit-refactor-plan/artifacts/ev_20260511_114819_478357.transcript.log`
+- `mise run sync-check`: pass (exit 0) — validates: HK export sync-check passes before Codex feedback fix export refresh. — `.harness-local/harness-kit/root/work/2026-05-10-152248-harness-kit-refactor-plan/artifacts/ev_20260511_115248_035603.transcript.log`
 
 ## Readiness
-- Status: `ready-with-dangerous-skips`
+- Status: `not-ready`
 - context: info — context recorded
 - plan: pass — plan recorded
 - decision: pass — decision and spec reflection recorded
 - validation: pass — validation evidence with rationale recorded
 - review: pass — external-enough review recorded
-- profile-check:hk-dev-dogfood: pass — required profile check recorded: hk-dev-dogfood (matched src/harness_toolkit/kit/app/lifecycle.py, src/harness_toolkit/kit/capture/process.py, src/harness_toolkit/kit/cli.py, +13 more)
+- profile-check:hk-dev-dogfood: fail — missing required profile check `hk-dev-dogfood` (matched src/harness_toolkit/kit/app/lifecycle.py, src/harness_toolkit/kit/capture/process.py, src/harness_toolkit/kit/cli.py, +13 more); run `hk validate --check hk-dev-dogfood --why 'Fast gate passes' -- mise run check` using the matching native command, or `hk dangerously-skip validation --label hk-dev-dogfood --reason ... --mitigation ...`
 - profile-check:fast-gate: pass — required profile check recorded: fast-gate (matched .ai/hk/2026-05-10-152248-harness-kit-refactor-plan/README.md, .ai/hk/2026-05-10-152248-harness-kit-refactor-plan/artifacts/README.md, .ai/hk/2026-05-10-152248-harness-kit-refactor-plan/meta.json, +33 more)
 - profile-check:handoff-sync-check: pass — required profile check recorded: handoff-sync-check (matched .ai/hk/2026-05-10-152248-harness-kit-refactor-plan/README.md, .ai/hk/2026-05-10-152248-harness-kit-refactor-plan/artifacts/README.md, .ai/hk/2026-05-10-152248-harness-kit-refactor-plan/meta.json)
-- profile-check:hk-readiness: pass — validation dangerously skipped: hk-readiness; reason: Current repo profile still has circular hk-readiness required check: hk ready requires hk-readiness evidence, whose command is hk ready.; mitigation: Recorded fast-gate, hk-dev-dogfood, handoff-sync-check, codex-review, hk-lifecycle-review, sync/export; follow-up remains to fix repo profile readiness rules.
+- profile-check:hk-readiness: fail — missing required profile check `hk-readiness` (matched .ai/hk/2026-05-10-152248-harness-kit-refactor-plan/README.md, .ai/hk/2026-05-10-152248-harness-kit-refactor-plan/artifacts/README.md, .ai/hk/2026-05-10-152248-harness-kit-refactor-plan/meta.json, +33 more); run `hk validate --check hk-readiness --why 'Fast gate passes' -- mise run check` using the matching native command, or `hk dangerously-skip validation --label hk-readiness --reason ... --mitigation ...`
 - profile-review:codex-review: pass — required profile review recorded: codex-review (matched AGENTS.md, src/harness_toolkit/kit/app/lifecycle.py, src/harness_toolkit/kit/capture/process.py, +29 more)
-- profile-review:hk-lifecycle-review: pass — required profile review recorded: hk-lifecycle-review (matched src/harness_toolkit/kit/app/lifecycle.py, src/harness_toolkit/kit/capture/process.py, src/harness_toolkit/kit/cli.py, +13 more)
+- profile-review:hk-lifecycle-review: fail — missing required profile review `hk-lifecycle-review` (matched src/harness_toolkit/kit/app/lifecycle.py, src/harness_toolkit/kit/capture/process.py, src/harness_toolkit/kit/cli.py, +13 more); run `hk review prompt hk-lifecycle-review` and record with `hk review add --review hk-lifecycle-review ...`, or `hk dangerously-skip review --label hk-lifecycle-review --reason ... --mitigation ...`
 - sync: pass — sync checkpoint fresh
 
 ## Review
@@ -1419,6 +1423,7 @@ For each implementation slice:
 - subagent / reviewer-fresh-context [hk-lifecycle-review] (hk-lifecycle-readiness-safety): HK lifecycle review completed across the refactor: sync exclusions, validation/review freshness, command capture, handoff export safety, ProfileContext, and LifecycleApp delegation were reviewed with no remaining blockers. [accepted]
 - subagent / reviewer-fresh-context [codex-review] (correctness-regression-test-adequacy): Dogfood follow-up review found no blockers. Reviewed CLI guidance changes for review dispatch and agent-local sync, stale validation path diagnostics, env-assignment capture hint, and timeout drain reorder. Reviewer reported focused pytest for harness kit/readiness/capture tests passed. [accepted]
 - subagent / reviewer-fresh-context [hk-lifecycle-review] (hk-lifecycle-readiness-safety): Reviewed dogfood follow-up changes: review dispatch guidance, agent-local sync guidance, stale changed-path diagnostics, env-assignment hint, and timeout drain robustness. No blockers. [accepted]
+- github-codex / codex-pr-review [codex-review] (correctness-security-regression): Codex reported two actionable findings: streaming redaction could leak secrets across os.read boundaries, and sync-dangerously-skipped readiness could mark evidence stale when unchanged agent-local state existed before validation. Both were fixed with regression tests. [accepted]
 
 ## Attached artifacts
 - agent-simulation: `.harness-local/harness-kit/root/work/2026-05-10-152248-harness-kit-refactor-plan/artifacts/artifact_20260511_070717_868701_agent-simulation_adoption-synthesis.md` (copied, 3935 bytes, sha256:b5fb7b7ea9774000281e2a2f302919b5798598277133132cf6f652a9825fd30a) — hk-agent-adoption-trial

@@ -1372,6 +1372,49 @@ def test_dangerously_skip_sync_goes_stale_after_later_work(tmp_path: Path) -> No
     assert stale.synced is False
 
 
+def test_ready_accepts_evidence_with_existing_agent_local_state_after_sync_skip(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "skip-sync-existing-agent-local")
+    add_note(target, kind="plan", text="Exercise existing local state freshness.")
+    add_note(target, kind="decision", text="No spec impact.")
+    add_note(target, kind="spec-impact", text="not-needed")
+    (target / ".pi").mkdir()
+    (target / ".pi" / "session.json").write_text("{}")
+    capture_command(
+        target,
+        ("python3", "-c", "print('ok')"),
+        kind="test",
+        why="Validation includes unchanged agent-local state.",
+    )
+    add_review(
+        target,
+        backend="subagent",
+        reviewer="reviewer-fresh-context",
+        rubrics=("core-quality",),
+        summary="Review includes unchanged agent-local state.",
+    )
+    sync_checkpoint(target)
+    add_dangerous_skip(
+        target,
+        check="sync",
+        label="agent-local-state",
+        reason="Only existing .pi agent-local state is untracked.",
+        mitigation="No source files changed after validation/review.",
+    )
+
+    result = ready(target)
+
+    messages = {check.id: check.message for check in result.checks}
+    assert result.ready is True
+    assert messages["validation"] == "validation evidence with rationale recorded"
+    assert messages["review"] == "external-enough review recorded"
+    assert messages["sync"].startswith("sync dangerously skipped")
+
+
 def test_status_coaches_next_actions(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
