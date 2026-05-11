@@ -14,7 +14,7 @@ from harness_toolkit.kit.local import (
 )
 from tests.support.hk2_repo import git_init
 
-pytestmark = pytest.mark.unit
+pytestmark = pytest.mark.integration
 
 
 def test_handoff_contains_lifecycle_sections(tmp_path: Path) -> None:

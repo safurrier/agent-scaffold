@@ -115,7 +115,7 @@ hk plan --from-file <path> --target <repo-or-module> --json
 hk context "TEXT" --target <repo-or-module> --json
 hk context --from-file <path|-> --target <repo-or-module> --json
 hk decide "TEXT" --spec-impact none|updated|not-needed --spec-ref <path> --target <repo-or-module> --json
-hk validate [--check <profile-check>] --why "WHAT THIS VALIDATES" --target <repo-or-module> -- <command...>
+hk validate [--check <profile-check>] [--timeout-seconds N] [--max-log-bytes N] --why "WHAT THIS VALIDATES" --target <repo-or-module> -- <command...>
 hk review prompt [profile-review] --target <repo-or-module> --json
 hk review add [--review <profile-review>] --backend <independent-tool> --reviewer <independent-reviewer-or-fresh-context-subagent> --rubric <name> --summary "TEXT" --target <repo-or-module> --json
 hk artifact attach --path <file> --kind <kind> --label "TEXT" --target <repo-or-module> --json
@@ -162,6 +162,13 @@ transcripts, Codex review transcripts, HAR files, or raw validation artifacts by
 copying or referencing the source file, hashing it, and appending metadata to the
 Harness Kit lifecycle ledger. Agents should attach real files produced by tools rather
 than narrating their own session text into HK.
+
+Captured validation evidence may bound process runtime and transcript size with
+`--timeout-seconds` and `--max-log-bytes`. Timeout and truncation are part of the
+evidence record, not hidden harness behavior. Non-raw live output and transcripts
+MUST apply the same built-in redaction guarantees across stream chunk boundaries;
+long delimiter-free live output may be suppressed rather than buffered without
+limit, while transcript capture remains governed by the transcript byte cap.
 
 Profiles and repo-owned scripts are validation guidance and stable native command
 surfaces for `hk validate`, not task-runner commands that HK chooses and runs.
@@ -221,7 +228,7 @@ class Stack(Protocol):
 - **Deterministic output**: Non-interactive init with identical inputs produces identical output. Template rendering is deterministic.
 - **stdlib-only test helpers**: `_docs_helpers.py` uses only stdlib (no pyyaml) so it's portable into generated repos without adding dependencies.
 - **Lifecycle-first Harness Kit**: Harness Kit MUST preserve the handoff-safety spine: useful context when it prevents rediscovery, explicit plan, spec/decision reflection, validation evidence, external-enough review, readiness gate, and handoff artifact. A generic note ledger without readiness parity is an implementation foundation, not the completed product.
-- **Shell-first command evidence**: `hk` MAY capture exact native commands and local work state, but MUST NOT hide validation behind `hk run`-style task-runner commands. Captured evidence preserves command identity, exit code, rationale, and transcript metadata. Profiles and dumb scripts may guide which native commands to validate, but the proof remains `hk validate --why ... -- <native command>`.
+- **Shell-first command evidence**: `hk` MAY capture exact native commands and local work state, but MUST NOT hide validation behind `hk run`-style task-runner commands. Captured evidence preserves command identity, exit code, rationale, transcript metadata, timeout/truncation metadata, and redaction boundaries. Profiles and dumb scripts may guide which native commands to validate, but the proof remains `hk validate --why ... -- <native command>`.
 - **Freshness vs readiness**: `hk sync --check` answers whether ledger work changed after the last checkpoint. `hk ready` is the ledger-backed Harness Kit lifecycle readiness gate; `mise run sync-check` remains scoped to scaffold/task-contract plan artifacts.
 - **No heuristic readiness/profile scoring**: `hk brief` and profile commands report facts and guidance, not readiness grades, confidence scores, or silent validation command selection. Planning may happen outside HK, but agents must translate the agreed intent into explicit lifecycle records; HK records those declarations and checks evidence consistency while humans/reviewers judge quality. HK does not infer whether context is non-obvious; agents record `hk context` when it improves handoff or prevents rediscovery.
 - **Profile catalog ergonomics**: user config MAY load standalone profile TOML from `profiles_dir` / `profiles_dirs` while retaining explicit target bindings. Profile path rules MUST accept both Git repo-root-relative changed paths and target-relative paths for scoped module profiles, while reporting matched paths in repo-root-relative form.

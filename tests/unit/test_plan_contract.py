@@ -17,6 +17,8 @@ SKILL_CLI_SRC = (
 )
 sys.path.insert(0, str(SKILL_CLI_SRC))
 
+pytestmark = pytest.mark.integration
+
 from slice_workflow_cli.contract import (  # noqa: E402
     PlanContractError,
     adr_dir,

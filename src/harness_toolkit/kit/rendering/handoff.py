@@ -2,33 +2,30 @@
 
 from __future__ import annotations
 
+from harness_toolkit.kit.ledger import lifecycle_events
 from harness_toolkit.kit.ledger.models import EventRecord, EvidenceRecord
 from harness_toolkit.kit.readiness.diagnostics import ReadyResult
-from harness_toolkit.kit.readiness.policy import (
-    notes_by_kind,
-    notes_by_kinds,
-    review_events,
-)
+from harness_toolkit.kit.readiness.policy import notes_by_kind, notes_by_kinds
 
 
-def artifact_events(events: list[EventRecord]) -> list[dict[str, object]]:
-    return [event.data for event in events if event.type == "artifact_attached"]
+def artifact_events(events: list[EventRecord]) -> list[lifecycle_events.ArtifactEvent]:
+    return lifecycle_events.artifact_events(events)
 
 
-def dangerous_skip_records(events: list[EventRecord]) -> list[dict[str, object]]:
-    return [event.data for event in events if event.type == "dangerous_skip_added"]
+def dangerous_skip_records(
+    events: list[EventRecord],
+) -> list[lifecycle_events.DangerousSkipEvent]:
+    return lifecycle_events.dangerous_skip_events(events)
 
 
-def format_dangerous_skip(skip: dict[str, object]) -> str:
-    check = str(skip.get("check") or "unknown")
-    label = str(skip.get("label") or "unlabeled")
-    reason = str(skip.get("reason") or "")
-    mitigation = str(skip.get("mitigation") or "")
-    return f"- {check}: {label} — reason: {reason}; mitigation: {mitigation}"
+def format_dangerous_skip(skip: lifecycle_events.DangerousSkipEvent) -> str:
+    check = skip.check or "unknown"
+    label = skip.label or "unlabeled"
+    return f"- {check}: {label} — reason: {skip.reason}; mitigation: {skip.mitigation}"
 
 
-def artifact_display_path(artifact: dict[str, object]) -> str:
-    path = str(artifact.get("artifact_path") or artifact.get("source_path") or "")
+def artifact_display_path(artifact: lifecycle_events.ArtifactEvent) -> str:
+    path = artifact.artifact_path or artifact.source_path
     return path or "<unrecorded>"
 
 
@@ -36,9 +33,8 @@ def evidence_label(record: EvidenceRecord) -> str:
     return f" [{record.check_name}]" if record.check_name else ""
 
 
-def review_label(review: dict[str, object]) -> str:
-    name = str(review.get("review_name") or "")
-    return f" [{name}]" if name else ""
+def review_label(review: lifecycle_events.ReviewEvent) -> str:
+    return f" [{review.review_name}]" if review.review_name else ""
 
 
 def render_handoff_pr_markdown(
@@ -89,10 +85,10 @@ def render_handoff_pr_markdown(
     if artifacts:
         lines.extend(["", "## Attached artifacts"])
         for artifact in artifacts:
-            label = str(artifact.get("label") or "").strip()
+            label = artifact.label.strip()
             label_text = f" — {label}" if label else ""
             lines.append(
-                f"- {artifact.get('kind')}: `{artifact_display_path(artifact)}`{label_text}"
+                f"- {artifact.kind}: `{artifact_display_path(artifact)}`{label_text}"
             )
     if not readiness.ready:
         lines.extend(["", "## Open readiness checks"])
@@ -139,17 +135,15 @@ def render_summary_markdown(
             )
     else:
         lines.append("- None recorded.")
-    reviews = review_events(events)
+    reviews = lifecycle_events.review_events(events)
     skips = dangerous_skip_records(events)
-    review_skips = [skip for skip in skips if skip.get("check") == "review"]
+    review_skips = [skip for skip in skips if skip.check == "review"]
     lines.extend(["", "## Review"])
     if reviews:
         for review in reviews:
-            raw_rubrics = review.get("rubrics", [])
-            rubrics_list = raw_rubrics if isinstance(raw_rubrics, list) else []
-            rubrics = ", ".join(str(item) for item in rubrics_list)
+            rubrics = ", ".join(review.rubrics)
             lines.append(
-                f"- {review.get('backend')} / {review.get('reviewer')}{review_label(review)} ({rubrics}): {review.get('summary')} [{review.get('disposition')}]"
+                f"- {review.backend} / {review.reviewer}{review_label(review)} ({rubrics}): {review.summary} [{review.disposition}]"
             )
     elif review_skips:
         lines.append("- No review recorded; see dangerous review skip below.")
@@ -164,10 +158,10 @@ def render_summary_markdown(
     if artifacts:
         lines.extend(["", "## Attached artifacts"])
         for artifact in artifacts:
-            label = str(artifact.get("label") or "").strip()
+            label = artifact.label.strip()
             label_text = f" — {label}" if label else ""
             lines.append(
-                f"- {artifact.get('kind')}: `{artifact_display_path(artifact)}`{label_text}"
+                f"- {artifact.kind}: `{artifact_display_path(artifact)}`{label_text}"
             )
     lines.extend(["", "## Readiness checks"])
     for check in readiness.checks:
@@ -246,14 +240,12 @@ def render_handoff_markdown(
     for check in readiness.checks:
         lines.append(f"- {check.id}: {check.status} — {check.message}")
     lines.extend(["", "## Review"])
-    reviews = review_events(events)
+    reviews = lifecycle_events.review_events(events)
     if reviews:
         for review in reviews:
-            raw_rubrics = review.get("rubrics", [])
-            rubrics_list = raw_rubrics if isinstance(raw_rubrics, list) else []
-            rubrics = ", ".join(str(item) for item in rubrics_list)
+            rubrics = ", ".join(review.rubrics)
             lines.append(
-                f"- {review.get('backend')} / {review.get('reviewer')}{review_label(review)} ({rubrics}): {review.get('summary')} [{review.get('disposition')}]"
+                f"- {review.backend} / {review.reviewer}{review_label(review)} ({rubrics}): {review.summary} [{review.disposition}]"
             )
     else:
         lines.append("- None recorded.")
@@ -261,27 +253,22 @@ def render_handoff_markdown(
     if artifacts:
         lines.extend(["", "## Attached artifacts"])
         for artifact in artifacts:
-            label = str(artifact.get("label") or "").strip()
+            label = artifact.label.strip()
             label_text = f" — {label}" if label else ""
-            copied = "copied" if artifact.get("copied") else "referenced"
+            copied = "copied" if artifact.copied else "referenced"
             lines.append(
-                f"- {artifact.get('kind')}: `{artifact_display_path(artifact)}` ({copied}, {artifact.get('size_bytes')} bytes, {artifact.get('sha256')}){label_text}"
+                f"- {artifact.kind}: `{artifact_display_path(artifact)}` ({copied}, {artifact.size_bytes} bytes, {artifact.sha256}){label_text}"
             )
     sync_exclusions = [
-        event.data
-        for event in events
-        if event.type == "sync_checkpoint" and event.data.get("excluded_paths")
+        checkpoint
+        for checkpoint in lifecycle_events.sync_checkpoint_events(events)
+        if checkpoint.excluded_paths
     ]
     if sync_exclusions:
         lines.extend(["", "## Sync exclusions"])
         for checkpoint in sync_exclusions:
-            paths = checkpoint.get("excluded_paths", [])
-            path_text = (
-                ", ".join(str(path) for path in paths)
-                if isinstance(paths, list)
-                else str(paths)
-            )
-            lines.append(f"- {path_text}: {checkpoint.get('exclude_reason')}")
+            path_text = ", ".join(checkpoint.excluded_paths)
+            lines.append(f"- {path_text}: {checkpoint.exclude_reason}")
     skips = dangerous_skip_records(events)
     if skips:
         lines.extend(["", "## Dangerous skips"])

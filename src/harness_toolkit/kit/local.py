@@ -13,7 +13,6 @@ import os
 import re
 import shlex
 import shutil
-import stat
 import subprocess
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
@@ -23,6 +22,13 @@ from typing import Literal
 from harness_toolkit.kit.capture.process import run_process_to_transcript
 from harness_toolkit.kit.capture.redaction import redact_argv, redact_text
 from harness_toolkit.kit.capture.transcripts import transcript_path
+from harness_toolkit.kit.git import snapshot as git_snapshot
+from harness_toolkit.kit.handoff.export import (
+    HandoffExportError,
+    prepare_generated_directory,
+    reject_symlink_ancestors,
+    safe_write_generated_file,
+)
 from harness_toolkit.kit.ledger.events import append_lifecycle_event
 from harness_toolkit.kit.ledger.models import EventRecord, EvidenceRecord
 from harness_toolkit.kit.ledger.store import (
@@ -37,7 +43,8 @@ from harness_toolkit.kit.ledger.store import (
 from harness_toolkit.kit.ledger.store import (
     read_evidence as ledger_read_evidence,
 )
-from harness_toolkit.kit.profiles import ProfileCatalog, ProfileError, profile_names
+from harness_toolkit.kit.profiles import ProfileError, profile_names
+from harness_toolkit.kit.profiles.context import ProfileContext
 from harness_toolkit.kit.readiness.diagnostics import ReadyCheck, ReadyResult
 from harness_toolkit.kit.readiness.policy import (
     SELF_REVIEW_GUIDANCE,
@@ -77,6 +84,7 @@ from harness_toolkit.kit.state.repo import (
 from harness_toolkit.kit.state.repo import (
     scope_key as repo_scope_key,
 )
+from harness_toolkit.kit.sync import freshness as sync_freshness
 
 LOCAL_STATE_DIR = ".harness-local"
 KIT_STATE_DIR = "harness-kit"
@@ -96,6 +104,7 @@ SYNC_IGNORED_EVENT_TYPES = frozenset(
     {"sync_checkpoint", "view_materialized", "handoff_generated"}
 )
 COMMON_AGENT_LOCAL_STATE_PATHS = (".pi", ".claude/worktrees")
+VALIDATION_FRESHNESS_EXCLUDES = (".ai/hk",)
 StateMode = Literal["local", "external"]
 NoteKind = Literal[
     "context", "plan", "background", "learning", "decision", "gap", "spec-impact"
@@ -187,6 +196,9 @@ class CaptureResult:
     transcript_path: str
     why: str = ""
     check_name: str = ""
+    timed_out: bool = False
+    truncated: bool = False
+    transcript_bytes: int = 0
 
 
 @dataclass(frozen=True)
@@ -311,41 +323,15 @@ def resolve_local_state(target: Path, *, no_local_files: bool = False) -> LocalS
 
 
 def git_sha(path: Path) -> str:
-    result = subprocess.run(
-        ["git", "rev-parse", "--short", "HEAD"],
-        cwd=path,
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    return result.stdout.strip() if result.returncode == 0 else ""
+    return git_snapshot.git_sha(path)
 
 
 def git_dirty(path: Path) -> bool:
-    result = subprocess.run(
-        ["git", "status", "--porcelain"],
-        cwd=path,
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    return bool(result.stdout.strip()) if result.returncode == 0 else False
+    return git_snapshot.git_dirty(path)
 
 
 def agent_local_state_paths(path: Path) -> list[str]:
-    """Return common agent-local paths that are currently part of git status."""
-    present: list[str] = []
-    for candidate in COMMON_AGENT_LOCAL_STATE_PATHS:
-        result = subprocess.run(
-            ["git", "status", "--porcelain", "--", candidate],
-            cwd=path,
-            capture_output=True,
-            check=False,
-            text=True,
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            present.append(candidate)
-    return present
+    return git_snapshot.agent_local_state_paths(path, COMMON_AGENT_LOCAL_STATE_PATHS)
 
 
 def agent_local_state_warning(path: Path) -> str:
@@ -355,150 +341,57 @@ def agent_local_state_warning(path: Path) -> str:
     examples = " ".join(f"--exclude {item}" for item in paths)
     return (
         " Common agent-local state is present in git status "
-        f"({', '.join(paths)}); remove/ignore it, or record a constrained "
-        f"checkpoint with `hk sync {examples} --reason ...`."
+        f"({', '.join(paths)}); it is blocking sync readiness. If disposable, "
+        "remove or git-ignore it. If expected harness-local state, run exactly: "
+        f"`hk sync {examples} --reason agent-local-state`."
     )
 
 
 def git_pathspec_excludes(exclude_paths: tuple[str, ...] = ()) -> list[str]:
-    return [f":(exclude){path}" for path in exclude_paths]
+    return git_snapshot.git_pathspec_excludes(exclude_paths)
 
 
 def git_tracked_paths_for_path(path: Path, candidate: str) -> list[str]:
-    result = subprocess.run(
-        ["git", "ls-files", "--", candidate],
-        cwd=path,
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    if result.returncode != 0:
-        return []
-    return [line for line in result.stdout.splitlines() if line.strip()]
+    return git_snapshot.git_tracked_paths_for_path(path, candidate)
 
 
 def sync_exclude_safety_error(path: Path, candidate: str) -> str:
-    tracked = git_tracked_paths_for_path(path, candidate)
-    if tracked:
-        return (
-            "sync --exclude only supports untracked local-only paths; "
-            f"refusing tracked paths or descendants under {candidate}: {', '.join(tracked[:3])}"
-        )
-    status = git_status_for_path(path, candidate).strip()
-    if not status:
-        return f"sync --exclude path is not present in git status: {candidate}"
-    if any(not line.startswith("?? ") for line in status.splitlines()):
-        return (
-            "sync --exclude only supports untracked local-only paths; "
-            f"refusing tracked or staged path: {candidate}"
-        )
-    return ""
+    return git_snapshot.sync_exclude_safety_error(path, candidate)
 
 
 def git_status_for_path(path: Path, candidate: str) -> str:
-    result = subprocess.run(
-        ["git", "status", "--porcelain", "--", candidate],
-        cwd=path,
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    return result.stdout if result.returncode == 0 else ""
-
-
-def _hash_untracked_paths(hasher, path: Path, pathspec: list[str]) -> None:
-    untracked = subprocess.run(
-        ["git", "ls-files", "--others", "--exclude-standard", "-z", *pathspec],
-        cwd=path,
-        capture_output=True,
-        check=False,
-    )
-    if untracked.returncode != 0:
-        return
-    for raw_name in untracked.stdout.split(b"\0"):
-        if not raw_name:
-            continue
-        relative = Path(raw_name.decode("utf-8", errors="surrogateescape"))
-        full_path = path / relative
-        hasher.update(b"untracked\0")
-        hasher.update(raw_name)
-        hasher.update(b"\0")
-        try:
-            stat_result = full_path.lstat()
-        except OSError:
-            hasher.update(b"<missing>")
-            hasher.update(b"\0")
-            continue
-        hasher.update(str(stat_result.st_mode).encode("ascii"))
-        hasher.update(b"\0")
-        if stat.S_ISLNK(stat_result.st_mode):
-            hasher.update(b"symlink\0")
-            try:
-                hasher.update(os.readlink(full_path).encode("utf-8", "surrogateescape"))
-            except OSError:
-                hasher.update(b"<unreadable-symlink>")
-        elif stat.S_ISREG(stat_result.st_mode):
-            hasher.update(b"file\0")
-            try:
-                with full_path.open("rb") as file_obj:
-                    for chunk in iter(lambda: file_obj.read(1024 * 1024), b""):
-                        hasher.update(chunk)
-            except OSError:
-                hasher.update(b"<unreadable>")
-        hasher.update(b"\0")
+    return git_snapshot.git_status_for_path(path, candidate)
 
 
 def git_diff_hash(path: Path, exclude_paths: tuple[str, ...] = ()) -> str:
-    """Hash unstaged, staged, and status state for sync freshness."""
-    hasher = hashlib.sha256()
-    pathspec = (
-        ["--", ".", *git_pathspec_excludes(exclude_paths)] if exclude_paths else []
-    )
-    commands = (
-        ["git", "diff", "--no-ext-diff", "--binary", *pathspec],
-        ["git", "diff", "--cached", "--no-ext-diff", "--binary", *pathspec],
-        ["git", "status", "--porcelain", *pathspec],
-    )
-    for command in commands:
-        result = subprocess.run(
-            command,
-            cwd=path,
-            capture_output=True,
-            check=False,
-        )
-        if result.returncode != 0:
-            return ""
-        hasher.update("\0".join(command).encode("utf-8"))
-        hasher.update(b"\0")
-        hasher.update(result.stdout)
-        hasher.update(b"\0")
-    _hash_untracked_paths(hasher, path, pathspec)
-    return "sha256:" + hasher.hexdigest()
+    return git_snapshot.git_diff_hash(path, exclude_paths)
 
 
 def git_work_diff_hash(
     path: Path, *, base_sha: str, exclude_paths: tuple[str, ...] = ()
 ) -> str:
-    """Hash the work diff from the HK work start SHA to the current tree."""
-    if not base_sha.strip():
-        return git_diff_hash(path, exclude_paths)
-    hasher = hashlib.sha256()
-    pathspec = ["--", ".", *git_pathspec_excludes(exclude_paths)]
-    result = subprocess.run(
-        ["git", "diff", "--no-ext-diff", "--binary", base_sha, *pathspec],
-        cwd=path,
-        capture_output=True,
-        check=False,
+    return git_snapshot.git_work_diff_hash(
+        path, base_sha=base_sha, exclude_paths=exclude_paths
     )
-    if result.returncode != 0:
-        return ""
-    hasher.update(b"work-diff\0")
-    hasher.update(base_sha.encode("utf-8"))
-    hasher.update(b"\0")
-    hasher.update(result.stdout)
-    hasher.update(b"\0")
-    _hash_untracked_paths(hasher, path, pathspec)
-    return "sha256:" + hasher.hexdigest()
+
+
+def validation_diff_hash(
+    path: Path, *, base_sha: str = "", extra_excludes: tuple[str, ...] = ()
+) -> str:
+    return git_snapshot.git_validation_work_diff_hash(
+        path,
+        base_sha=base_sha,
+        exclude_paths=(*VALIDATION_FRESHNESS_EXCLUDES, *extra_excludes),
+    )
+
+
+def latest_sync_excluded_paths(events: list[EventRecord]) -> tuple[str, ...]:
+    sync_events = [event for event in events if event.type == "sync_checkpoint"]
+    if not sync_events:
+        return ()
+    return normalize_exclude_paths(
+        string_list_from_event_data(sync_events[-1].data, "excluded_paths")
+    )
 
 
 def local_exclude_file(path: Path) -> Path | None:
@@ -708,61 +601,28 @@ def latest_sync_relevant_seq(events: list[EventRecord]) -> int:
 
 
 def normalize_exclude_paths(exclude_paths: tuple[str | Path, ...]) -> tuple[str, ...]:
-    normalized: list[str] = []
-    for path in exclude_paths:
-        text = str(path).strip().replace("\\", "/")
-        if not text:
-            raise LocalWorkflowError("sync --exclude path cannot be empty")
-        text = text.rstrip("/")
-        if text in {"", "."}:
-            raise LocalWorkflowError(
-                "sync --exclude cannot exclude the repository root"
-            )
-        candidate = Path(text)
-        if candidate.is_absolute():
-            raise LocalWorkflowError("sync --exclude path must be relative")
-        if ".." in candidate.parts:
-            raise LocalWorkflowError("sync --exclude path cannot contain '..'")
-        if text.startswith(":") or any(char in text for char in "*?["):
-            raise LocalWorkflowError(
-                "sync --exclude path must be a literal path, not a git pathspec"
-            )
-        normalized.append(text)
-    return tuple(dict.fromkeys(normalized))
+    try:
+        return sync_freshness.normalize_exclude_paths(exclude_paths)
+    except sync_freshness.SyncFreshnessError as e:
+        raise LocalWorkflowError(str(e)) from e
 
 
 def git_path_state_hash(path: Path, candidate: str) -> str:
-    hasher = hashlib.sha256()
-    commands = (
-        ["git", "diff", "--no-ext-diff", "--binary", "--", candidate],
-        ["git", "diff", "--cached", "--no-ext-diff", "--binary", "--", candidate],
-        ["git", "status", "--porcelain", "--", candidate],
-    )
-    for command in commands:
-        result = subprocess.run(command, cwd=path, capture_output=True, check=False)
-        if result.returncode != 0:
-            return ""
-        hasher.update("\0".join(command).encode("utf-8"))
-        hasher.update(b"\0")
-        hasher.update(result.stdout)
-        hasher.update(b"\0")
-    return "sha256:" + hasher.hexdigest()
+    return git_snapshot.git_path_state_hash(path, candidate)
 
 
 def excluded_path_metadata(
     path: Path, exclude_paths: tuple[str, ...]
 ) -> list[dict[str, str]]:
-    rows: list[dict[str, str]] = []
-    for candidate in exclude_paths:
-        status = git_status_for_path(path, candidate)
-        rows.append(
-            {
-                "path": candidate,
-                "status": status.strip(),
-                "state_hash": git_path_state_hash(path, candidate),
-            }
-        )
-    return rows
+    return sync_freshness.excluded_path_metadata(path, exclude_paths)
+
+
+def excluded_path_state_changed(
+    path: Path, recorded: object, *, expected_paths: tuple[str, ...] = ()
+) -> bool:
+    return sync_freshness.excluded_path_state_changed(
+        path, recorded, expected_paths=expected_paths
+    )
 
 
 def sync_checkpoint(
@@ -819,6 +679,17 @@ def sync_checkpoint(
                     message="needs sync: excluded path changed or is no longer local-only",
                     guidance=guidance,
                 )
+        if checkpoint_excludes and excluded_path_state_changed(
+            state.target_root,
+            latest_sync.data.get("excluded"),
+            expected_paths=checkpoint_excludes,
+        ):
+            return SyncResult(
+                work_id=work_dir.name,
+                synced=False,
+                message="needs sync: excluded path changed or is no longer local-only",
+                guidance=guidance,
+            )
         synced_hash = str(latest_sync.data.get("diff_hash", ""))
         current_hash = git_diff_hash(state.target_root, checkpoint_excludes)
         if not current_hash:
@@ -870,6 +741,13 @@ def command_display(command: tuple[str, ...], shell_command: str) -> str:
     return " ".join(shlex.quote(part) for part in command)
 
 
+def _looks_like_env_assignment(value: str) -> bool:
+    name, sep, rest = value.partition("=")
+    return bool(
+        sep and rest and name.replace("_", "a").isalnum() and not name[0].isdigit()
+    )
+
+
 def capture_command(
     target: Path,
     command: tuple[str, ...],
@@ -882,6 +760,8 @@ def capture_command(
     raw_log: bool = False,
     no_local_files: bool = False,
     stream_to_stderr: bool = False,
+    timeout_seconds: int = 0,
+    max_log_bytes: int = 0,
 ) -> CaptureResult:
     if not command and not shell_command:
         raise LocalWorkflowError("capture requires a command after -- or --shell TEXT")
@@ -889,22 +769,28 @@ def capture_command(
         raise LocalWorkflowError(
             "capture accepts either --shell TEXT or argv after --, not both"
         )
+    if command and _looks_like_env_assignment(command[0]):
+        raise LocalWorkflowError(
+            "captured commands run argv directly; environment assignments like "
+            f"`{command[0]}` are not shell syntax here. Use `env {command[0]} ...` "
+            "after --, or use --shell 'KEY=value command ...'."
+        )
     if kind not in VALID_EVIDENCE_KINDS:
         valid = ", ".join(VALID_EVIDENCE_KINDS)
         raise LocalWorkflowError(f"invalid evidence kind '{kind}'. Valid: {valid}")
+    if timeout_seconds < 0:
+        raise LocalWorkflowError("capture timeout must be >= 0 seconds")
+    if max_log_bytes < 0:
+        raise LocalWorkflowError("capture max log bytes must be >= 0")
     state = ensure_state(target, no_local_files=no_local_files)
     clean_check_name = check_name.strip()
     if clean_check_name:
         try:
-            catalog = ProfileCatalog.load()
-            profile = catalog.get(catalog.resolve(state.target_scope).profile)
+            ProfileContext.resolve(state.target_scope).validate_check_name(
+                clean_check_name
+            )
         except (KeyError, ProfileError) as e:
             raise LocalWorkflowError(str(e)) from e
-        if clean_check_name not in {check.name for check in profile.checks}:
-            valid = ", ".join(check.name for check in profile.checks) or "none"
-            raise LocalWorkflowError(
-                f"unknown profile check '{clean_check_name}'. Valid checks: {valid}"
-            )
     work_dir = active_work_dir(state)
     if work_dir is None:
         created = create_work(target, "implicit-work", no_local_files=no_local_files)
@@ -930,6 +816,8 @@ def capture_command(
         no_log=no_log,
         raw_log=raw_log,
         stream_to_stderr=stream_to_stderr,
+        timeout_seconds=timeout_seconds,
+        max_log_bytes=max_log_bytes,
     )
     exit_code = process_result.exit_code
     ended = utc_now()
@@ -967,6 +855,13 @@ def capture_command(
         redaction="raw" if raw_log else "builtin",
         why=why,
         check_name=clean_check_name,
+        diff_hash=validation_diff_hash(
+            state.target_root, base_sha=work_start_git_sha(read_events(work_dir))
+        ),
+        changed_paths=changed_paths_for_work(state.target_root, work_dir),
+        timed_out=process_result.timed_out,
+        truncated=process_result.truncated,
+        transcript_bytes=process_result.transcript_bytes,
     )
     with (work_dir / "evidence.jsonl").open("a") as file:
         file.write(json.dumps(asdict(record), sort_keys=True) + "\n")
@@ -989,6 +884,9 @@ def capture_command(
         transcript_path=str(transcript if not no_log else ""),
         why=why,
         check_name=clean_check_name,
+        timed_out=process_result.timed_out,
+        truncated=process_result.truncated,
+        transcript_bytes=process_result.transcript_bytes,
     )
 
 
@@ -1129,6 +1027,12 @@ def sync_status_for(state: LocalState) -> str:
             for candidate in checkpoint_excludes
         ):
             return "needs-sync"
+        if checkpoint_excludes and excluded_path_state_changed(
+            state.target_root,
+            latest_sync.data.get("excluded"),
+            expected_paths=checkpoint_excludes,
+        ):
+            return "needs-sync"
         if synced_seq >= latest_sync_relevant_seq(events) and str(
             latest_sync.data.get("diff_hash", "")
         ) == git_diff_hash(state.target_root, checkpoint_excludes):
@@ -1242,54 +1146,15 @@ def render_handoff(
 
 
 def _status_changed_paths(root: Path) -> list[str]:
-    result = subprocess.run(
-        ["git", "status", "--porcelain"],
-        cwd=root,
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    if result.returncode != 0:
-        return []
-    paths: list[str] = []
-    for line in result.stdout.splitlines():
-        if not line.strip():
-            continue
-        path = line[3:] if len(line) > 3 else line.strip()
-        if " -> " in path:
-            path = path.split(" -> ", 1)[1]
-        if path.endswith("/"):
-            continue
-        paths.append(path)
-    return paths
+    return git_snapshot.status_changed_paths(root)
 
 
 def _diff_changed_paths(root: Path, base_sha: str) -> list[str]:
-    if not base_sha.strip():
-        return []
-    result = subprocess.run(
-        ["git", "diff", "--name-only", base_sha, "--"],
-        cwd=root,
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    if result.returncode != 0:
-        return []
-    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    return git_snapshot.diff_changed_paths(root, base_sha)
 
 
 def _untracked_paths(root: Path) -> list[str]:
-    result = subprocess.run(
-        ["git", "ls-files", "--others", "--exclude-standard"],
-        cwd=root,
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    if result.returncode != 0:
-        return []
-    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    return git_snapshot.untracked_paths(root)
 
 
 def work_start_git_sha(events: list[EventRecord]) -> str:
@@ -1320,23 +1185,11 @@ def review_prompt(
     profile_review = None
     if review_name.strip():
         try:
-            catalog = ProfileCatalog.load()
-            profile = catalog.get(catalog.resolve(state.target_scope).profile)
+            profile_review = ProfileContext.resolve(state.target_scope).review_named(
+                review_name.strip()
+            )
         except (KeyError, ProfileError) as e:
             raise LocalWorkflowError(str(e)) from e
-        profile_review = next(
-            (
-                review
-                for review in profile.reviews
-                if review.name == review_name.strip()
-            ),
-            None,
-        )
-        if profile_review is None:
-            valid = ", ".join(review.name for review in profile.reviews) or "none"
-            raise LocalWorkflowError(
-                f"unknown profile review '{review_name}'. Valid reviews: {valid}"
-            )
     prompt = render_review_prompt(
         work_id=work_dir.name,
         target_root=str(state.target_root),
@@ -1376,21 +1229,19 @@ def add_review(
     clean_review_name = review_name.strip()
     if clean_review_name:
         try:
-            catalog = ProfileCatalog.load()
-            profile = catalog.get(catalog.resolve(state.target_scope).profile)
+            ProfileContext.resolve(state.target_scope).review_named(clean_review_name)
         except (KeyError, ProfileError) as e:
             raise LocalWorkflowError(str(e)) from e
-        if clean_review_name not in {review.name for review in profile.reviews}:
-            valid = ", ".join(review.name for review in profile.reviews) or "none"
-            raise LocalWorkflowError(
-                f"unknown profile review '{clean_review_name}'. Valid reviews: {valid}"
-            )
     record_data: dict[str, object] = {
         "backend": backend.strip(),
         "reviewer": reviewer.strip(),
         "rubrics": clean_rubrics,
         "summary": summary.strip(),
         "disposition": disposition.strip() or "accepted",
+        "diff_hash": validation_diff_hash(
+            state.target_root, base_sha=work_start_git_sha(read_events(work_dir))
+        ),
+        "changed_paths": changed_paths_for_work(state.target_root, work_dir),
     }
     if clean_review_name:
         record_data["review_name"] = clean_review_name
@@ -1445,6 +1296,16 @@ def add_dangerous_skip(
                 "event_seq": max((event.seq for event in events), default=0) + 1,
             }
         )
+    elif check in {"validation", "review"}:
+        data.update(
+            {
+                "git_sha": git_sha(state.target_root),
+                "diff_hash": validation_diff_hash(
+                    state.target_root,
+                    base_sha=work_start_git_sha(read_events(work_dir)),
+                ),
+            }
+        )
     record = append_event(work_dir, "dangerous_skip_added", data)
     return DangerousSkipResult(
         work_id=work_dir.name,
@@ -1466,16 +1327,15 @@ def required_profile_items_for_work(
     state: LocalState, work_dir: Path
 ) -> tuple[tuple[RequiredProfileItem, ...], tuple[RequiredProfileItem, ...]]:
     try:
-        catalog = ProfileCatalog.load()
-        profile_name = catalog.resolve(state.target_scope).profile
-        view = catalog.checks_view(
-            profile_name,
-            target=state.target_scope,
+        context = ProfileContext.resolve(
+            state.target_scope,
             repo_root=state.target_root,
             changed_paths=tuple(changed_paths_for_work(state.target_root, work_dir)),
         )
     except (KeyError, ProfileError) as e:
         raise LocalWorkflowError(str(e)) from e
+    assert context.view is not None
+    view = context.view
     required_checks = tuple(
         RequiredProfileItem(
             name=item.name,
@@ -1503,16 +1363,42 @@ def ready_for_work(
     events = read_events(work_dir)
     evidence = read_evidence(work_dir)
     required_checks, required_reviews = required_profile_items_for_work(state, work_dir)
+    sync_status = sync_status_for(state)
+    if sync_status == "sync-dangerously-skipped":
+        current_diff_hashes = (
+            validation_diff_hash(
+                state.target_root,
+                base_sha=work_start_git_sha(events),
+                extra_excludes=COMMON_AGENT_LOCAL_STATE_PATHS,
+            ),
+            validation_diff_hash(
+                state.target_root, base_sha=work_start_git_sha(events)
+            ),
+        )
+    else:
+        sync_excludes = latest_sync_excluded_paths(events)
+        current_diff_hashes = (
+            validation_diff_hash(
+                state.target_root,
+                base_sha=work_start_git_sha(events),
+                extra_excludes=sync_excludes,
+            ),
+            validation_diff_hash(
+                state.target_root, base_sha=work_start_git_sha(events)
+            ),
+        )
     return ready_for_events(
         work_id=work_dir.name,
         events=events,
         evidence=evidence,
-        sync_status=sync_status_for(state),
+        sync_status=sync_status,
         agent_local_warning=agent_local_state_warning(state.target_root),
+        current_diff_hashes=current_diff_hashes,
         check_handoff=check_handoff,
         handoff_check=lambda: render_handoff(work_dir, state),
         required_profile_checks=required_checks,
         required_profile_reviews=required_reviews,
+        changed_paths=tuple(changed_paths_for_work(state.target_root, work_dir)),
     )
 
 
@@ -1562,7 +1448,7 @@ def status(target: Path, *, no_local_files: bool = False) -> StatusResult:
         )
     if check_map.get("review") and check_map["review"].status == "fail":
         actions.append(
-            "review required: preferred independent AI/tool reviewer; minimum fresh-context subagent. Run `hk review prompt`; dispatch it via your harness if available (Pi `subagent` tool, Claude Code `Agent` tool/`Task` alias, Codex Shell tool running `codex review --uncommitted`); record with `hk review add ...`, then re-run `hk status`; or explicitly `hk dangerously-skip review --label no-review --reason ... --mitigation ...`; self-review does not count"
+            "review required: do not skip just because the implementation agent cannot self-review. Run `hk review prompt`, dispatch that prompt through an independent AI/tool or fresh-context subagent if your harness supports one (Pi `subagent` tool, Claude Code `Agent` tool/`Task` alias, Codex Shell tool running `codex review --uncommitted`), record with `hk review add ...`, then re-run `hk status`; only use `hk dangerously-skip review --label no-review --reason ... --mitigation ...` when no independent review path is available"
         )
     for check in readiness.checks:
         if check.status == "fail" and check.id.startswith("profile-check:"):
@@ -1570,8 +1456,12 @@ def status(target: Path, *, no_local_files: bool = False) -> StatusResult:
         if check.status == "fail" and check.id.startswith("profile-review:"):
             actions.append(f"review: {check.message}")
     if check_map.get("sync") and check_map["sync"].status == "fail":
-        sync_action = "sync: hk sync after reconciling changes"
         warning = agent_local_state_warning(state.target_root)
+        sync_action = (
+            "sync: agent-local state is blocking readiness."
+            if warning
+            else "sync: hk sync after reconciling changes"
+        )
         if warning:
             sync_action += warning
         actions.append(sync_action)
@@ -1838,6 +1728,10 @@ def export_handoff_dir(
     destination = output_path or (state.target_root / ".ai" / "hk" / work_dir.name)
     if not destination.is_absolute():
         destination = state.target_root / destination
+    try:
+        reject_symlink_ancestors(destination)
+    except HandoffExportError as e:
+        raise LocalWorkflowError(str(e)) from e
     events = read_events(work_dir)
     evidence = read_evidence(work_dir)
     readiness = ready_for_work(work_dir, state, check_handoff=False)
@@ -1916,11 +1810,10 @@ def export_handoff_dir(
             message="HK export is fresh",
         )
 
-    destination.mkdir(parents=True, exist_ok=True)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    prepare_generated_directory(destination)
     artifacts_dir = destination / "artifacts"
-    if artifacts_dir.is_symlink():
-        artifacts_dir.unlink()
-    artifacts_dir.mkdir(exist_ok=True)
+    prepare_generated_directory(artifacts_dir)
     output_relative = _relative_to_root(destination, state.target_root)
     handoff_content = _sanitize_export_content(
         render_handoff(work_dir, state, format="markdown"), state
@@ -1947,8 +1840,10 @@ def export_handoff_dir(
     _remove_obsolete_export_files(destination, set(files))
     for relative, content in files.items():
         path = destination / relative
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content)
+        try:
+            safe_write_generated_file(path, content)
+        except HandoffExportError as e:
+            raise LocalWorkflowError(str(e)) from e
     return ExportResult(
         work_id=work_dir.name,
         path=str(destination),

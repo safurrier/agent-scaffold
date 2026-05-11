@@ -56,7 +56,10 @@ timeout = 600
 addopts = "-n auto --dist=loadfile"
 markers = [
     "contract: structural checks on the scaffold itself (fast)",
-    "unit: pure function tests with no I/O (fast)",
+    "unit: pure function tests with no subprocess Git/uv where possible (fast)",
+    "integration: real temp repos, filesystem state, or adapter behavior below the public CLI",
+    "cli: black-box public CLI entrypoint coverage",
+    "agent_sim: scripted fake-agent journeys through the public hk CLI",
     "e2e: full init+setup+check workflows against temp projects",
     "slow: tests that take a long time (deselect with '-m not slow')",
     "go: tests requiring the Go toolchain",

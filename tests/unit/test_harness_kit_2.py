@@ -31,7 +31,7 @@ from harness_toolkit.kit.local import (
     sync_checkpoint,
 )
 
-pytestmark = pytest.mark.unit
+pytestmark = pytest.mark.integration
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -40,6 +40,10 @@ def _git_env() -> dict[str, str]:
     env = os.environ.copy()
     for name in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE"):
         env.pop(name, None)
+    env.setdefault("GIT_AUTHOR_NAME", "Test")
+    env.setdefault("GIT_AUTHOR_EMAIL", "test@example.com")
+    env.setdefault("GIT_COMMITTER_NAME", "Test")
+    env.setdefault("GIT_COMMITTER_EMAIL", "test@example.com")
     return env
 
 
@@ -224,6 +228,7 @@ def test_artifact_attach_requires_active_work_and_valid_file(tmp_path: Path) -> 
         attach_artifact(target, source_path=target / "README.md", kind="Agent Session")
 
 
+@pytest.mark.cli
 def test_cli_artifact_attach_json_is_parseable(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -262,6 +267,73 @@ def test_cli_artifact_attach_json_is_parseable(tmp_path: Path) -> None:
     assert payload["kind"] == "agent-session"
     assert payload["copied"] is True
     assert Path(payload["artifact_path"]).exists()
+
+
+def test_handoff_dir_export_rejects_symlinked_output_parent(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "export-parent-symlink")
+    add_note(target, kind="plan", text="Export safely.")
+    outside = tmp_path / "outside-parent"
+    outside.mkdir()
+    hk_parent = target / ".ai" / "hk"
+    hk_parent.parent.mkdir(parents=True)
+    hk_parent.symlink_to(outside, target_is_directory=True)
+
+    with pytest.raises(LocalWorkflowError, match="symlinked parent"):
+        export_handoff_dir(target, output_path=hk_parent / "export-parent-symlink")
+    with pytest.raises(LocalWorkflowError, match="symlinked parent"):
+        export_handoff_dir(
+            target, output_path=hk_parent / "export-parent-symlink", check=True
+        )
+
+    assert not (outside / "export-parent-symlink" / "README.md").exists()
+
+
+def test_handoff_dir_export_does_not_follow_output_directory_symlink(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "export-dir-symlink")
+    add_note(target, kind="plan", text="Export safely.")
+    output = target / ".ai" / "hk" / "export-dir-symlink"
+    outside = tmp_path / "outside-export"
+    outside.mkdir()
+    output.parent.mkdir(parents=True)
+    output.symlink_to(outside, target_is_directory=True)
+
+    export_handoff_dir(target, output_path=output)
+
+    assert not output.is_symlink()
+    assert not (outside / "README.md").exists()
+    assert "HK export" in (output / "README.md").read_text()
+
+
+def test_handoff_dir_export_does_not_follow_generated_file_symlink(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "export-symlink")
+    add_note(target, kind="plan", text="Export safely.")
+    output = target / ".ai" / "hk" / "export-symlink"
+    export_handoff_dir(target, output_path=output)
+    outside = tmp_path / "outside.md"
+    outside.write_text("do not overwrite\n")
+    (output / "README.md").unlink()
+    (output / "README.md").symlink_to(outside)
+
+    export_handoff_dir(target, output_path=output)
+
+    assert outside.read_text() == "do not overwrite\n"
+    assert not (output / "README.md").is_symlink()
+    assert "HK export" in (output / "README.md").read_text()
 
 
 def test_handoff_dir_export_writes_generated_package_and_checks_freshness(
@@ -353,6 +425,7 @@ def test_handoff_dir_export_writes_generated_package_and_checks_freshness(
         export_handoff_dir(target, output_path=output, check=True)
 
 
+@pytest.mark.cli
 def test_cli_export_rejects_check_without_handoff_dir_format(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -375,6 +448,7 @@ def test_cli_export_rejects_check_without_handoff_dir_format(tmp_path: Path) -> 
     assert "require --format handoff-dir" in result.stderr
 
 
+@pytest.mark.cli
 def test_cli_handoff_dir_export_json_is_parseable(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -754,6 +828,7 @@ def test_lifecycle_ready_requires_plan_decision_validation_review_and_sync(
     assert "manual_external / Alex" in handoff_result.content
 
 
+@pytest.mark.cli
 def test_cli_evidence_bare_command_gives_list_hint() -> None:
     result = _run_hk("evidence", "--target", ".")
 
@@ -761,6 +836,7 @@ def test_cli_evidence_bare_command_gives_list_hint() -> None:
     assert "hk evidence list --target . --json" in result.stderr
 
 
+@pytest.mark.cli
 def test_cli_root_help_removes_legacy_commands() -> None:
     root = _run_hk("--help")
     legacy = _run_hk("legacy", "sync-check", "--help")
@@ -774,6 +850,7 @@ def test_cli_root_help_removes_legacy_commands() -> None:
     assert "usage: hk attach" not in attach.stdout.lower()
 
 
+@pytest.mark.cli
 def test_cli_review_help_warns_self_review_does_not_count() -> None:
     result = _run_hk("review", "add", "--help")
 
@@ -1041,6 +1118,133 @@ def test_sync_exclude_rejects_source_directory_with_tracked_descendants(
         )
 
 
+def test_sync_check_revalidates_excluded_untracked_file_content(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "exclude-file-content-change")
+    scratch = target / ".pi" / "session.json"
+    scratch.parent.mkdir()
+    scratch.write_text("{}\n")
+    sync_checkpoint(
+        target,
+        exclude_paths=(".pi/session.json",),
+        reason="Only local agent state.",
+    )
+
+    scratch.write_text('{"changed": true}\n')
+    checked = sync_checkpoint(target, check=True)
+
+    assert checked.synced is False
+    assert "excluded path changed" in checked.message
+
+
+def test_sync_check_revalidates_excluded_untracked_directory_new_file(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "exclude-dir-new-file")
+    scratch_dir = target / ".pi"
+    scratch_dir.mkdir()
+    (scratch_dir / "session.json").write_text("{}\n")
+    sync_checkpoint(
+        target,
+        exclude_paths=(".pi",),
+        reason="Only local agent state.",
+    )
+
+    (scratch_dir / "later.json").write_text("{}\n")
+    checked = sync_checkpoint(target, check=True)
+
+    assert checked.synced is False
+    assert "excluded path changed" in checked.message
+
+
+def test_sync_check_revalidates_excluded_untracked_nested_git_directory(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "exclude-nested-git-dir")
+    nested = target / ".pi" / "nested"
+    nested.mkdir(parents=True)
+    subprocess.run(["git", "init"], cwd=nested, check=True, capture_output=True)
+    (nested / "state.txt").write_text("v1\n")
+    sync_checkpoint(
+        target,
+        exclude_paths=(".pi",),
+        reason="Only local agent state.",
+    )
+
+    (nested / "state.txt").write_text("v2\n")
+    checked = sync_checkpoint(target, check=True)
+
+    assert checked.synced is False
+    assert "excluded path changed" in checked.message
+
+
+@pytest.mark.parametrize(
+    "replacement_metadata",
+    (
+        [],
+        [{"path": ".other", "state_hash": "sha256:missing"}],
+    ),
+)
+def test_sync_check_fails_closed_when_exclude_metadata_is_incomplete_or_mismatched(
+    tmp_path: Path, replacement_metadata: list[dict[str, str]]
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    work = create_work(target, "exclude-bad-metadata")
+    (target / ".pi").mkdir()
+    (target / ".pi" / "session.json").write_text("{}\n")
+    sync_checkpoint(
+        target,
+        exclude_paths=(".pi",),
+        reason="Only local agent state.",
+    )
+    events_path = Path(work.work_dir) / "events.jsonl"
+    rows = [json.loads(line) for line in events_path.read_text().splitlines()]
+    rows[-1]["data"]["excluded"] = replacement_metadata
+    events_path.write_text("".join(json.dumps(row) + "\n" for row in rows))
+
+    checked = sync_checkpoint(target, check=True)
+
+    assert checked.synced is False
+    assert "excluded path changed" in checked.message
+
+
+def test_sync_check_fails_closed_when_exclude_metadata_is_missing(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    work = create_work(target, "exclude-missing-metadata")
+    (target / ".pi").mkdir()
+    (target / ".pi" / "session.json").write_text("{}\n")
+    sync_checkpoint(
+        target,
+        exclude_paths=(".pi",),
+        reason="Only local agent state.",
+    )
+    events_path = Path(work.work_dir) / "events.jsonl"
+    rows = [json.loads(line) for line in events_path.read_text().splitlines()]
+    rows[-1]["data"].pop("excluded")
+    events_path.write_text("".join(json.dumps(row) + "\n" for row in rows))
+
+    checked = sync_checkpoint(target, check=True)
+
+    assert checked.synced is False
+    assert "excluded path changed" in checked.message
+
+
 def test_sync_check_revalidates_stored_excludes_for_tracked_descendants(
     tmp_path: Path,
 ) -> None:
@@ -1168,6 +1372,49 @@ def test_dangerously_skip_sync_goes_stale_after_later_work(tmp_path: Path) -> No
     assert stale.synced is False
 
 
+def test_ready_accepts_evidence_with_existing_agent_local_state_after_sync_skip(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "skip-sync-existing-agent-local")
+    add_note(target, kind="plan", text="Exercise existing local state freshness.")
+    add_note(target, kind="decision", text="No spec impact.")
+    add_note(target, kind="spec-impact", text="not-needed")
+    (target / ".pi").mkdir()
+    (target / ".pi" / "session.json").write_text("{}")
+    capture_command(
+        target,
+        ("python3", "-c", "print('ok')"),
+        kind="test",
+        why="Validation includes unchanged agent-local state.",
+    )
+    add_review(
+        target,
+        backend="subagent",
+        reviewer="reviewer-fresh-context",
+        rubrics=("core-quality",),
+        summary="Review includes unchanged agent-local state.",
+    )
+    sync_checkpoint(target)
+    add_dangerous_skip(
+        target,
+        check="sync",
+        label="agent-local-state",
+        reason="Only existing .pi agent-local state is untracked.",
+        mitigation="No source files changed after validation/review.",
+    )
+
+    result = ready(target)
+
+    messages = {check.id: check.message for check in result.checks}
+    assert result.ready is True
+    assert messages["validation"] == "validation evidence with rationale recorded"
+    assert messages["review"] == "external-enough review recorded"
+    assert messages["sync"].startswith("sync dangerously skipped")
+
+
 def test_status_coaches_next_actions(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1185,7 +1432,49 @@ def test_status_coaches_next_actions(tmp_path: Path) -> None:
     )
     assert any(action.startswith("decision:") for action in result.next_actions)
     assert any(action.startswith("validation:") for action in result.next_actions)
-    assert any(action.startswith("review required:") for action in result.next_actions)
+    review_actions = [
+        action
+        for action in result.next_actions
+        if action.startswith("review required:")
+    ]
+    assert review_actions
+    assert "do not skip just because" in review_actions[0]
+    assert "fresh-context subagent" in review_actions[0]
+
+
+def test_status_prompts_exact_agent_local_sync_exclusion(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "agent-local-sync")
+    add_note(target, kind="plan", text="Exercise local state guidance.")
+    add_note(target, kind="decision", text="No spec impact.")
+    add_note(target, kind="spec-impact", text="not-needed")
+    capture_command(
+        target,
+        ("python3", "-c", "print('ok')"),
+        kind="test",
+        why="Validation covers current diff.",
+    )
+    add_review(
+        target,
+        backend="subagent",
+        reviewer="reviewer-fresh-context",
+        rubrics=("core-quality",),
+        summary="Review covers current diff.",
+    )
+    sync_checkpoint(target)
+    (target / ".pi").mkdir()
+    (target / ".pi" / "session.json").write_text("{}\n")
+
+    result = status(target)
+
+    sync_actions = [
+        action for action in result.next_actions if action.startswith("sync:")
+    ]
+    assert sync_actions
+    assert "agent-local state is blocking readiness" in sync_actions[0]
+    assert "hk sync --exclude .pi --reason agent-local-state" in sync_actions[0]
 
 
 def test_generated_handoff_views_do_not_make_synced_work_stale(
@@ -1261,6 +1550,7 @@ def test_spec_init_uses_committed_spec_without_creating_unreachable_local_draft(
     ).exists()
 
 
+@pytest.mark.cli
 def test_cli_spec_outline_json_is_parseable(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1277,6 +1567,7 @@ def test_cli_spec_outline_json_is_parseable(tmp_path: Path) -> None:
     assert "# Local Project Specification" in payload["headings"]
 
 
+@pytest.mark.cli
 def test_cli_spec_promote_dry_run_json_is_parseable(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1293,6 +1584,7 @@ def test_cli_spec_promote_dry_run_json_is_parseable(tmp_path: Path) -> None:
     assert "Would write local spec" in payload["preview"]
 
 
+@pytest.mark.cli
 def test_cli_handoff_rejects_invalid_format(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1307,6 +1599,7 @@ def test_cli_handoff_rejects_invalid_format(tmp_path: Path) -> None:
     assert result.returncode != 0
 
 
+@pytest.mark.cli
 def test_cli_handoff_pr_format_renders_pr_body(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1325,6 +1618,7 @@ def test_cli_handoff_pr_format_renders_pr_body(tmp_path: Path) -> None:
     assert "# Handoff" not in result.stdout
 
 
+@pytest.mark.cli
 def test_cli_handoff_pr_format_discloses_dangerous_skips(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1359,6 +1653,7 @@ def test_cli_handoff_pr_format_discloses_dangerous_skips(tmp_path: Path) -> None
     assert "Human review before merge." in result.stdout
 
 
+@pytest.mark.cli
 def test_cli_dangerously_skip_requires_mitigation(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1382,6 +1677,7 @@ def test_cli_dangerously_skip_requires_mitigation(tmp_path: Path) -> None:
     assert "--mitigation" in result.stderr
 
 
+@pytest.mark.cli
 def test_cli_summary_renders_human_readiness_digest(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1418,6 +1714,7 @@ def test_cli_summary_renders_human_readiness_digest(tmp_path: Path) -> None:
     assert "Human review before merge." in result.stdout
 
 
+@pytest.mark.cli
 def test_cli_handoff_format_json_is_not_a_file_format(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1433,6 +1730,7 @@ def test_cli_handoff_format_json_is_not_a_file_format(tmp_path: Path) -> None:
     assert result.returncode != 0
 
 
+@pytest.mark.cli
 def test_cli_note_from_file_records_plan_note(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1465,6 +1763,7 @@ def test_cli_note_from_file_records_plan_note(tmp_path: Path) -> None:
     assert "Translate external planning" in handoff_result.stdout
 
 
+@pytest.mark.cli
 def test_cli_note_rejects_text_and_from_file(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1488,6 +1787,300 @@ def test_cli_note_rejects_text_and_from_file(tmp_path: Path) -> None:
 
     assert result.returncode != 0
     assert "Use either note TEXT or --from-file" in result.stderr
+
+
+def test_ready_accepts_fresh_validation_when_preexisting_local_state_is_excluded(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "preexisting-local-exclude")
+    add_note(target, kind="plan", text="Exercise preexisting local excludes.")
+    add_note(target, kind="decision", text="No spec impact.")
+    add_note(target, kind="spec-impact", text="not-needed")
+    (target / ".pi").mkdir()
+    (target / ".pi" / "session.json").write_text("{}\n")
+    capture_command(
+        target,
+        ("python3", "-c", "print('ok')"),
+        kind="test",
+        why="Validation covers source diff while local state exists.",
+    )
+    add_review(
+        target,
+        backend="subagent",
+        reviewer="reviewer-fresh-context",
+        rubrics=("core-quality",),
+        summary="Review covers source diff while local state exists.",
+    )
+
+    sync_checkpoint(target, exclude_paths=(".pi",), reason="Only local agent state.")
+    result = ready(target)
+
+    assert result.ready is True
+    messages = {check.id: check.message for check in result.checks}
+    assert messages["validation"] == "validation evidence with rationale recorded"
+    assert messages["review"] == "external-enough review recorded"
+
+
+def test_ready_accepts_validation_when_validated_diff_is_committed_unchanged(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "validated-then-committed")
+    add_note(target, kind="plan", text="Exercise committed equivalent diff.")
+    add_note(target, kind="decision", text="No spec impact.")
+    add_note(target, kind="spec-impact", text="not-needed")
+    (target / "README.md").write_text("# validated change\n")
+    capture_command(
+        target,
+        ("python3", "-c", "print('ok')"),
+        kind="test",
+        why="Validation covers the README change.",
+    )
+    add_review(
+        target,
+        backend="subagent",
+        reviewer="reviewer-fresh-context",
+        rubrics=("core-quality",),
+        summary="Review covers the README change.",
+    )
+    subprocess.run(["git", "add", "README.md"], cwd=target, check=True, env=_git_env())
+    subprocess.run(
+        ["git", "commit", "--no-verify", "-m", "commit validated readme"],
+        cwd=target,
+        check=True,
+        capture_output=True,
+        env=_git_env(),
+    )
+    sync_checkpoint(target)
+
+    result = ready(target)
+
+    assert result.ready is True
+    messages = {check.id: check.message for check in result.checks}
+    assert messages["validation"] == "validation evidence with rationale recorded"
+    assert messages["review"] == "external-enough review recorded"
+
+
+def test_ready_accepts_validation_when_new_untracked_file_is_committed_unchanged(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "validated-new-file")
+    add_note(target, kind="plan", text="Exercise untracked to committed freshness.")
+    add_note(target, kind="decision", text="No spec impact.")
+    add_note(target, kind="spec-impact", text="not-needed")
+    (target / "NEW.md").write_text("# new\n")
+    capture_command(
+        target,
+        ("python3", "-c", "print('ok')"),
+        kind="test",
+        why="Validation covers the new file.",
+    )
+    add_review(
+        target,
+        backend="subagent",
+        reviewer="reviewer-fresh-context",
+        rubrics=("core-quality",),
+        summary="Review covers the new file.",
+    )
+    subprocess.run(["git", "add", "NEW.md"], cwd=target, check=True, env=_git_env())
+    subprocess.run(
+        ["git", "commit", "--no-verify", "-m", "commit new file"],
+        cwd=target,
+        check=True,
+        capture_output=True,
+        env=_git_env(),
+    )
+    sync_checkpoint(target)
+
+    result = ready(target)
+
+    assert result.ready is True
+
+
+def test_ready_rejects_stale_validation_after_committed_work_change(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "stale-after-commit")
+    add_note(target, kind="plan", text="Exercise committed freshness.")
+    add_note(target, kind="decision", text="No spec impact.")
+    add_note(target, kind="spec-impact", text="not-needed")
+    capture_command(
+        target,
+        ("python3", "-c", "print('ok')"),
+        kind="test",
+        why="Validation covers initial committed state.",
+    )
+    add_review(
+        target,
+        backend="subagent",
+        reviewer="reviewer-fresh-context",
+        rubrics=("core-quality",),
+        summary="Review covers initial committed state.",
+    )
+    sync_checkpoint(target)
+    (target / "README.md").write_text("# committed change\n")
+    subprocess.run(["git", "add", "README.md"], cwd=target, check=True, env=_git_env())
+    subprocess.run(
+        ["git", "commit", "--no-verify", "-m", "change readme"],
+        cwd=target,
+        check=True,
+        capture_output=True,
+        env=_git_env(),
+    )
+    sync_checkpoint(target)
+
+    result = ready(target)
+
+    assert result.ready is False
+    messages = {check.id: check.message for check in result.checks}
+    assert "validation evidence is stale" in messages["validation"]
+    assert "accepted review is stale" in messages["review"]
+
+
+def test_ready_rejects_stale_validation_and_review_after_diff_changes(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "stale-validation-review")
+    add_note(target, kind="plan", text="Exercise freshness.")
+    add_note(target, kind="decision", text="No spec impact.")
+    add_note(target, kind="spec-impact", text="not-needed")
+    (target / "README.md").write_text("# v1\n")
+    capture_command(
+        target,
+        ("python3", "-c", "print('ok')"),
+        kind="test",
+        why="Validation covers v1.",
+    )
+    add_review(
+        target,
+        backend="subagent",
+        reviewer="reviewer-fresh-context",
+        rubrics=("core-quality",),
+        summary="Review covers v1.",
+    )
+
+    (target / "README.md").write_text("# v2\n")
+    sync_checkpoint(target)
+    result = ready(target)
+
+    assert result.ready is False
+    messages = {check.id: check.message for check in result.checks}
+    assert "validation evidence is stale" in messages["validation"]
+    assert "README.md" in messages["validation"]
+    assert "accepted review is stale" in messages["review"]
+    assert "README.md" in messages["review"]
+
+
+def test_capture_rejects_bare_env_assignment_with_actionable_hint(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "env-assignment")
+
+    with pytest.raises(LocalWorkflowError) as exc_info:
+        capture_command(
+            target,
+            ("PYTHONPATH=src", "pytest", "-q"),
+            kind="test",
+            why="Exercise env assignment guidance.",
+        )
+
+    message = str(exc_info.value)
+    assert "environment assignments" in message
+    assert "env PYTHONPATH=src" in message
+    assert "--shell 'KEY=value command ...'" in message
+
+
+def test_dangerous_sync_skip_does_not_hide_source_diff_from_freshness(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "sync-skip-source-change")
+    add_note(target, kind="plan", text="Exercise sync skip source freshness.")
+    add_note(target, kind="decision", text="No spec impact.")
+    add_note(target, kind="spec-impact", text="not-needed")
+    (target / "README.md").write_text("# v1\n")
+    capture_command(
+        target,
+        ("python3", "-c", "print('ok')"),
+        kind="test",
+        why="Validation covers v1.",
+    )
+    add_review(
+        target,
+        backend="subagent",
+        reviewer="reviewer-fresh-context",
+        rubrics=("core-quality",),
+        summary="Review covers v1.",
+    )
+    sync_checkpoint(target)
+
+    (target / "README.md").write_text("# v2\n")
+    add_dangerous_skip(
+        target,
+        check="sync",
+        label="claimed-local-only",
+        reason="Pretend only local state changed.",
+        mitigation="Freshness should still catch source changes.",
+    )
+    result = ready(target)
+
+    assert result.ready is False
+    messages = {check.id: check.message for check in result.checks}
+    assert "validation evidence is stale" in messages["validation"]
+    assert "accepted review is stale" in messages["review"]
+
+
+def test_dangerous_validation_skip_goes_stale_after_diff_changes(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "stale-validation-skip")
+    add_note(target, kind="plan", text="Exercise skip freshness.")
+    add_note(target, kind="decision", text="No spec impact.")
+    add_note(target, kind="spec-impact", text="not-needed")
+    add_dangerous_skip(
+        target,
+        check="validation",
+        label="not-run",
+        reason="No validation available in fixture.",
+        mitigation="This is a freshness test.",
+    )
+    add_review(
+        target,
+        backend="subagent",
+        reviewer="reviewer-fresh-context",
+        rubrics=("core-quality",),
+        summary="Review covers current diff.",
+    )
+
+    (target / "README.md").write_text("# changed\n")
+    sync_checkpoint(target)
+    result = ready(target)
+
+    assert result.ready is False
+    messages = {check.id: check.message for check in result.checks}
+    assert messages["validation"] == "missing validation evidence with --why"
 
 
 def test_ready_rejects_failed_validation_and_rejected_review(tmp_path: Path) -> None:
@@ -1530,6 +2123,7 @@ def test_ready_rejects_failed_validation_and_rejected_review(tmp_path: Path) -> 
     )
 
 
+@pytest.mark.cli
 def test_cli_start_plan_and_context_seed_lifecycle_notes(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1556,6 +2150,7 @@ def test_cli_start_plan_and_context_seed_lifecycle_notes(tmp_path: Path) -> None
     assert not any(action.startswith("plan:") for action in payload["next_actions"])
 
 
+@pytest.mark.cli
 def test_cli_plan_without_active_work_points_to_start(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1567,6 +2162,7 @@ def test_cli_plan_without_active_work_points_to_start(tmp_path: Path) -> None:
     assert "hk legacy" not in result.stderr
 
 
+@pytest.mark.cli
 def test_cli_context_from_file_avoids_shell_fragile_text(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1589,6 +2185,7 @@ def test_cli_context_from_file_avoids_shell_fragile_text(tmp_path: Path) -> None
     assert "uv sync --extra dev" in handoff_result.stdout
 
 
+@pytest.mark.cli
 def test_cli_decide_rejects_unknown_spec_impact(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1611,6 +2208,7 @@ def test_cli_decide_rejects_unknown_spec_impact(tmp_path: Path) -> None:
     assert result.returncode != 0
 
 
+@pytest.mark.cli
 def test_cli_decide_records_structured_spec_impact_refs(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1642,6 +2240,7 @@ def test_cli_decide_records_structured_spec_impact_refs(tmp_path: Path) -> None:
     assert "docs/harness-kit-lifecycle-design.md" in handoff_result.stdout
 
 
+@pytest.mark.cli
 def test_cli_review_prompt_prints_fresh_context_prompt(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1673,6 +2272,7 @@ def test_cli_review_prompt_prints_fresh_context_prompt(tmp_path: Path) -> None:
     assert "hk review add --backend subagent" in result.stdout
 
 
+@pytest.mark.cli
 def test_cli_lifecycle_commands_record_handoff_and_ready(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1739,6 +2339,7 @@ def test_cli_lifecycle_commands_record_handoff_and_ready(tmp_path: Path) -> None
     assert "Smoke test validates CLI evidence" in handoff_result.stdout
 
 
+@pytest.mark.cli
 def test_cli_validate_requires_why(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1757,6 +2358,7 @@ def test_cli_validate_requires_why(tmp_path: Path) -> None:
     assert result.returncode != 0
 
 
+@pytest.mark.cli
 def test_cli_capture_json_stdout_is_parseable(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1784,6 +2386,36 @@ def test_cli_capture_json_stdout_is_parseable(tmp_path: Path) -> None:
     assert "hello from command" in result.stderr
 
 
+@pytest.mark.cli
+def test_cli_capture_timeout_json_is_parseable(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    assert _run_hk("init", "--target", str(target), "--json").returncode == 0
+    assert (
+        _run_hk("work", "start", "capture-timeout", "--target", str(target)).returncode
+        == 0
+    )
+
+    result = _run_hk(
+        "capture",
+        "--target",
+        str(target),
+        "--json",
+        "--timeout-seconds",
+        "1",
+        "--",
+        "python3",
+        "-c",
+        "import time; time.sleep(5)",
+    )
+
+    assert result.returncode == 124
+    payload = json.loads(result.stdout)
+    assert payload["timed_out"] is True
+    assert payload["exit_code"] == 124
+
+
+@pytest.mark.cli
 def test_cli_capture_preserves_wrapped_exit_code(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)

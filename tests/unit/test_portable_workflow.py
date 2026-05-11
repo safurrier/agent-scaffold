@@ -9,6 +9,8 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 
+pytestmark = pytest.mark.cli
+
 
 def _run_workflow(*args: str, command: str = "hk") -> subprocess.CompletedProcess[str]:
     return subprocess.run(

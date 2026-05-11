@@ -161,15 +161,24 @@ abstract the command into `hk run`.
 
 Required evidence fields include command display, argv or shell command, cwd,
 target scope, branch, git SHA, dirty state before/after, timestamps, duration,
-exit code, transcript path, and redaction metadata. Failed commands are evidence.
+exit code, transcript path, timeout/truncation metadata, transcript byte count,
+and redaction metadata. Failed commands are evidence.
+
+`hk validate` and `hk capture` can bound execution and evidence volume with
+`--timeout-seconds` and `--max-log-bytes`. These bounds must preserve the command
+identity and result: a timeout records a timeout exit status and marker, and a
+truncated transcript records truncation metadata instead of pretending the full
+log was captured.
 
 ### Capture redaction is pluggable
 
-MVP capture should include a redaction interface from the beginning: no env
-capture by default, log caps, a built-in lightweight redactor, `--no-log`, an
-explicit `--raw-log`, and optional external scanner configuration. Candidate
-scanner tools include `scrubadub`, `detect-secrets`, `gitleaks`, and
-`trufflehog`.
+Capture includes a redaction interface: no env capture by default, log caps, a
+built-in lightweight redactor, `--no-log`, an explicit `--raw-log`, and optional
+external scanner configuration. Non-raw live output must not be weaker than the
+stored transcript: redaction must preserve enough stream context to avoid leaking
+secrets split across read boundaries, while bounding live buffering for huge
+newline-free output. Candidate scanner tools include `scrubadub`,
+`detect-secrets`, `gitleaks`, and `trufflehog`.
 
 ### Sync is a checkpoint/freshness bit
 
@@ -186,11 +195,12 @@ Default behavior:
 Events after the last sync or a changed diff hash make the work unsynced.
 Generated views such as handoffs and materialized Markdown are sync-neutral
 because they do not change the substance of the work. If a final freshness check
-is stale only because of understood local agent state, the user may record an
-explicit `hk dangerously-skip sync --label NAME --reason TEXT --mitigation TEXT`;
-that skip is tied to the current event sequence and diff hash, should be one of
-the final freshness actions when agent-local files keep changing, and is rendered
-under dangerous skips in summaries and handoffs.
+is stale only because of understood local agent state, the user should prefer
+`hk sync --exclude PATH --reason TEXT`; the exclusion is recorded with path
+metadata and revalidated. `hk dangerously-skip sync --label NAME --reason TEXT
+--mitigation TEXT` remains a fallback for cases where a constrained exclusion is
+not appropriate. Validation/review freshness accepts unchanged source diffs across
+agent-local sync skips so local-only state does not force false stale evidence.
 
 Adopted/scaffolded repos may configure stricter checks later.
 

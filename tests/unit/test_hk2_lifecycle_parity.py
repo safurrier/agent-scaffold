@@ -15,7 +15,7 @@ from harness_toolkit.kit.local import (
 )
 from tests.support.hk2_repo import git_init
 
-pytestmark = pytest.mark.unit
+pytestmark = pytest.mark.integration
 
 
 def test_lifecycle_happy_path_reaches_ready(tmp_path: Path) -> None:

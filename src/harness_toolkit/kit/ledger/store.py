@@ -386,6 +386,19 @@ def parse_evidence(
         check_name=_optional_str(
             data, "check_name", path=path, line_number=line_number, kind=kind
         ),
+        diff_hash=_optional_str(
+            data, "diff_hash", path=path, line_number=line_number, kind=kind
+        ),
+        changed_paths=_optional_str_list(
+            data, "changed_paths", path=path, line_number=line_number, kind=kind
+        ),
+        timed_out=data.get("timed_out") is True,
+        truncated=data.get("truncated") is True,
+        transcript_bytes=_required_int(
+            data, "transcript_bytes", path=path, line_number=line_number, kind=kind
+        )
+        if "transcript_bytes" in data
+        else 0,
     )
 
 

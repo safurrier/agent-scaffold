@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from harness_toolkit.kit.ledger import lifecycle_events
 from harness_toolkit.kit.ledger.models import EventRecord, EvidenceRecord
 from harness_toolkit.kit.readiness.diagnostics import ReadyCheck, ReadyResult
 
@@ -39,13 +40,7 @@ def notes_by_kind(events: list[EventRecord], kind: str) -> list[str]:
 
 
 def notes_by_kinds(events: list[EventRecord], kinds: tuple[str, ...]) -> list[str]:
-    rows: list[str] = []
-    for event in events:
-        if event.type != "note_added":
-            continue
-        if event.data.get("kind") in kinds:
-            rows.append(str(event.data.get("text", "")))
-    return rows
+    return lifecycle_events.note_texts(events, kinds)
 
 
 def is_self_review_identity(value: str) -> bool:
@@ -56,10 +51,31 @@ def is_self_review_identity(value: str) -> bool:
 
 
 def review_events(events: list[EventRecord]) -> list[dict[str, object]]:
-    return [event.data for event in events if event.type == "review_added"]
+    return lifecycle_events.review_payloads(events)
 
 
-def accepted_review_events(events: list[EventRecord]) -> list[dict[str, object]]:
+def _accepted_diff_hashes(
+    current_diff_hash: str = "", current_diff_hashes: tuple[str, ...] = ()
+) -> set[str]:
+    return {item for item in (current_diff_hash, *current_diff_hashes) if item}
+
+
+def _hash_is_current(
+    diff_hash: object,
+    *,
+    current_diff_hash: str = "",
+    current_diff_hashes: tuple[str, ...] = (),
+) -> bool:
+    accepted = _accepted_diff_hashes(current_diff_hash, current_diff_hashes)
+    return not accepted or diff_hash in accepted
+
+
+def accepted_review_events(
+    events: list[EventRecord],
+    *,
+    current_diff_hash: str = "",
+    current_diff_hashes: tuple[str, ...] = (),
+) -> list[dict[str, object]]:
     accepted: list[dict[str, object]] = []
     for review in review_events(events):
         backend = str(review.get("backend", "")).strip().lower()
@@ -71,6 +87,12 @@ def accepted_review_events(events: list[EventRecord]) -> list[dict[str, object]]
             continue
         if disposition not in ACCEPTED_REVIEW_DISPOSITIONS:
             continue
+        if not _hash_is_current(
+            review.get("diff_hash"),
+            current_diff_hash=current_diff_hash,
+            current_diff_hashes=current_diff_hashes,
+        ):
+            continue
         accepted.append(review)
     return accepted
 
@@ -79,9 +101,9 @@ def dangerous_skip_events(
     events: list[EventRecord], check_id: str
 ) -> list[dict[str, object]]:
     return [
-        event.data
-        for event in events
-        if event.type == "dangerous_skip_added" and event.data.get("check") == check_id
+        skip
+        for skip in lifecycle_events.dangerous_skip_payloads(events)
+        if skip.get("check") == check_id
     ]
 
 
@@ -95,14 +117,34 @@ def dangerous_skip_message(check_id: str, skips: list[dict[str, object]]) -> str
     return f"{check_id} dangerously skipped: {label}{reason_text}{mitigation_text}"
 
 
-def dangerous_skip_for_label(
-    events: list[EventRecord], check_id: str, label: str
+def _fresh_for_diff(
+    records: list[dict[str, object]],
+    current_diff_hash: str,
+    current_diff_hashes: tuple[str, ...] = (),
 ) -> list[dict[str, object]]:
-    return [
-        skip
-        for skip in dangerous_skip_events(events, check_id)
-        if str(skip.get("label") or "") == label
-    ]
+    accepted = _accepted_diff_hashes(current_diff_hash, current_diff_hashes)
+    if not accepted:
+        return records
+    return [record for record in records if record.get("diff_hash") in accepted]
+
+
+def dangerous_skip_for_label(
+    events: list[EventRecord],
+    check_id: str,
+    label: str,
+    *,
+    current_diff_hash: str = "",
+    current_diff_hashes: tuple[str, ...] = (),
+) -> list[dict[str, object]]:
+    return _fresh_for_diff(
+        [
+            skip
+            for skip in dangerous_skip_events(events, check_id)
+            if str(skip.get("label") or "") == label
+        ],
+        current_diff_hash,
+        current_diff_hashes,
+    )
 
 
 def _paths_text(paths: tuple[str, ...]) -> str:
@@ -113,6 +155,14 @@ def _paths_text(paths: tuple[str, ...]) -> str:
     return f"matched {preview}{suffix}"
 
 
+def _changed_paths_text(paths: tuple[str, ...]) -> str:
+    if not paths:
+        return ""
+    preview = ", ".join(paths[:5])
+    suffix = "" if len(paths) <= 5 else f", +{len(paths) - 5} more"
+    return f" Current changed paths: {preview}{suffix}."
+
+
 def ready_for_events(
     *,
     work_id: str,
@@ -120,10 +170,13 @@ def ready_for_events(
     evidence: list[EvidenceRecord],
     sync_status: str,
     agent_local_warning: str = "",
+    current_diff_hash: str = "",
+    current_diff_hashes: tuple[str, ...] = (),
     check_handoff: bool = True,
     handoff_check: Callable[[], None] | None = None,
     required_profile_checks: tuple[RequiredProfileItem, ...] = (),
     required_profile_reviews: tuple[RequiredProfileItem, ...] = (),
+    changed_paths: tuple[str, ...] = (),
 ) -> ReadyResult:
     checks: list[ReadyCheck] = []
 
@@ -154,10 +207,34 @@ def ready_for_events(
         has_decision and has_spec_reflection,
         "decision and spec reflection recorded",
     )
-    validation_skips = dangerous_skip_events(events, "validation")
+    validation_skips = _fresh_for_diff(
+        dangerous_skip_events(events, "validation"),
+        current_diff_hash,
+        current_diff_hashes,
+    )
     validation_skipped = bool(validation_skips)
+    stale_passing_evidence_with_why = [
+        record
+        for record in evidence
+        if record.why
+        and record.status == "pass"
+        and _accepted_diff_hashes(current_diff_hash, current_diff_hashes)
+        and not _hash_is_current(
+            record.diff_hash,
+            current_diff_hash=current_diff_hash,
+            current_diff_hashes=current_diff_hashes,
+        )
+    ]
     passing_evidence_with_why = [
-        record for record in evidence if record.why and record.status == "pass"
+        record
+        for record in evidence
+        if record.why
+        and record.status == "pass"
+        and _hash_is_current(
+            record.diff_hash,
+            current_diff_hash=current_diff_hash,
+            current_diff_hashes=current_diff_hashes,
+        )
     ]
     failed_evidence_with_why = [
         record for record in evidence if record.why and record.status != "pass"
@@ -169,13 +246,29 @@ def ready_for_events(
         if passing_evidence_with_why
         else dangerous_skip_message("validation", validation_skips)
         if validation_skipped
+        else "validation evidence is stale for current diff; rerun hk validate or dangerously-skip validation."
+        + _changed_paths_text(changed_paths)
+        if stale_passing_evidence_with_why
         else "validation evidence with rationale failed"
         if failed_evidence_with_why
         else "missing validation evidence with --why",
     )
-    review_skips = dangerous_skip_events(events, "review")
+    review_skips = _fresh_for_diff(
+        dangerous_skip_events(events, "review"),
+        current_diff_hash,
+        current_diff_hashes,
+    )
     review_skipped = bool(review_skips)
-    reviews = accepted_review_events(events)
+    stale_reviews = (
+        accepted_review_events(events)
+        if _accepted_diff_hashes(current_diff_hash, current_diff_hashes)
+        else []
+    )
+    reviews = accepted_review_events(
+        events,
+        current_diff_hash=current_diff_hash,
+        current_diff_hashes=current_diff_hashes,
+    )
     recorded_reviews = review_events(events)
     add_check(
         "review",
@@ -184,9 +277,12 @@ def ready_for_events(
         if reviews
         else dangerous_skip_message("review", review_skips)
         if review_skipped
+        else "accepted review is stale for current diff; rerun independent review or dangerously-skip review."
+        + _changed_paths_text(changed_paths)
+        if stale_reviews
         else SELF_REVIEW_GUIDANCE
         if recorded_reviews
-        else "missing accepted external-enough review record; run a separate reviewer/subagent with fresh context",
+        else "missing accepted external-enough review record; dispatch a separate reviewer/subagent with fresh context via your harness, then record it with hk review add",
     )
     for item in required_profile_checks:
         matching_evidence = [
@@ -194,8 +290,19 @@ def ready_for_events(
             for record in evidence
             if getattr(record, "check_name", "") == item.name
             and record.status == "pass"
+            and _hash_is_current(
+                record.diff_hash,
+                current_diff_hash=current_diff_hash,
+                current_diff_hashes=current_diff_hashes,
+            )
         ]
-        matching_skips = dangerous_skip_for_label(events, "validation", item.name)
+        matching_skips = dangerous_skip_for_label(
+            events,
+            "validation",
+            item.name,
+            current_diff_hash=current_diff_hash,
+            current_diff_hashes=current_diff_hashes,
+        )
         add_check(
             f"profile-check:{item.name}",
             bool(matching_evidence) or bool(matching_skips),
@@ -212,7 +319,13 @@ def ready_for_events(
             for review in reviews
             if str(review.get("review_name") or "") == item.name
         ]
-        matching_skips = dangerous_skip_for_label(events, "review", item.name)
+        matching_skips = dangerous_skip_for_label(
+            events,
+            "review",
+            item.name,
+            current_diff_hash=current_diff_hash,
+            current_diff_hashes=current_diff_hashes,
+        )
         add_check(
             f"profile-review:{item.name}",
             bool(matching_reviews) or bool(matching_skips),
