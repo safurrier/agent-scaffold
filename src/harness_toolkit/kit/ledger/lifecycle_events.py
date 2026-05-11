@@ -25,6 +25,8 @@ class ReviewEvent:
     summary: str
     disposition: str
     review_name: str = ""
+    diff_hash: str = ""
+    changed_paths: tuple[str, ...] = ()
 
     def as_payload(self) -> dict[str, object]:
         return {
@@ -34,6 +36,8 @@ class ReviewEvent:
             "summary": self.summary,
             "disposition": self.disposition,
             "review_name": self.review_name,
+            "diff_hash": self.diff_hash,
+            "changed_paths": list(self.changed_paths),
         }
 
 
@@ -136,6 +140,8 @@ def review_events(events: list[EventRecord]) -> list[ReviewEvent]:
             summary=_str(event.data.get("summary")),
             disposition=_str(event.data.get("disposition")),
             review_name=_str(event.data.get("review_name")),
+            diff_hash=_str(event.data.get("diff_hash")),
+            changed_paths=_str_tuple(event.data.get("changed_paths")),
         )
         for event in events
         if event.type == "review_added"

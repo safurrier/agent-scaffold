@@ -1633,6 +1633,276 @@ def test_cli_note_rejects_text_and_from_file(tmp_path: Path) -> None:
     assert "Use either note TEXT or --from-file" in result.stderr
 
 
+def test_ready_accepts_fresh_validation_when_preexisting_local_state_is_excluded(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "preexisting-local-exclude")
+    add_note(target, kind="plan", text="Exercise preexisting local excludes.")
+    add_note(target, kind="decision", text="No spec impact.")
+    add_note(target, kind="spec-impact", text="not-needed")
+    (target / ".pi").mkdir()
+    (target / ".pi" / "session.json").write_text("{}\n")
+    capture_command(
+        target,
+        ("python3", "-c", "print('ok')"),
+        kind="test",
+        why="Validation covers source diff while local state exists.",
+    )
+    add_review(
+        target,
+        backend="subagent",
+        reviewer="reviewer-fresh-context",
+        rubrics=("core-quality",),
+        summary="Review covers source diff while local state exists.",
+    )
+
+    sync_checkpoint(target, exclude_paths=(".pi",), reason="Only local agent state.")
+    result = ready(target)
+
+    assert result.ready is True
+    messages = {check.id: check.message for check in result.checks}
+    assert messages["validation"] == "validation evidence with rationale recorded"
+    assert messages["review"] == "external-enough review recorded"
+
+
+def test_ready_accepts_validation_when_validated_diff_is_committed_unchanged(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "validated-then-committed")
+    add_note(target, kind="plan", text="Exercise committed equivalent diff.")
+    add_note(target, kind="decision", text="No spec impact.")
+    add_note(target, kind="spec-impact", text="not-needed")
+    (target / "README.md").write_text("# validated change\n")
+    capture_command(
+        target,
+        ("python3", "-c", "print('ok')"),
+        kind="test",
+        why="Validation covers the README change.",
+    )
+    add_review(
+        target,
+        backend="subagent",
+        reviewer="reviewer-fresh-context",
+        rubrics=("core-quality",),
+        summary="Review covers the README change.",
+    )
+    subprocess.run(["git", "add", "README.md"], cwd=target, check=True, env=_git_env())
+    subprocess.run(
+        ["git", "commit", "--no-verify", "-m", "commit validated readme"],
+        cwd=target,
+        check=True,
+        capture_output=True,
+        env=_git_env(),
+    )
+    sync_checkpoint(target)
+
+    result = ready(target)
+
+    assert result.ready is True
+    messages = {check.id: check.message for check in result.checks}
+    assert messages["validation"] == "validation evidence with rationale recorded"
+    assert messages["review"] == "external-enough review recorded"
+
+
+def test_ready_accepts_validation_when_new_untracked_file_is_committed_unchanged(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "validated-new-file")
+    add_note(target, kind="plan", text="Exercise untracked to committed freshness.")
+    add_note(target, kind="decision", text="No spec impact.")
+    add_note(target, kind="spec-impact", text="not-needed")
+    (target / "NEW.md").write_text("# new\n")
+    capture_command(
+        target,
+        ("python3", "-c", "print('ok')"),
+        kind="test",
+        why="Validation covers the new file.",
+    )
+    add_review(
+        target,
+        backend="subagent",
+        reviewer="reviewer-fresh-context",
+        rubrics=("core-quality",),
+        summary="Review covers the new file.",
+    )
+    subprocess.run(["git", "add", "NEW.md"], cwd=target, check=True, env=_git_env())
+    subprocess.run(
+        ["git", "commit", "--no-verify", "-m", "commit new file"],
+        cwd=target,
+        check=True,
+        capture_output=True,
+        env=_git_env(),
+    )
+    sync_checkpoint(target)
+
+    result = ready(target)
+
+    assert result.ready is True
+
+
+def test_ready_rejects_stale_validation_after_committed_work_change(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "stale-after-commit")
+    add_note(target, kind="plan", text="Exercise committed freshness.")
+    add_note(target, kind="decision", text="No spec impact.")
+    add_note(target, kind="spec-impact", text="not-needed")
+    capture_command(
+        target,
+        ("python3", "-c", "print('ok')"),
+        kind="test",
+        why="Validation covers initial committed state.",
+    )
+    add_review(
+        target,
+        backend="subagent",
+        reviewer="reviewer-fresh-context",
+        rubrics=("core-quality",),
+        summary="Review covers initial committed state.",
+    )
+    sync_checkpoint(target)
+    (target / "README.md").write_text("# committed change\n")
+    subprocess.run(["git", "add", "README.md"], cwd=target, check=True, env=_git_env())
+    subprocess.run(
+        ["git", "commit", "--no-verify", "-m", "change readme"],
+        cwd=target,
+        check=True,
+        capture_output=True,
+        env=_git_env(),
+    )
+    sync_checkpoint(target)
+
+    result = ready(target)
+
+    assert result.ready is False
+    messages = {check.id: check.message for check in result.checks}
+    assert "validation evidence is stale" in messages["validation"]
+    assert "accepted review is stale" in messages["review"]
+
+
+def test_ready_rejects_stale_validation_and_review_after_diff_changes(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "stale-validation-review")
+    add_note(target, kind="plan", text="Exercise freshness.")
+    add_note(target, kind="decision", text="No spec impact.")
+    add_note(target, kind="spec-impact", text="not-needed")
+    (target / "README.md").write_text("# v1\n")
+    capture_command(
+        target,
+        ("python3", "-c", "print('ok')"),
+        kind="test",
+        why="Validation covers v1.",
+    )
+    add_review(
+        target,
+        backend="subagent",
+        reviewer="reviewer-fresh-context",
+        rubrics=("core-quality",),
+        summary="Review covers v1.",
+    )
+
+    (target / "README.md").write_text("# v2\n")
+    sync_checkpoint(target)
+    result = ready(target)
+
+    assert result.ready is False
+    messages = {check.id: check.message for check in result.checks}
+    assert "validation evidence is stale" in messages["validation"]
+    assert "accepted review is stale" in messages["review"]
+
+
+def test_dangerous_sync_skip_does_not_hide_source_diff_from_freshness(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "sync-skip-source-change")
+    add_note(target, kind="plan", text="Exercise sync skip source freshness.")
+    add_note(target, kind="decision", text="No spec impact.")
+    add_note(target, kind="spec-impact", text="not-needed")
+    (target / "README.md").write_text("# v1\n")
+    capture_command(
+        target,
+        ("python3", "-c", "print('ok')"),
+        kind="test",
+        why="Validation covers v1.",
+    )
+    add_review(
+        target,
+        backend="subagent",
+        reviewer="reviewer-fresh-context",
+        rubrics=("core-quality",),
+        summary="Review covers v1.",
+    )
+    sync_checkpoint(target)
+
+    (target / "README.md").write_text("# v2\n")
+    add_dangerous_skip(
+        target,
+        check="sync",
+        label="claimed-local-only",
+        reason="Pretend only local state changed.",
+        mitigation="Freshness should still catch source changes.",
+    )
+    result = ready(target)
+
+    assert result.ready is False
+    messages = {check.id: check.message for check in result.checks}
+    assert "validation evidence is stale" in messages["validation"]
+    assert "accepted review is stale" in messages["review"]
+
+
+def test_dangerous_validation_skip_goes_stale_after_diff_changes(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "stale-validation-skip")
+    add_note(target, kind="plan", text="Exercise skip freshness.")
+    add_note(target, kind="decision", text="No spec impact.")
+    add_note(target, kind="spec-impact", text="not-needed")
+    add_dangerous_skip(
+        target,
+        check="validation",
+        label="not-run",
+        reason="No validation available in fixture.",
+        mitigation="This is a freshness test.",
+    )
+    add_review(
+        target,
+        backend="subagent",
+        reviewer="reviewer-fresh-context",
+        rubrics=("core-quality",),
+        summary="Review covers current diff.",
+    )
+
+    (target / "README.md").write_text("# changed\n")
+    sync_checkpoint(target)
+    result = ready(target)
+
+    assert result.ready is False
+    messages = {check.id: check.message for check in result.checks}
+    assert messages["validation"] == "missing validation evidence with --why"
+
+
 def test_ready_rejects_failed_validation_and_rejected_review(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)

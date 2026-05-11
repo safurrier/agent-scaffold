@@ -208,6 +208,109 @@ def git_diff_hash(path: Path, exclude_paths: tuple[str, ...] = ()) -> str:
     return "sha256:" + hasher.hexdigest()
 
 
+def git_validation_diff_hash(path: Path, exclude_paths: tuple[str, ...] = ()) -> str:
+    """Hash current worktree content for validation/review freshness.
+
+    Unlike sync checkpoint hashing, this intentionally does not include the exact
+    Git command argv in the digest. Adding a new exclude for generated/local-only
+    files should not stale validation that covered the same source diff.
+    """
+    hasher = hashlib.sha256()
+    pathspec = (
+        ["--", ".", *git_pathspec_excludes(exclude_paths)] if exclude_paths else []
+    )
+    commands = (
+        (b"diff", ["git", "diff", "--no-ext-diff", "--binary", *pathspec]),
+        (
+            b"cached-diff",
+            ["git", "diff", "--cached", "--no-ext-diff", "--binary", *pathspec],
+        ),
+        (b"status", ["git", "status", "--porcelain", *pathspec]),
+    )
+    for label, command in commands:
+        result = subprocess.run(command, cwd=path, capture_output=True, check=False)
+        if result.returncode != 0:
+            return ""
+        hasher.update(label)
+        hasher.update(b"\0")
+        hasher.update(result.stdout)
+        hasher.update(b"\0")
+    _hash_untracked_paths(hasher, path, pathspec)
+    return "sha256:" + hasher.hexdigest()
+
+
+def _hash_worktree_path(hasher, root: Path, relative_text: str) -> None:
+    full_path = root / relative_text
+    hasher.update(b"worktree-path\0")
+    hasher.update(relative_text.encode("utf-8", "surrogateescape"))
+    hasher.update(b"\0")
+    try:
+        stat_result = full_path.lstat()
+    except OSError:
+        hasher.update(b"deleted\0")
+        return
+    hasher.update(str(stat_result.st_mode).encode("ascii"))
+    hasher.update(b"\0")
+    if stat.S_ISLNK(stat_result.st_mode):
+        hasher.update(b"symlink\0")
+        try:
+            hasher.update(os.readlink(full_path).encode("utf-8", "surrogateescape"))
+        except OSError:
+            hasher.update(b"<unreadable-symlink>")
+    elif stat.S_ISREG(stat_result.st_mode):
+        hasher.update(b"file\0")
+        _hash_regular_file(hasher, full_path)
+    elif stat.S_ISDIR(stat_result.st_mode):
+        hasher.update(b"dir\0")
+        _hash_directory_contents(hasher, full_path)
+    hasher.update(b"\0")
+
+
+def git_validation_work_diff_hash(
+    path: Path, *, base_sha: str, exclude_paths: tuple[str, ...] = ()
+) -> str:
+    """Hash active work content for validation/review freshness.
+
+    The digest is path/content based instead of diff-output based so an unchanged
+    validated file remains fresh after moving from unstaged/staged/untracked to
+    committed representation.
+    """
+    if not base_sha.strip():
+        return git_validation_diff_hash(path, exclude_paths)
+    pathspec = ["--", ".", *git_pathspec_excludes(exclude_paths)]
+    diff_result = subprocess.run(
+        ["git", "diff", "--name-only", base_sha, *pathspec],
+        cwd=path,
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+    if diff_result.returncode != 0:
+        return ""
+    untracked_result = subprocess.run(
+        ["git", "ls-files", "--others", "--exclude-standard", *pathspec],
+        cwd=path,
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+    if untracked_result.returncode != 0:
+        return ""
+    changed_paths = {
+        line.strip().replace("\\", "/")
+        for line in (
+            *diff_result.stdout.splitlines(),
+            *untracked_result.stdout.splitlines(),
+        )
+        if line.strip()
+    }
+    hasher = hashlib.sha256()
+    hasher.update(b"validation-worktree\0")
+    for relative_text in sorted(changed_paths):
+        _hash_worktree_path(hasher, path, relative_text)
+    return "sha256:" + hasher.hexdigest()
+
+
 def git_work_diff_hash(
     path: Path, *, base_sha: str, exclude_paths: tuple[str, ...] = ()
 ) -> str:

@@ -97,6 +97,7 @@ SYNC_IGNORED_EVENT_TYPES = frozenset(
     {"sync_checkpoint", "view_materialized", "handoff_generated"}
 )
 COMMON_AGENT_LOCAL_STATE_PATHS = (".pi", ".claude/worktrees")
+VALIDATION_FRESHNESS_EXCLUDES = (".ai/hk",)
 StateMode = Literal["local", "external"]
 NoteKind = Literal[
     "context", "plan", "background", "learning", "decision", "gap", "spec-impact"
@@ -360,6 +361,25 @@ def git_work_diff_hash(
 ) -> str:
     return git_snapshot.git_work_diff_hash(
         path, base_sha=base_sha, exclude_paths=exclude_paths
+    )
+
+
+def validation_diff_hash(
+    path: Path, *, base_sha: str = "", extra_excludes: tuple[str, ...] = ()
+) -> str:
+    return git_snapshot.git_validation_work_diff_hash(
+        path,
+        base_sha=base_sha,
+        exclude_paths=(*VALIDATION_FRESHNESS_EXCLUDES, *extra_excludes),
+    )
+
+
+def latest_sync_excluded_paths(events: list[EventRecord]) -> tuple[str, ...]:
+    sync_events = [event for event in events if event.type == "sync_checkpoint"]
+    if not sync_events:
+        return ()
+    return normalize_exclude_paths(
+        string_list_from_event_data(sync_events[-1].data, "excluded_paths")
     )
 
 
@@ -807,6 +827,10 @@ def capture_command(
         redaction="raw" if raw_log else "builtin",
         why=why,
         check_name=clean_check_name,
+        diff_hash=validation_diff_hash(
+            state.target_root, base_sha=work_start_git_sha(read_events(work_dir))
+        ),
+        changed_paths=changed_paths_for_work(state.target_root, work_dir),
     )
     with (work_dir / "evidence.jsonl").open("a") as file:
         file.write(json.dumps(asdict(record), sort_keys=True) + "\n")
@@ -1198,6 +1222,10 @@ def add_review(
         "rubrics": clean_rubrics,
         "summary": summary.strip(),
         "disposition": disposition.strip() or "accepted",
+        "diff_hash": validation_diff_hash(
+            state.target_root, base_sha=work_start_git_sha(read_events(work_dir))
+        ),
+        "changed_paths": changed_paths_for_work(state.target_root, work_dir),
     }
     if clean_review_name:
         record_data["review_name"] = clean_review_name
@@ -1250,6 +1278,16 @@ def add_dangerous_skip(
                 "git_sha": git_sha(state.target_root),
                 "diff_hash": git_diff_hash(state.target_root),
                 "event_seq": max((event.seq for event in events), default=0) + 1,
+            }
+        )
+    elif check in {"validation", "review"}:
+        data.update(
+            {
+                "git_sha": git_sha(state.target_root),
+                "diff_hash": validation_diff_hash(
+                    state.target_root,
+                    base_sha=work_start_git_sha(read_events(work_dir)),
+                ),
             }
         )
     record = append_event(work_dir, "dangerous_skip_added", data)
@@ -1310,12 +1348,34 @@ def ready_for_work(
     events = read_events(work_dir)
     evidence = read_evidence(work_dir)
     required_checks, required_reviews = required_profile_items_for_work(state, work_dir)
+    sync_status = sync_status_for(state)
+    if sync_status == "sync-dangerously-skipped":
+        current_diff_hashes = (
+            validation_diff_hash(
+                state.target_root,
+                base_sha=work_start_git_sha(events),
+                extra_excludes=COMMON_AGENT_LOCAL_STATE_PATHS,
+            ),
+        )
+    else:
+        sync_excludes = latest_sync_excluded_paths(events)
+        current_diff_hashes = (
+            validation_diff_hash(
+                state.target_root,
+                base_sha=work_start_git_sha(events),
+                extra_excludes=sync_excludes,
+            ),
+            validation_diff_hash(
+                state.target_root, base_sha=work_start_git_sha(events)
+            ),
+        )
     return ready_for_events(
         work_id=work_dir.name,
         events=events,
         evidence=evidence,
-        sync_status=sync_status_for(state),
+        sync_status=sync_status,
         agent_local_warning=agent_local_state_warning(state.target_root),
+        current_diff_hashes=current_diff_hashes,
         check_handoff=check_handoff,
         handoff_check=lambda: render_handoff(work_dir, state),
         required_profile_checks=required_checks,

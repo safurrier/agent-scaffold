@@ -115,6 +115,77 @@ def test_agent_sim_happy_path_reaches_ready_through_public_cli(tmp_path: Path) -
     assert "## Review" in handoff.stdout
 
 
+def test_agent_sim_validation_and_review_go_stale_after_diff_changes(
+    tmp_path: Path,
+) -> None:
+    target = git_init(tmp_path / "repo")
+    _json(
+        run_hk(
+            "start",
+            "agent-stale-review",
+            "--plan",
+            "Exercise validation/review freshness.",
+            "--target",
+            str(target),
+            "--json",
+        )
+    )
+    (target / "README.md").write_text("# v1\n")
+    _json(
+        run_hk(
+            "decide",
+            "README fixture has no spec impact.",
+            "--spec-impact",
+            "not-needed",
+            "--target",
+            str(target),
+            "--json",
+        )
+    )
+    _json(
+        run_hk(
+            "validate",
+            "--why",
+            "Validation covers v1.",
+            "--target",
+            str(target),
+            "--json",
+            "--",
+            "python3",
+            "-c",
+            "print('ok')",
+        )
+    )
+    _json(
+        run_hk(
+            "review",
+            "add",
+            "--backend",
+            "subagent",
+            "--reviewer",
+            "reviewer-fresh-context",
+            "--rubric",
+            "core-quality",
+            "--summary",
+            "Review covers v1.",
+            "--target",
+            str(target),
+            "--json",
+        )
+    )
+
+    (target / "README.md").write_text("# v2\n")
+    _json(run_hk("sync", "--target", str(target), "--json"))
+    ready = run_hk("ready", "--target", str(target), "--json")
+
+    assert ready.returncode == 1
+    payload = json.loads(ready.stdout)
+    assert payload["ready"] is False
+    messages = {check["id"]: check["message"] for check in payload["checks"]}
+    assert "validation evidence is stale" in messages["validation"]
+    assert "accepted review is stale" in messages["review"]
+
+
 def test_agent_sim_local_state_churn_stales_sync_exclusion(tmp_path: Path) -> None:
     target = git_init(tmp_path / "repo")
     _json(

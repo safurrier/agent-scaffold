@@ -39,3 +39,5 @@ class EvidenceRecord:
     redaction: str
     why: str = ""
     check_name: str = ""
+    diff_hash: str = ""
+    changed_paths: list[str] | None = None
