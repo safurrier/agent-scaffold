@@ -7,7 +7,7 @@ import pytest
 
 from tests.support.hk2_repo import git_init, run_hk
 
-pytestmark = pytest.mark.e2e
+pytestmark = pytest.mark.cli
 
 
 def test_hk2_cli_lifecycle_happy_path(tmp_path: Path) -> None:

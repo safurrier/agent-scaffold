@@ -31,7 +31,7 @@ from harness_toolkit.kit.local import (
     sync_checkpoint,
 )
 
-pytestmark = pytest.mark.unit
+pytestmark = pytest.mark.integration
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -224,6 +224,7 @@ def test_artifact_attach_requires_active_work_and_valid_file(tmp_path: Path) -> 
         attach_artifact(target, source_path=target / "README.md", kind="Agent Session")
 
 
+@pytest.mark.cli
 def test_cli_artifact_attach_json_is_parseable(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -353,6 +354,7 @@ def test_handoff_dir_export_writes_generated_package_and_checks_freshness(
         export_handoff_dir(target, output_path=output, check=True)
 
 
+@pytest.mark.cli
 def test_cli_export_rejects_check_without_handoff_dir_format(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -375,6 +377,7 @@ def test_cli_export_rejects_check_without_handoff_dir_format(tmp_path: Path) -> 
     assert "require --format handoff-dir" in result.stderr
 
 
+@pytest.mark.cli
 def test_cli_handoff_dir_export_json_is_parseable(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -754,6 +757,7 @@ def test_lifecycle_ready_requires_plan_decision_validation_review_and_sync(
     assert "manual_external / Alex" in handoff_result.content
 
 
+@pytest.mark.cli
 def test_cli_evidence_bare_command_gives_list_hint() -> None:
     result = _run_hk("evidence", "--target", ".")
 
@@ -761,6 +765,7 @@ def test_cli_evidence_bare_command_gives_list_hint() -> None:
     assert "hk evidence list --target . --json" in result.stderr
 
 
+@pytest.mark.cli
 def test_cli_root_help_removes_legacy_commands() -> None:
     root = _run_hk("--help")
     legacy = _run_hk("legacy", "sync-check", "--help")
@@ -774,6 +779,7 @@ def test_cli_root_help_removes_legacy_commands() -> None:
     assert "usage: hk attach" not in attach.stdout.lower()
 
 
+@pytest.mark.cli
 def test_cli_review_help_warns_self_review_does_not_count() -> None:
     result = _run_hk("review", "add", "--help")
 
@@ -1261,6 +1267,7 @@ def test_spec_init_uses_committed_spec_without_creating_unreachable_local_draft(
     ).exists()
 
 
+@pytest.mark.cli
 def test_cli_spec_outline_json_is_parseable(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1277,6 +1284,7 @@ def test_cli_spec_outline_json_is_parseable(tmp_path: Path) -> None:
     assert "# Local Project Specification" in payload["headings"]
 
 
+@pytest.mark.cli
 def test_cli_spec_promote_dry_run_json_is_parseable(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1293,6 +1301,7 @@ def test_cli_spec_promote_dry_run_json_is_parseable(tmp_path: Path) -> None:
     assert "Would write local spec" in payload["preview"]
 
 
+@pytest.mark.cli
 def test_cli_handoff_rejects_invalid_format(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1307,6 +1316,7 @@ def test_cli_handoff_rejects_invalid_format(tmp_path: Path) -> None:
     assert result.returncode != 0
 
 
+@pytest.mark.cli
 def test_cli_handoff_pr_format_renders_pr_body(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1325,6 +1335,7 @@ def test_cli_handoff_pr_format_renders_pr_body(tmp_path: Path) -> None:
     assert "# Handoff" not in result.stdout
 
 
+@pytest.mark.cli
 def test_cli_handoff_pr_format_discloses_dangerous_skips(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1359,6 +1370,7 @@ def test_cli_handoff_pr_format_discloses_dangerous_skips(tmp_path: Path) -> None
     assert "Human review before merge." in result.stdout
 
 
+@pytest.mark.cli
 def test_cli_dangerously_skip_requires_mitigation(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1382,6 +1394,7 @@ def test_cli_dangerously_skip_requires_mitigation(tmp_path: Path) -> None:
     assert "--mitigation" in result.stderr
 
 
+@pytest.mark.cli
 def test_cli_summary_renders_human_readiness_digest(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1418,6 +1431,7 @@ def test_cli_summary_renders_human_readiness_digest(tmp_path: Path) -> None:
     assert "Human review before merge." in result.stdout
 
 
+@pytest.mark.cli
 def test_cli_handoff_format_json_is_not_a_file_format(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1433,6 +1447,7 @@ def test_cli_handoff_format_json_is_not_a_file_format(tmp_path: Path) -> None:
     assert result.returncode != 0
 
 
+@pytest.mark.cli
 def test_cli_note_from_file_records_plan_note(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1465,6 +1480,7 @@ def test_cli_note_from_file_records_plan_note(tmp_path: Path) -> None:
     assert "Translate external planning" in handoff_result.stdout
 
 
+@pytest.mark.cli
 def test_cli_note_rejects_text_and_from_file(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1530,6 +1546,7 @@ def test_ready_rejects_failed_validation_and_rejected_review(tmp_path: Path) -> 
     )
 
 
+@pytest.mark.cli
 def test_cli_start_plan_and_context_seed_lifecycle_notes(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1556,6 +1573,7 @@ def test_cli_start_plan_and_context_seed_lifecycle_notes(tmp_path: Path) -> None
     assert not any(action.startswith("plan:") for action in payload["next_actions"])
 
 
+@pytest.mark.cli
 def test_cli_plan_without_active_work_points_to_start(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1567,6 +1585,7 @@ def test_cli_plan_without_active_work_points_to_start(tmp_path: Path) -> None:
     assert "hk legacy" not in result.stderr
 
 
+@pytest.mark.cli
 def test_cli_context_from_file_avoids_shell_fragile_text(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1589,6 +1608,7 @@ def test_cli_context_from_file_avoids_shell_fragile_text(tmp_path: Path) -> None
     assert "uv sync --extra dev" in handoff_result.stdout
 
 
+@pytest.mark.cli
 def test_cli_decide_rejects_unknown_spec_impact(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1611,6 +1631,7 @@ def test_cli_decide_rejects_unknown_spec_impact(tmp_path: Path) -> None:
     assert result.returncode != 0
 
 
+@pytest.mark.cli
 def test_cli_decide_records_structured_spec_impact_refs(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1642,6 +1663,7 @@ def test_cli_decide_records_structured_spec_impact_refs(tmp_path: Path) -> None:
     assert "docs/harness-kit-lifecycle-design.md" in handoff_result.stdout
 
 
+@pytest.mark.cli
 def test_cli_review_prompt_prints_fresh_context_prompt(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1673,6 +1695,7 @@ def test_cli_review_prompt_prints_fresh_context_prompt(tmp_path: Path) -> None:
     assert "hk review add --backend subagent" in result.stdout
 
 
+@pytest.mark.cli
 def test_cli_lifecycle_commands_record_handoff_and_ready(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1739,6 +1762,7 @@ def test_cli_lifecycle_commands_record_handoff_and_ready(tmp_path: Path) -> None
     assert "Smoke test validates CLI evidence" in handoff_result.stdout
 
 
+@pytest.mark.cli
 def test_cli_validate_requires_why(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1757,6 +1781,7 @@ def test_cli_validate_requires_why(tmp_path: Path) -> None:
     assert result.returncode != 0
 
 
+@pytest.mark.cli
 def test_cli_capture_json_stdout_is_parseable(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1784,6 +1809,7 @@ def test_cli_capture_json_stdout_is_parseable(tmp_path: Path) -> None:
     assert "hello from command" in result.stderr
 
 
+@pytest.mark.cli
 def test_cli_capture_preserves_wrapped_exit_code(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)

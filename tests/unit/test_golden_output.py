@@ -32,7 +32,7 @@ from tests._docs_helpers import (
 )
 from tests._support import COPY_IGNORE, SCAFFOLD_ROOT
 
-pytestmark = pytest.mark.unit
+pytestmark = pytest.mark.integration
 
 # Fixed test constants — same across all golden tests
 _NAME = "goldenapp"

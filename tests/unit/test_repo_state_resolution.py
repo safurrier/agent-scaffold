@@ -8,7 +8,7 @@ from harness_toolkit.kit.local import resolve_local_state
 from harness_toolkit.kit.state.repo import git_root, repo_key, scope_key
 from tests.support.hk2_repo import git_init
 
-pytestmark = pytest.mark.unit
+pytestmark = pytest.mark.integration
 
 
 def test_shared_repo_identity_matches_hk2_state(tmp_path: Path) -> None:

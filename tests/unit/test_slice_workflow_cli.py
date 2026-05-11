@@ -22,6 +22,8 @@ sys.path.insert(0, str(SKILL_CLI_SRC))
 
 from slice_workflow_cli.cli import main  # noqa: E402
 
+pytestmark = pytest.mark.cli
+
 
 def _write_plan(root: Path, *, status: str = "complete") -> Path:
     plan = root / ".ai" / "plans" / "2026-04-30-120000-cli-demo"

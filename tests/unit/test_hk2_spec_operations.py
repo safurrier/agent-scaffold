@@ -13,7 +13,7 @@ from harness_toolkit.kit.specs.operations import (
 )
 from tests.support.hk2_repo import git_init
 
-pytestmark = pytest.mark.unit
+pytestmark = pytest.mark.integration
 
 
 def test_spec_operations_create_status_outline_and_promote_preview(
