@@ -13,7 +13,6 @@ import os
 import re
 import shlex
 import shutil
-import subprocess
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -23,6 +22,7 @@ from harness_toolkit.kit.capture.process import run_process_to_transcript
 from harness_toolkit.kit.capture.redaction import redact_argv, redact_text
 from harness_toolkit.kit.capture.transcripts import transcript_path
 from harness_toolkit.kit.git import snapshot as git_snapshot
+from harness_toolkit.kit.git.client import DEFAULT_GIT_CLIENT
 from harness_toolkit.kit.handoff.export import (
     HandoffExportError,
     prepare_generated_directory,
@@ -395,17 +395,7 @@ def latest_sync_excluded_paths(events: list[EventRecord]) -> tuple[str, ...]:
 
 
 def local_exclude_file(path: Path) -> Path | None:
-    result = subprocess.run(
-        ["git", "rev-parse", "--git-path", "info/exclude"],
-        cwd=path,
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    if result.returncode != 0:
-        return None
-    raw = Path(result.stdout.strip())
-    return raw if raw.is_absolute() else path / raw
+    return DEFAULT_GIT_CLIENT.git_path(path, "info/exclude")
 
 
 def ensure_local_exclude(state: LocalState) -> bool:

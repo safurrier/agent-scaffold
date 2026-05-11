@@ -267,7 +267,12 @@ Profile flags are discovery inputs, not lifecycle state. Use `--profile` and
 flags to lifecycle commands such as `hk start`, `hk validate`, `hk status`,
 `hk ready`, or `hk handoff`.
 
-Resolution uses explicit longest path-prefix matching. If a profile has multiple
+Resolution uses explicit longest path-prefix matching first. If no configured
+path matches and the target is in a Git linked worktree, HK compares Git common
+directories and projects configured repo/module target bindings into the linked
+worktree before applying the same longest-prefix rule. This lets ephemeral agent
+worktrees inherit canonical repo profiles without adding temporary target entries.
+Separate clones are not auto-matched by remote URL. If a profile has multiple
 review entries, the agent should dispatch the applicable ones independently/in
 parallel when the harness supports it, then record accepted reviews with
 `hk review add --review NAME ...`.
@@ -295,7 +300,7 @@ persistent sync ignore config are deferred.
 | `hk spec` | Manage optional local/external spec drafts |
 | `hk instructions` | Print the compact user-level `AGENTS.md` snippet; use `--scope repo` for a fuller profile-specific repo snippet |
 | `hk profile list` | List built-in/custom/user-config profile contracts and model-directed selection guidance |
-| `hk profile resolve` | Resolve the configured profile for a target using explicit user config bindings |
+| `hk profile resolve` | Resolve the configured profile for a target using explicit user config bindings, including Git linked-worktree projection |
 | `hk profile show <name>` | Show one profile's instructions, checks, and review guidance |
 | `hk profile create <name>` | Create an editable custom profile TOML template |
 | `hk checks [--profile <name>] [--changed]` | Show named verification loops and review guidance without executing them; `--changed` adds path-rule suggestions and required items |

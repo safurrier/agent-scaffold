@@ -125,7 +125,10 @@ a decision/spec reflection, dispatch review, reconcile sync state, or use a
 scary explicit bypass. Agents should not memorize a long command checklist.
 User-level `harness.toml` can bind known repo/module paths to inline profiles or
 to standalone TOML profiles loaded from `profiles_dir`, so agents do not need
-validation/review conventions re-explained every session. Profiles can suggest
+validation/review conventions re-explained every session. If an agent works in a
+Git linked worktree, HK projects configured repo/module target bindings from the
+canonical worktree into the linked worktree before falling back to the default
+profile. Separate clones are not auto-matched by remote URL. Profiles can suggest
 checks/reviews for changed paths and mark specific path matches as required while
 still leaving execution and reviewer dispatch to the agent. Path rules accept
 both repo-root-relative changed paths and target-relative paths for scoped module

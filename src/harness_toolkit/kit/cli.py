@@ -402,8 +402,10 @@ def profile_resolve(
 ) -> None:
     """Resolve the configured profile for a target path.
 
-    Resolution is explicit, not heuristic: user config target bindings are matched
-    by longest path prefix, then default_profile/generic fallback applies.
+    Resolution first matches user config target bindings by longest path prefix.
+    If no literal path matches, HK maps configured targets across Git linked
+    worktrees from the same worktree family and retries the same longest-prefix
+    selection. Separate clones are not auto-matched by remote URL.
     Configured profile directories from harness.toml load automatically;
     --profiles-dir is only for ad hoc catalogs.
     """
@@ -421,6 +423,10 @@ def profile_resolve(
     print(f"Target: {resolution.target}")
     if resolution.matched_target:
         print(f"Matched target: {resolution.matched_target}")
+    if resolution.worktree_projected_target:
+        print(f"Worktree projected target: {resolution.worktree_projected_target}")
+    if resolution.worktree_git_common_dir:
+        print(f"Worktree common git dir: {resolution.worktree_git_common_dir}")
     if resolution.config_path:
         print(f"Config: {resolution.config_path}")
 

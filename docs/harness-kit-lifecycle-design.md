@@ -291,15 +291,21 @@ hk profile create <name> ...
 ```
 
 Do not add heuristic command mining or auto-selected profile recommendations.
-Explicit user config may resolve a target path to a profile by longest path prefix,
-but HK should not score or infer commands from repo files. `hk brief` may report
-facts such as `.mise.toml`, `scripts/check`, and CI files, but must not claim a
-recommended command or confidence score.
+Explicit user config resolves a target path to a profile by longest path prefix.
+If no literal path matches, HK may use Git worktree metadata to project configured
+target bindings across linked worktrees that share the same common Git directory;
+this is path binding reuse, not command inference. Separate clones with the same
+remote URL should not silently inherit a profile. `hk brief` may report facts such
+as `.mise.toml`, `scripts/check`, and CI files, but must not claim a recommended
+command or confidence score.
 
 Profiles and dumb repo scripts fit into Harness Kit as guidance and stable native
-command surfaces for `hk validate`, not as a task-runner layer. A user-level
-`harness.toml` can bind known repo/module paths to inline profiles or to
-standalone profiles loaded from `profiles_dir`:
+command surfaces for `hk validate`, not as a task-runner layer. Internal trusted
+Git queries use the small `kit.git.client.GitClient` seam, while arbitrary
+user/agent command evidence remains isolated in `kit.capture.process`; do not
+merge these two subprocess domains. A user-level `harness.toml` can bind known
+repo/module paths to inline profiles or to standalone profiles loaded from
+`profiles_dir`:
 
 ```toml
 [[targets]]
