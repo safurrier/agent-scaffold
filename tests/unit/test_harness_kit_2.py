@@ -265,6 +265,73 @@ def test_cli_artifact_attach_json_is_parseable(tmp_path: Path) -> None:
     assert Path(payload["artifact_path"]).exists()
 
 
+def test_handoff_dir_export_rejects_symlinked_output_parent(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "export-parent-symlink")
+    add_note(target, kind="plan", text="Export safely.")
+    outside = tmp_path / "outside-parent"
+    outside.mkdir()
+    hk_parent = target / ".ai" / "hk"
+    hk_parent.parent.mkdir(parents=True)
+    hk_parent.symlink_to(outside, target_is_directory=True)
+
+    with pytest.raises(LocalWorkflowError, match="symlinked parent"):
+        export_handoff_dir(target, output_path=hk_parent / "export-parent-symlink")
+    with pytest.raises(LocalWorkflowError, match="symlinked parent"):
+        export_handoff_dir(
+            target, output_path=hk_parent / "export-parent-symlink", check=True
+        )
+
+    assert not (outside / "export-parent-symlink" / "README.md").exists()
+
+
+def test_handoff_dir_export_does_not_follow_output_directory_symlink(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "export-dir-symlink")
+    add_note(target, kind="plan", text="Export safely.")
+    output = target / ".ai" / "hk" / "export-dir-symlink"
+    outside = tmp_path / "outside-export"
+    outside.mkdir()
+    output.parent.mkdir(parents=True)
+    output.symlink_to(outside, target_is_directory=True)
+
+    export_handoff_dir(target, output_path=output)
+
+    assert not output.is_symlink()
+    assert not (outside / "README.md").exists()
+    assert "HK export" in (output / "README.md").read_text()
+
+
+def test_handoff_dir_export_does_not_follow_generated_file_symlink(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "export-symlink")
+    add_note(target, kind="plan", text="Export safely.")
+    output = target / ".ai" / "hk" / "export-symlink"
+    export_handoff_dir(target, output_path=output)
+    outside = tmp_path / "outside.md"
+    outside.write_text("do not overwrite\n")
+    (output / "README.md").unlink()
+    (output / "README.md").symlink_to(outside)
+
+    export_handoff_dir(target, output_path=output)
+
+    assert outside.read_text() == "do not overwrite\n"
+    assert not (output / "README.md").is_symlink()
+    assert "HK export" in (output / "README.md").read_text()
+
+
 def test_handoff_dir_export_writes_generated_package_and_checks_freshness(
     tmp_path: Path,
 ) -> None:

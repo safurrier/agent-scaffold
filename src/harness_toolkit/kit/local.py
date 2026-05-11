@@ -23,6 +23,12 @@ from harness_toolkit.kit.capture.process import run_process_to_transcript
 from harness_toolkit.kit.capture.redaction import redact_argv, redact_text
 from harness_toolkit.kit.capture.transcripts import transcript_path
 from harness_toolkit.kit.git import snapshot as git_snapshot
+from harness_toolkit.kit.handoff.export import (
+    HandoffExportError,
+    prepare_generated_directory,
+    reject_symlink_ancestors,
+    safe_write_generated_file,
+)
 from harness_toolkit.kit.ledger.events import append_lifecycle_event
 from harness_toolkit.kit.ledger.models import EventRecord, EvidenceRecord
 from harness_toolkit.kit.ledger.store import (
@@ -1722,6 +1728,10 @@ def export_handoff_dir(
     destination = output_path or (state.target_root / ".ai" / "hk" / work_dir.name)
     if not destination.is_absolute():
         destination = state.target_root / destination
+    try:
+        reject_symlink_ancestors(destination)
+    except HandoffExportError as e:
+        raise LocalWorkflowError(str(e)) from e
     events = read_events(work_dir)
     evidence = read_evidence(work_dir)
     readiness = ready_for_work(work_dir, state, check_handoff=False)
@@ -1800,11 +1810,10 @@ def export_handoff_dir(
             message="HK export is fresh",
         )
 
-    destination.mkdir(parents=True, exist_ok=True)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    prepare_generated_directory(destination)
     artifacts_dir = destination / "artifacts"
-    if artifacts_dir.is_symlink():
-        artifacts_dir.unlink()
-    artifacts_dir.mkdir(exist_ok=True)
+    prepare_generated_directory(artifacts_dir)
     output_relative = _relative_to_root(destination, state.target_root)
     handoff_content = _sanitize_export_content(
         render_handoff(work_dir, state, format="markdown"), state
@@ -1831,8 +1840,10 @@ def export_handoff_dir(
     _remove_obsolete_export_files(destination, set(files))
     for relative, content in files.items():
         path = destination / relative
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content)
+        try:
+            safe_write_generated_file(path, content)
+        except HandoffExportError as e:
+            raise LocalWorkflowError(str(e)) from e
     return ExportResult(
         work_id=work_dir.name,
         path=str(destination),
