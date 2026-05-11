@@ -15,8 +15,8 @@ Historical hand-authored slice plans live under `.ai/plans/`; new Harness Toolki
 
 ## Summary
 - Work: `2026-05-10-152248-harness-kit-refactor-plan`
-- Branch: `main`
-- Git SHA: `410de65`
+- Branch: `hk-safe-refactor`
+- Git SHA: `dc9b13c`
 - Dirty: `true`
 - Sync status: `synced`
 
@@ -1366,24 +1366,29 @@ For each implementation slice:
 - `mise run check`: pass (exit 0) — validates: Full quality gate passes after narrowing CLI marker coverage to actual public CLI tests. — `.harness-local/harness-kit/root/work/2026-05-10-152248-harness-kit-refactor-plan/artifacts/ev_20260510_161933_573135.transcript.log`
 - `mise run check`: pass (exit 0) — validates: Required profile fast gate passes for Phase 0 marker taxonomy and agent-simulation changes. — `.harness-local/harness-kit/root/work/2026-05-10-152248-harness-kit-refactor-plan/artifacts/ev_20260510_162736_216245.transcript.log`
 - `mise run sync-check`: pass (exit 0) — validates: Required HK export sync-check passes for generated handoff package. — `.harness-local/harness-kit/root/work/2026-05-10-152248-harness-kit-refactor-plan/artifacts/ev_20260510_163130_512632.transcript.log`
+- `mise run check`: pass (exit 0) — validates: Required profile fast gate passes after Phase 1 Git/sync extraction and sync exclusion revalidation. — `.harness-local/harness-kit/root/work/2026-05-10-152248-harness-kit-refactor-plan/artifacts/ev_20260510_174701_383961.transcript.log`
+- `mise run sync-check`: pass (exit 0) — validates: Required HK export sync-check passes before Phase 1 handoff export refresh. — `.harness-local/harness-kit/root/work/2026-05-10-152248-harness-kit-refactor-plan/artifacts/ev_20260510_175103_883609.transcript.log`
 
 ## Readiness
-- Status: `ready-with-dangerous-skips`
+- Status: `not-ready`
 - context: info — context recorded
 - plan: pass — plan recorded
 - decision: pass — decision and spec reflection recorded
 - validation: pass — validation evidence with rationale recorded
 - review: pass — external-enough review recorded
-- profile-check:fast-gate: pass — required profile check recorded: fast-gate (matched AGENTS.md, pyproject.toml, tests/e2e/test_hk2_cli_parity.py, +16 more)
+- profile-check:hk-dev-dogfood: fail — missing required profile check `hk-dev-dogfood` (matched src/harness_toolkit/kit/local.py, src/harness_toolkit/kit/git/__init__.py, src/harness_toolkit/kit/git/snapshot.py, +2 more); run `hk validate --check hk-dev-dogfood --why 'Fast gate passes' -- mise run check` using the matching native command, or `hk dangerously-skip validation --label hk-dev-dogfood --reason ... --mitigation ...`
+- profile-check:fast-gate: pass — required profile check recorded: fast-gate (matched .ai/hk/2026-05-10-152248-harness-kit-refactor-plan/README.md, .ai/hk/2026-05-10-152248-harness-kit-refactor-plan/artifacts/README.md, .ai/hk/2026-05-10-152248-harness-kit-refactor-plan/meta.json, +21 more)
 - profile-check:handoff-sync-check: pass — required profile check recorded: handoff-sync-check (matched .ai/hk/2026-05-10-152248-harness-kit-refactor-plan/README.md, .ai/hk/2026-05-10-152248-harness-kit-refactor-plan/artifacts/README.md, .ai/hk/2026-05-10-152248-harness-kit-refactor-plan/meta.json)
 - profile-check:hk-readiness: pass — validation dangerously skipped: hk-readiness; reason: Current repo profile has a circular hk-readiness required check for any change: hk ready cannot pass until hk-readiness evidence exists, but the evidence command itself is hk ready.; mitigation: Recorded required fast-gate and handoff-sync-check evidence, recorded fresh-context review, and added plan follow-up to update repo HK profile/check matchers after the refactor.
-- profile-review:codex-review: pass — required profile review recorded: codex-review (matched AGENTS.md, tests/e2e/test_hk2_cli_parity.py, tests/unit/test_cli.py, +12 more)
+- profile-review:codex-review: pass — required profile review recorded: codex-review (matched AGENTS.md, src/harness_toolkit/kit/local.py, tests/agent_sim/test_hk_agent_sim.py, +17 more)
+- profile-review:hk-lifecycle-review: fail — missing required profile review `hk-lifecycle-review` (matched src/harness_toolkit/kit/local.py, src/harness_toolkit/kit/git/__init__.py, src/harness_toolkit/kit/git/snapshot.py, +2 more); run `hk review prompt hk-lifecycle-review` and record with `hk review add --review hk-lifecycle-review ...`, or `hk dangerously-skip review --label hk-lifecycle-review --reason ... --mitigation ...`
 - sync: pass — sync checkpoint fresh
 
 ## Review
 - subagent / reviewer-fresh-context (plan-quality): Fresh-context reviewer found the plan direction feasible but requested changes before implementation: move freshness earlier, specify timeout/truncation contract, sequence dogfood before protected phases, and add legacy fixture coverage. Revised plan incorporates these points. [accepted]
 - subagent / reviewer-fresh-context (phase0-quality): Final review found no blockers. Prior CLI marker over-broad issue was fixed by keeping test_harness_kit_2 as integration by default and marking individual public CLI tests with pytest.mark.cli; agent_sim marker and test are registered and focused collect/test passed. [accepted]
 - subagent / reviewer-fresh-context [codex-review] (correctness-regression-test-adequacy): Fresh-context review found the only blocker was over-broad CLI marker coverage; this was fixed by removing file-wide cli from mixed test_harness_kit_2.py and marking individual public CLI tests. Follow-up focused collect/test passed with no blockers. [accepted]
+- subagent / reviewer-fresh-context [codex-review] (correctness-regression-test-adequacy): Phase 1 review found no blockers after fail-closed metadata fix. Git snapshot and sync freshness extraction is coherent; sync checks and sync_status_for revalidate excluded metadata; tests cover file content churn, directory additions, nested git directories, missing/mismatched metadata, tracked descendants, and public CLI agent_sim local-state churn. [accepted]
 
 ## Dangerous skips
 - validation: hk-readiness — reason: Current repo profile has a circular hk-readiness required check for any change: hk ready cannot pass until hk-readiness evidence exists, but the evidence command itself is hk ready.; mitigation: Recorded required fast-gate and handoff-sync-check evidence, recorded fresh-context review, and added plan follow-up to update repo HK profile/check matchers after the refactor.

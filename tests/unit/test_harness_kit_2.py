@@ -1047,6 +1047,133 @@ def test_sync_exclude_rejects_source_directory_with_tracked_descendants(
         )
 
 
+def test_sync_check_revalidates_excluded_untracked_file_content(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "exclude-file-content-change")
+    scratch = target / ".pi" / "session.json"
+    scratch.parent.mkdir()
+    scratch.write_text("{}\n")
+    sync_checkpoint(
+        target,
+        exclude_paths=(".pi/session.json",),
+        reason="Only local agent state.",
+    )
+
+    scratch.write_text('{"changed": true}\n')
+    checked = sync_checkpoint(target, check=True)
+
+    assert checked.synced is False
+    assert "excluded path changed" in checked.message
+
+
+def test_sync_check_revalidates_excluded_untracked_directory_new_file(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "exclude-dir-new-file")
+    scratch_dir = target / ".pi"
+    scratch_dir.mkdir()
+    (scratch_dir / "session.json").write_text("{}\n")
+    sync_checkpoint(
+        target,
+        exclude_paths=(".pi",),
+        reason="Only local agent state.",
+    )
+
+    (scratch_dir / "later.json").write_text("{}\n")
+    checked = sync_checkpoint(target, check=True)
+
+    assert checked.synced is False
+    assert "excluded path changed" in checked.message
+
+
+def test_sync_check_revalidates_excluded_untracked_nested_git_directory(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "exclude-nested-git-dir")
+    nested = target / ".pi" / "nested"
+    nested.mkdir(parents=True)
+    subprocess.run(["git", "init"], cwd=nested, check=True, capture_output=True)
+    (nested / "state.txt").write_text("v1\n")
+    sync_checkpoint(
+        target,
+        exclude_paths=(".pi",),
+        reason="Only local agent state.",
+    )
+
+    (nested / "state.txt").write_text("v2\n")
+    checked = sync_checkpoint(target, check=True)
+
+    assert checked.synced is False
+    assert "excluded path changed" in checked.message
+
+
+@pytest.mark.parametrize(
+    "replacement_metadata",
+    (
+        [],
+        [{"path": ".other", "state_hash": "sha256:missing"}],
+    ),
+)
+def test_sync_check_fails_closed_when_exclude_metadata_is_incomplete_or_mismatched(
+    tmp_path: Path, replacement_metadata: list[dict[str, str]]
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    work = create_work(target, "exclude-bad-metadata")
+    (target / ".pi").mkdir()
+    (target / ".pi" / "session.json").write_text("{}\n")
+    sync_checkpoint(
+        target,
+        exclude_paths=(".pi",),
+        reason="Only local agent state.",
+    )
+    events_path = Path(work.work_dir) / "events.jsonl"
+    rows = [json.loads(line) for line in events_path.read_text().splitlines()]
+    rows[-1]["data"]["excluded"] = replacement_metadata
+    events_path.write_text("".join(json.dumps(row) + "\n" for row in rows))
+
+    checked = sync_checkpoint(target, check=True)
+
+    assert checked.synced is False
+    assert "excluded path changed" in checked.message
+
+
+def test_sync_check_fails_closed_when_exclude_metadata_is_missing(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    work = create_work(target, "exclude-missing-metadata")
+    (target / ".pi").mkdir()
+    (target / ".pi" / "session.json").write_text("{}\n")
+    sync_checkpoint(
+        target,
+        exclude_paths=(".pi",),
+        reason="Only local agent state.",
+    )
+    events_path = Path(work.work_dir) / "events.jsonl"
+    rows = [json.loads(line) for line in events_path.read_text().splitlines()]
+    rows[-1]["data"].pop("excluded")
+    events_path.write_text("".join(json.dumps(row) + "\n" for row in rows))
+
+    checked = sync_checkpoint(target, check=True)
+
+    assert checked.synced is False
+    assert "excluded path changed" in checked.message
+
+
 def test_sync_check_revalidates_stored_excludes_for_tracked_descendants(
     tmp_path: Path,
 ) -> None:

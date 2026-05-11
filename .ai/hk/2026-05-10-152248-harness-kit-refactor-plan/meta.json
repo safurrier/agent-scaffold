@@ -1,19 +1,21 @@
 {
-  "branch": "main",
-  "diff_hash": "sha256:7c26b47d51d91cb333e6bf597973dd01e7748d179f79e7837352b7e7684528dd",
+  "branch": "hk-safe-refactor",
+  "diff_hash": "sha256:4307fbdfe3e17a80c90aec810e376cef1ce7e5ffe74b8a587d4d942b8351a491",
   "dirty": true,
-  "event_count": 20,
-  "event_seq": 24,
-  "evidence_count": 5,
+  "event_count": 23,
+  "event_seq": 28,
+  "evidence_count": 7,
   "evidence_ids": [
     "ev_20260510_155024_461669",
     "ev_20260510_160635_969252",
     "ev_20260510_161933_573135",
     "ev_20260510_162736_216245",
-    "ev_20260510_163130_512632"
+    "ev_20260510_163130_512632",
+    "ev_20260510_174701_383961",
+    "ev_20260510_175103_883609"
   ],
   "file_hashes": {
-    "README.md": "sha256:8c5ae031a57e8237a9fe1ca04cf05720297ba04f8d40c21e1d465fda7bc41c08",
+    "README.md": "sha256:39c4fce91832b225e5d7efcba163f0aa3bcfdf7d9a031c599a00b103f0e01d89",
     "artifacts/README.md": "sha256:c4bad9d4652f296a7e4dcf175fe1dd0c66a99ec0b74941cd45c499e84792436c"
   },
   "files": [
@@ -21,12 +23,12 @@
     "meta.json",
     "artifacts/README.md"
   ],
-  "generated_at": "2026-05-10T23:32:02.544095+00:00",
+  "generated_at": "2026-05-11T00:51:14.152186+00:00",
   "generated_by": "hk export --format handoff-dir",
-  "git_sha": "410de65",
+  "git_sha": "dc9b13c",
   "output_path": ".ai/hk/2026-05-10-152248-harness-kit-refactor-plan",
-  "ready": true,
-  "ready_status": "ready-with-dangerous-skips",
+  "ready": false,
+  "ready_status": "not-ready",
   "schema_version": 1,
   "sync_status": "synced",
   "target_root": ".",

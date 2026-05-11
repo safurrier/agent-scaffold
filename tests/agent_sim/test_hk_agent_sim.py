@@ -113,3 +113,43 @@ def test_agent_sim_happy_path_reaches_ready_through_public_cli(tmp_path: Path) -
     assert handoff.returncode == 0, handoff.stderr
     assert "## Validation evidence" in handoff.stdout
     assert "## Review" in handoff.stdout
+
+
+def test_agent_sim_local_state_churn_stales_sync_exclusion(tmp_path: Path) -> None:
+    target = git_init(tmp_path / "repo")
+    _json(
+        run_hk(
+            "start",
+            "agent-local-churn",
+            "--plan",
+            "Exercise excluded agent-local state freshness.",
+            "--target",
+            str(target),
+            "--json",
+        )
+    )
+    local_state = target / ".pi" / "session.json"
+    local_state.parent.mkdir()
+    local_state.write_text("{}\n")
+
+    sync = _json(
+        run_hk(
+            "sync",
+            "--exclude",
+            ".pi",
+            "--reason",
+            "Only local agent state.",
+            "--target",
+            str(target),
+            "--json",
+        )
+    )
+    assert sync["synced"] is True
+
+    local_state.write_text('{"changed": true}\n')
+    checked = run_hk("sync", "--check", "--target", str(target), "--json")
+
+    assert checked.returncode == 1
+    payload = json.loads(checked.stdout)
+    assert payload["synced"] is False
+    assert "excluded path changed" in payload["message"]

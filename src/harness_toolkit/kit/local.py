@@ -13,7 +13,6 @@ import os
 import re
 import shlex
 import shutil
-import stat
 import subprocess
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
@@ -23,6 +22,7 @@ from typing import Literal
 from harness_toolkit.kit.capture.process import run_process_to_transcript
 from harness_toolkit.kit.capture.redaction import redact_argv, redact_text
 from harness_toolkit.kit.capture.transcripts import transcript_path
+from harness_toolkit.kit.git import snapshot as git_snapshot
 from harness_toolkit.kit.ledger.events import append_lifecycle_event
 from harness_toolkit.kit.ledger.models import EventRecord, EvidenceRecord
 from harness_toolkit.kit.ledger.store import (
@@ -77,6 +77,7 @@ from harness_toolkit.kit.state.repo import (
 from harness_toolkit.kit.state.repo import (
     scope_key as repo_scope_key,
 )
+from harness_toolkit.kit.sync import freshness as sync_freshness
 
 LOCAL_STATE_DIR = ".harness-local"
 KIT_STATE_DIR = "harness-kit"
@@ -311,41 +312,15 @@ def resolve_local_state(target: Path, *, no_local_files: bool = False) -> LocalS
 
 
 def git_sha(path: Path) -> str:
-    result = subprocess.run(
-        ["git", "rev-parse", "--short", "HEAD"],
-        cwd=path,
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    return result.stdout.strip() if result.returncode == 0 else ""
+    return git_snapshot.git_sha(path)
 
 
 def git_dirty(path: Path) -> bool:
-    result = subprocess.run(
-        ["git", "status", "--porcelain"],
-        cwd=path,
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    return bool(result.stdout.strip()) if result.returncode == 0 else False
+    return git_snapshot.git_dirty(path)
 
 
 def agent_local_state_paths(path: Path) -> list[str]:
-    """Return common agent-local paths that are currently part of git status."""
-    present: list[str] = []
-    for candidate in COMMON_AGENT_LOCAL_STATE_PATHS:
-        result = subprocess.run(
-            ["git", "status", "--porcelain", "--", candidate],
-            cwd=path,
-            capture_output=True,
-            check=False,
-            text=True,
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            present.append(candidate)
-    return present
+    return git_snapshot.agent_local_state_paths(path, COMMON_AGENT_LOCAL_STATE_PATHS)
 
 
 def agent_local_state_warning(path: Path) -> str:
@@ -361,144 +336,31 @@ def agent_local_state_warning(path: Path) -> str:
 
 
 def git_pathspec_excludes(exclude_paths: tuple[str, ...] = ()) -> list[str]:
-    return [f":(exclude){path}" for path in exclude_paths]
+    return git_snapshot.git_pathspec_excludes(exclude_paths)
 
 
 def git_tracked_paths_for_path(path: Path, candidate: str) -> list[str]:
-    result = subprocess.run(
-        ["git", "ls-files", "--", candidate],
-        cwd=path,
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    if result.returncode != 0:
-        return []
-    return [line for line in result.stdout.splitlines() if line.strip()]
+    return git_snapshot.git_tracked_paths_for_path(path, candidate)
 
 
 def sync_exclude_safety_error(path: Path, candidate: str) -> str:
-    tracked = git_tracked_paths_for_path(path, candidate)
-    if tracked:
-        return (
-            "sync --exclude only supports untracked local-only paths; "
-            f"refusing tracked paths or descendants under {candidate}: {', '.join(tracked[:3])}"
-        )
-    status = git_status_for_path(path, candidate).strip()
-    if not status:
-        return f"sync --exclude path is not present in git status: {candidate}"
-    if any(not line.startswith("?? ") for line in status.splitlines()):
-        return (
-            "sync --exclude only supports untracked local-only paths; "
-            f"refusing tracked or staged path: {candidate}"
-        )
-    return ""
+    return git_snapshot.sync_exclude_safety_error(path, candidate)
 
 
 def git_status_for_path(path: Path, candidate: str) -> str:
-    result = subprocess.run(
-        ["git", "status", "--porcelain", "--", candidate],
-        cwd=path,
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    return result.stdout if result.returncode == 0 else ""
-
-
-def _hash_untracked_paths(hasher, path: Path, pathspec: list[str]) -> None:
-    untracked = subprocess.run(
-        ["git", "ls-files", "--others", "--exclude-standard", "-z", *pathspec],
-        cwd=path,
-        capture_output=True,
-        check=False,
-    )
-    if untracked.returncode != 0:
-        return
-    for raw_name in untracked.stdout.split(b"\0"):
-        if not raw_name:
-            continue
-        relative = Path(raw_name.decode("utf-8", errors="surrogateescape"))
-        full_path = path / relative
-        hasher.update(b"untracked\0")
-        hasher.update(raw_name)
-        hasher.update(b"\0")
-        try:
-            stat_result = full_path.lstat()
-        except OSError:
-            hasher.update(b"<missing>")
-            hasher.update(b"\0")
-            continue
-        hasher.update(str(stat_result.st_mode).encode("ascii"))
-        hasher.update(b"\0")
-        if stat.S_ISLNK(stat_result.st_mode):
-            hasher.update(b"symlink\0")
-            try:
-                hasher.update(os.readlink(full_path).encode("utf-8", "surrogateescape"))
-            except OSError:
-                hasher.update(b"<unreadable-symlink>")
-        elif stat.S_ISREG(stat_result.st_mode):
-            hasher.update(b"file\0")
-            try:
-                with full_path.open("rb") as file_obj:
-                    for chunk in iter(lambda: file_obj.read(1024 * 1024), b""):
-                        hasher.update(chunk)
-            except OSError:
-                hasher.update(b"<unreadable>")
-        hasher.update(b"\0")
+    return git_snapshot.git_status_for_path(path, candidate)
 
 
 def git_diff_hash(path: Path, exclude_paths: tuple[str, ...] = ()) -> str:
-    """Hash unstaged, staged, and status state for sync freshness."""
-    hasher = hashlib.sha256()
-    pathspec = (
-        ["--", ".", *git_pathspec_excludes(exclude_paths)] if exclude_paths else []
-    )
-    commands = (
-        ["git", "diff", "--no-ext-diff", "--binary", *pathspec],
-        ["git", "diff", "--cached", "--no-ext-diff", "--binary", *pathspec],
-        ["git", "status", "--porcelain", *pathspec],
-    )
-    for command in commands:
-        result = subprocess.run(
-            command,
-            cwd=path,
-            capture_output=True,
-            check=False,
-        )
-        if result.returncode != 0:
-            return ""
-        hasher.update("\0".join(command).encode("utf-8"))
-        hasher.update(b"\0")
-        hasher.update(result.stdout)
-        hasher.update(b"\0")
-    _hash_untracked_paths(hasher, path, pathspec)
-    return "sha256:" + hasher.hexdigest()
+    return git_snapshot.git_diff_hash(path, exclude_paths)
 
 
 def git_work_diff_hash(
     path: Path, *, base_sha: str, exclude_paths: tuple[str, ...] = ()
 ) -> str:
-    """Hash the work diff from the HK work start SHA to the current tree."""
-    if not base_sha.strip():
-        return git_diff_hash(path, exclude_paths)
-    hasher = hashlib.sha256()
-    pathspec = ["--", ".", *git_pathspec_excludes(exclude_paths)]
-    result = subprocess.run(
-        ["git", "diff", "--no-ext-diff", "--binary", base_sha, *pathspec],
-        cwd=path,
-        capture_output=True,
-        check=False,
+    return git_snapshot.git_work_diff_hash(
+        path, base_sha=base_sha, exclude_paths=exclude_paths
     )
-    if result.returncode != 0:
-        return ""
-    hasher.update(b"work-diff\0")
-    hasher.update(base_sha.encode("utf-8"))
-    hasher.update(b"\0")
-    hasher.update(result.stdout)
-    hasher.update(b"\0")
-    _hash_untracked_paths(hasher, path, pathspec)
-    return "sha256:" + hasher.hexdigest()
 
 
 def local_exclude_file(path: Path) -> Path | None:
@@ -708,61 +570,28 @@ def latest_sync_relevant_seq(events: list[EventRecord]) -> int:
 
 
 def normalize_exclude_paths(exclude_paths: tuple[str | Path, ...]) -> tuple[str, ...]:
-    normalized: list[str] = []
-    for path in exclude_paths:
-        text = str(path).strip().replace("\\", "/")
-        if not text:
-            raise LocalWorkflowError("sync --exclude path cannot be empty")
-        text = text.rstrip("/")
-        if text in {"", "."}:
-            raise LocalWorkflowError(
-                "sync --exclude cannot exclude the repository root"
-            )
-        candidate = Path(text)
-        if candidate.is_absolute():
-            raise LocalWorkflowError("sync --exclude path must be relative")
-        if ".." in candidate.parts:
-            raise LocalWorkflowError("sync --exclude path cannot contain '..'")
-        if text.startswith(":") or any(char in text for char in "*?["):
-            raise LocalWorkflowError(
-                "sync --exclude path must be a literal path, not a git pathspec"
-            )
-        normalized.append(text)
-    return tuple(dict.fromkeys(normalized))
+    try:
+        return sync_freshness.normalize_exclude_paths(exclude_paths)
+    except sync_freshness.SyncFreshnessError as e:
+        raise LocalWorkflowError(str(e)) from e
 
 
 def git_path_state_hash(path: Path, candidate: str) -> str:
-    hasher = hashlib.sha256()
-    commands = (
-        ["git", "diff", "--no-ext-diff", "--binary", "--", candidate],
-        ["git", "diff", "--cached", "--no-ext-diff", "--binary", "--", candidate],
-        ["git", "status", "--porcelain", "--", candidate],
-    )
-    for command in commands:
-        result = subprocess.run(command, cwd=path, capture_output=True, check=False)
-        if result.returncode != 0:
-            return ""
-        hasher.update("\0".join(command).encode("utf-8"))
-        hasher.update(b"\0")
-        hasher.update(result.stdout)
-        hasher.update(b"\0")
-    return "sha256:" + hasher.hexdigest()
+    return git_snapshot.git_path_state_hash(path, candidate)
 
 
 def excluded_path_metadata(
     path: Path, exclude_paths: tuple[str, ...]
 ) -> list[dict[str, str]]:
-    rows: list[dict[str, str]] = []
-    for candidate in exclude_paths:
-        status = git_status_for_path(path, candidate)
-        rows.append(
-            {
-                "path": candidate,
-                "status": status.strip(),
-                "state_hash": git_path_state_hash(path, candidate),
-            }
-        )
-    return rows
+    return sync_freshness.excluded_path_metadata(path, exclude_paths)
+
+
+def excluded_path_state_changed(
+    path: Path, recorded: object, *, expected_paths: tuple[str, ...] = ()
+) -> bool:
+    return sync_freshness.excluded_path_state_changed(
+        path, recorded, expected_paths=expected_paths
+    )
 
 
 def sync_checkpoint(
@@ -819,6 +648,17 @@ def sync_checkpoint(
                     message="needs sync: excluded path changed or is no longer local-only",
                     guidance=guidance,
                 )
+        if checkpoint_excludes and excluded_path_state_changed(
+            state.target_root,
+            latest_sync.data.get("excluded"),
+            expected_paths=checkpoint_excludes,
+        ):
+            return SyncResult(
+                work_id=work_dir.name,
+                synced=False,
+                message="needs sync: excluded path changed or is no longer local-only",
+                guidance=guidance,
+            )
         synced_hash = str(latest_sync.data.get("diff_hash", ""))
         current_hash = git_diff_hash(state.target_root, checkpoint_excludes)
         if not current_hash:
@@ -1129,6 +969,12 @@ def sync_status_for(state: LocalState) -> str:
             for candidate in checkpoint_excludes
         ):
             return "needs-sync"
+        if checkpoint_excludes and excluded_path_state_changed(
+            state.target_root,
+            latest_sync.data.get("excluded"),
+            expected_paths=checkpoint_excludes,
+        ):
+            return "needs-sync"
         if synced_seq >= latest_sync_relevant_seq(events) and str(
             latest_sync.data.get("diff_hash", "")
         ) == git_diff_hash(state.target_root, checkpoint_excludes):
@@ -1242,54 +1088,15 @@ def render_handoff(
 
 
 def _status_changed_paths(root: Path) -> list[str]:
-    result = subprocess.run(
-        ["git", "status", "--porcelain"],
-        cwd=root,
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    if result.returncode != 0:
-        return []
-    paths: list[str] = []
-    for line in result.stdout.splitlines():
-        if not line.strip():
-            continue
-        path = line[3:] if len(line) > 3 else line.strip()
-        if " -> " in path:
-            path = path.split(" -> ", 1)[1]
-        if path.endswith("/"):
-            continue
-        paths.append(path)
-    return paths
+    return git_snapshot.status_changed_paths(root)
 
 
 def _diff_changed_paths(root: Path, base_sha: str) -> list[str]:
-    if not base_sha.strip():
-        return []
-    result = subprocess.run(
-        ["git", "diff", "--name-only", base_sha, "--"],
-        cwd=root,
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    if result.returncode != 0:
-        return []
-    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    return git_snapshot.diff_changed_paths(root, base_sha)
 
 
 def _untracked_paths(root: Path) -> list[str]:
-    result = subprocess.run(
-        ["git", "ls-files", "--others", "--exclude-standard"],
-        cwd=root,
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    if result.returncode != 0:
-        return []
-    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    return git_snapshot.untracked_paths(root)
 
 
 def work_start_git_sha(events: list[EventRecord]) -> str:
