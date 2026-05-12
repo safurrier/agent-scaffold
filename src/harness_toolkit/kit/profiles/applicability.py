@@ -72,6 +72,40 @@ def _pattern_matches_candidates(pattern: str, candidates: tuple[str, ...]) -> bo
     return any(spec.match_file(candidate) for candidate in candidates)
 
 
+def _matched_paths_and_patterns(
+    patterns: tuple[str, ...],
+    changed_paths: tuple[str, ...],
+    *,
+    target: Path | None = None,
+    repo_root: Path | None = None,
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    clean_patterns = tuple(_normalize_pattern(pattern) for pattern in patterns)
+    if not clean_patterns:
+        return (), ()
+    target_prefix = _target_prefix(target, repo_root)
+    matches: list[str] = []
+    matched_patterns: list[str] = []
+    for path in changed_paths:
+        clean_path = _normalize_changed_path(path)
+        if not clean_path:
+            continue
+        candidates = _candidate_paths(clean_path, target_prefix=target_prefix)
+        included = False
+        path_positive_patterns: list[str] = []
+        for pattern in clean_patterns:
+            if pattern.startswith("!"):
+                if _pattern_matches_candidates(pattern[1:], candidates):
+                    included = False
+                    path_positive_patterns = []
+            elif _pattern_matches_candidates(pattern, candidates):
+                included = True
+                path_positive_patterns.append(pattern)
+        if included:
+            matches.append(clean_path)
+            matched_patterns.extend(path_positive_patterns)
+    return tuple(dict.fromkeys(matches)), tuple(dict.fromkeys(matched_patterns))
+
+
 def _matched_paths(
     patterns: tuple[str, ...],
     changed_paths: tuple[str, ...],
@@ -79,26 +113,9 @@ def _matched_paths(
     target: Path | None = None,
     repo_root: Path | None = None,
 ) -> tuple[str, ...]:
-    clean_patterns = tuple(_normalize_pattern(pattern) for pattern in patterns)
-    if not clean_patterns:
-        return ()
-    target_prefix = _target_prefix(target, repo_root)
-    matches: list[str] = []
-    for path in changed_paths:
-        clean_path = _normalize_changed_path(path)
-        if not clean_path:
-            continue
-        candidates = _candidate_paths(clean_path, target_prefix=target_prefix)
-        included = False
-        for pattern in clean_patterns:
-            if pattern.startswith("!"):
-                if _pattern_matches_candidates(pattern[1:], candidates):
-                    included = False
-            elif _pattern_matches_candidates(pattern, candidates):
-                included = True
-        if included:
-            matches.append(clean_path)
-    return tuple(dict.fromkeys(matches))
+    return _matched_paths_and_patterns(
+        patterns, changed_paths, target=target, repo_root=repo_root
+    )[0]
 
 
 def _check_suggestions(
@@ -116,10 +133,10 @@ def _check_suggestions(
             f"hk validate --check {shlex.quote(check.name)} "
             "--why '...' -- bash -lc \"$COMMAND_FROM_PROFILE\""
         )
-        required_matches = _matched_paths(
+        required_matches, required_patterns = _matched_paths_and_patterns(
             check.required_when, changed_paths, target=target, repo_root=repo_root
         )
-        applies_matches = _matched_paths(
+        applies_matches, applies_patterns = _matched_paths_and_patterns(
             check.applies_when, changed_paths, target=target, repo_root=repo_root
         )
         if required_matches:
@@ -130,6 +147,7 @@ def _check_suggestions(
                     required=True,
                     matched_by="required_when",
                     matched_paths=required_matches,
+                    matched_patterns=required_patterns,
                     enforced=enforce_required,
                     record_command=record_command,
                 )
@@ -142,6 +160,7 @@ def _check_suggestions(
                     required=False,
                     matched_by="applies_when",
                     matched_paths=applies_matches,
+                    matched_patterns=applies_patterns,
                     record_command=record_command,
                 )
             )
@@ -163,10 +182,10 @@ def _review_suggestions(
             f"--target {shlex.quote(str(target))}"
         )
         record_command = f"hk review add --review {shlex.quote(review.name)} ..."
-        required_matches = _matched_paths(
+        required_matches, required_patterns = _matched_paths_and_patterns(
             review.required_when, changed_paths, target=target, repo_root=repo_root
         )
-        applies_matches = _matched_paths(
+        applies_matches, applies_patterns = _matched_paths_and_patterns(
             review.applies_when, changed_paths, target=target, repo_root=repo_root
         )
         if required_matches:
@@ -177,6 +196,7 @@ def _review_suggestions(
                     required=True,
                     matched_by="required_when",
                     matched_paths=required_matches,
+                    matched_patterns=required_patterns,
                     enforced=enforce_required,
                     record_command=record_command,
                     prompt_command=prompt_command,
@@ -190,6 +210,7 @@ def _review_suggestions(
                     required=False,
                     matched_by="applies_when",
                     matched_paths=applies_matches,
+                    matched_patterns=applies_patterns,
                     record_command=record_command,
                     prompt_command=prompt_command,
                 )

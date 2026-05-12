@@ -284,6 +284,13 @@ def git_work_diff_hash(
     return "sha256:" + hasher.hexdigest()
 
 
+def git_worktree_path_hash(path: Path, candidate: str) -> str:
+    """Hash a repo-relative path's current worktree content only."""
+    hasher = hashlib.sha256()
+    _hash_worktree_path(hasher, path, candidate)
+    return "sha256:" + hasher.hexdigest()
+
+
 def git_path_state_hash(path: Path, candidate: str) -> str:
     """Hash a literal untracked path's visible Git state and file contents."""
     hasher = hashlib.sha256()

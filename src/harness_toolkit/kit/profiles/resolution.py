@@ -103,6 +103,7 @@ def resolve_profile(
             source=resolved_catalog[profile].source,
             reason="no harness config target matched; using generic fallback",
             target=str(resolved_target),
+            match_kind="generic-fallback",
         )
 
     direct_matches = _direct_target_matches(resolved_target, config)
@@ -116,6 +117,7 @@ def resolve_profile(
         worktree_matched_target = None
         worktree_projected_target = None
         worktree_git_common_dir = None
+        match_kind = "direct"
     else:
         worktree_matches = _worktree_target_matches(resolved_target, config)
         if worktree_matches:
@@ -132,6 +134,7 @@ def resolve_profile(
             worktree_git_common_dir = (
                 str(selected.git_common_dir) if selected.git_common_dir else None
             )
+            match_kind = "worktree"
         else:
             profile = config.default_profile
             reason = "no configured target matched; using config default_profile"
@@ -141,6 +144,7 @@ def resolve_profile(
             worktree_matched_target = None
             worktree_projected_target = None
             worktree_git_common_dir = None
+            match_kind = "config-default"
     if profile not in resolved_catalog:
         valid = ", ".join(resolved_catalog)
         raise KeyError(f"Unknown profile '{profile}'. Valid profiles: {valid}")
@@ -149,6 +153,7 @@ def resolve_profile(
         source=resolved_catalog[profile].source,
         reason=reason,
         target=str(resolved_target),
+        match_kind=match_kind,
         matched_target=matched_target,
         matched_name=matched_name,
         config_path=config.path,

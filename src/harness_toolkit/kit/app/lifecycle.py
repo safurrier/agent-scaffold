@@ -73,6 +73,7 @@ class ReviewRequest(TargetRequest):
     summary: str = ""
     disposition: str = "accepted"
     review_name: str = ""
+    reviewed_paths: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -227,6 +228,11 @@ class LifecycleApp:
             no_local_files=request.no_local_files,
         )
 
+    def artifact_records(self, request: TargetRequest) -> local.ArtifactListResult:
+        return local.artifact_records(
+            request.target, no_local_files=request.no_local_files
+        )
+
     def add_review(self, request: ReviewRequest) -> local.ReviewResult:
         return local.add_review(
             request.target,
@@ -236,6 +242,7 @@ class LifecycleApp:
             summary=request.summary,
             disposition=request.disposition,
             review_name=request.review_name,
+            reviewed_paths=request.reviewed_paths,
             no_local_files=request.no_local_files,
         )
 

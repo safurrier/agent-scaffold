@@ -385,9 +385,10 @@ hk context "TEXT" [--target PATH] [--json]
 hk context --from-file PATH|- [--target PATH] [--json]
 hk decide "TEXT" [--spec-impact none|updated|not-needed] [--spec-ref PATH]... [--target PATH] [--json]
 hk validate --why "WHAT THIS VALIDATES" [--kind KIND] [--target PATH] -- <command...>
-hk review add --backend NAME --reviewer INDEPENDENT_OR_FRESH_CONTEXT_REVIEWER --rubric NAME --summary TEXT [--disposition TEXT]
+hk review add --backend NAME --reviewer INDEPENDENT_OR_FRESH_CONTEXT_REVIEWER --rubric NAME --summary TEXT [--disposition TEXT] [--path REPO_RELATIVE_PATH]...
 hk review prompt [--target PATH] [--json]
 hk artifact attach --path FILE --kind KIND [--label TEXT] [--no-copy] [--target PATH] [--json]
+hk artifact list [--target PATH] [--json]
 hk sync [--exclude PATH]... [--reason TEXT] [--target PATH] [--json]
 hk sync --check [--target PATH] [--json]
 hk dangerously-skip review|validation|sync --label NAME --reason TEXT --mitigation TEXT [--target PATH] [--json]
@@ -422,9 +423,11 @@ is not appropriate.
 `hk artifact attach` is the generic way to attach real files produced by harnesses
 or tools: Pi session transcripts, Codex review transcripts, browser HAR files, or
 raw validation artifacts. HK copies or references the source file, records size and
-sha256 metadata in the ledger, and renders attached artifacts in handoff. Agents
-should attach files produced by tools rather than writing their own session prose
-into HK.
+sha256 metadata in the ledger, renders attached artifacts in handoff, and includes
+copied attachments in handoff-dir exports under explicit-only `artifacts/`. `hk
+artifact list --json` is the read-only inspection surface agents should use after
+attachment. Agents should attach files produced by tools rather than writing their
+own session prose into HK.
 
 `hk review add` is intentionally not a self-review note. Review is required by
 default. Preferred review comes from an independent AI/tool reviewer, ideally a
@@ -435,7 +438,11 @@ has a fresh-context review mechanism, the implementation agent should dispatch
 that prompt to it before handoff. Examples include Pi `subagent`, Claude Code
 `Agent`/legacy `Task`, and Codex via the Shell tool running
 `codex review --uncommitted`. Agents should re-run `hk status` after review because
-review tools may create agent-local state. If review is impossible, the agent must record `hk dangerously-skip review --label NAME --reason TEXT --mitigation TEXT`,
+review tools may create agent-local state. HK records deterministic path/content
+facts for reviewed changed paths. Later small fixes can be covered by targeted
+follow-up records with `hk review add --path PATH ...`; generated active HK export
+refreshes are review-neutral and should be validated with export/sync checks, not
+another broad review. If review is impossible, the agent must record `hk dangerously-skip review --label NAME --reason TEXT --mitigation TEXT`,
 which is auditable and renders in summary and handoff. Future review-source config is
 deferred.
 

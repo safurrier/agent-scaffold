@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import cast
 
 from harness_toolkit.kit.ledger import lifecycle_events
 from harness_toolkit.kit.ledger.models import EventRecord, EvidenceRecord
@@ -75,6 +76,7 @@ def accepted_review_events(
     *,
     current_diff_hash: str = "",
     current_diff_hashes: tuple[str, ...] = (),
+    require_current_hash: bool = True,
 ) -> list[dict[str, object]]:
     accepted: list[dict[str, object]] = []
     for review in review_events(events):
@@ -87,7 +89,7 @@ def accepted_review_events(
             continue
         if disposition not in ACCEPTED_REVIEW_DISPOSITIONS:
             continue
-        if not _hash_is_current(
+        if require_current_hash and not _hash_is_current(
             review.get("diff_hash"),
             current_diff_hash=current_diff_hash,
             current_diff_hashes=current_diff_hashes,
@@ -163,6 +165,40 @@ def _changed_paths_text(paths: tuple[str, ...]) -> str:
     return f" Current changed paths: {preview}{suffix}."
 
 
+def _review_neutral_path(work_id: str, path: str) -> bool:
+    return path.startswith(f".ai/hk/{work_id}/")
+
+
+def _review_relevant_paths(work_id: str, paths: tuple[str, ...]) -> tuple[str, ...]:
+    return tuple(path for path in paths if not _review_neutral_path(work_id, path))
+
+
+def _review_covers_path(
+    review: dict[str, object], path: str, current_hash: str
+) -> bool:
+    hashes = review.get("changed_path_hashes")
+    if not isinstance(hashes, dict):
+        return False
+    typed_hashes = cast("dict[str, str]", hashes)
+    return typed_hashes.get(path) == current_hash
+
+
+def _reviews_cover_paths(
+    reviews: list[dict[str, object]],
+    paths: tuple[str, ...],
+    current_changed_path_hashes: dict[str, str],
+) -> tuple[bool, tuple[str, ...]]:
+    missing = [
+        path
+        for path in paths
+        if not any(
+            _review_covers_path(review, path, current_changed_path_hashes.get(path, ""))
+            for review in reviews
+        )
+    ]
+    return not missing, tuple(missing)
+
+
 def ready_for_events(
     *,
     work_id: str,
@@ -177,6 +213,7 @@ def ready_for_events(
     required_profile_checks: tuple[RequiredProfileItem, ...] = (),
     required_profile_reviews: tuple[RequiredProfileItem, ...] = (),
     changed_paths: tuple[str, ...] = (),
+    current_changed_path_hashes: dict[str, str] | None = None,
 ) -> ReadyResult:
     checks: list[ReadyCheck] = []
 
@@ -259,17 +296,28 @@ def ready_for_events(
         current_diff_hashes,
     )
     review_skipped = bool(review_skips)
-    stale_reviews = (
-        accepted_review_events(events)
-        if _accepted_diff_hashes(current_diff_hash, current_diff_hashes)
-        else []
-    )
-    reviews = accepted_review_events(
-        events,
-        current_diff_hash=current_diff_hash,
-        current_diff_hashes=current_diff_hashes,
-    )
+    all_accepted_reviews = accepted_review_events(events, require_current_hash=False)
+    exact_current_reviews = [
+        review
+        for review in accepted_review_events(
+            events,
+            current_diff_hash=current_diff_hash,
+            current_diff_hashes=current_diff_hashes,
+        )
+        if not isinstance(review.get("changed_path_hashes"), dict)
+    ]
     recorded_reviews = review_events(events)
+    relevant_review_paths = _review_relevant_paths(work_id, changed_paths)
+    path_hashes = current_changed_path_hashes or {}
+    path_reviews = [
+        review
+        for review in all_accepted_reviews
+        if isinstance(review.get("changed_path_hashes"), dict)
+    ]
+    paths_covered, unreviewed_paths = _reviews_cover_paths(
+        path_reviews, relevant_review_paths, path_hashes
+    )
+    reviews = exact_current_reviews or (all_accepted_reviews if paths_covered else [])
     add_check(
         "review",
         bool(reviews) or review_skipped,
@@ -277,9 +325,9 @@ def ready_for_events(
         if reviews
         else dangerous_skip_message("review", review_skips)
         if review_skipped
-        else "accepted review is stale for current diff; rerun independent review or dangerously-skip review."
-        + _changed_paths_text(changed_paths)
-        if stale_reviews
+        else "accepted review does not cover current changed paths; run a targeted follow-up review with `hk review add --path PATH ...` or dangerously-skip review."
+        + _changed_paths_text(unreviewed_paths)
+        if all_accepted_reviews
         else SELF_REVIEW_GUIDANCE
         if recorded_reviews
         else "missing accepted external-enough review record; dispatch a separate reviewer/subagent with fresh context via your harness, then record it with hk review add",
@@ -314,11 +362,23 @@ def ready_for_events(
         )
 
     for item in required_profile_reviews:
-        matching_reviews = [
+        named_reviews = [
             review
-            for review in reviews
+            for review in all_accepted_reviews
             if str(review.get("review_name") or "") == item.name
         ]
+        exact_named_reviews = [
+            review
+            for review in exact_current_reviews
+            if str(review.get("review_name") or "") == item.name
+        ]
+        item_paths = _review_relevant_paths(work_id, item.matched_paths)
+        item_paths_covered, item_unreviewed_paths = _reviews_cover_paths(
+            named_reviews, item_paths, path_hashes
+        )
+        matching_reviews = exact_named_reviews or (
+            named_reviews if item_paths_covered else []
+        )
         matching_skips = dangerous_skip_for_label(
             events,
             "review",
@@ -333,6 +393,8 @@ def ready_for_events(
             if matching_reviews
             else dangerous_skip_message("review", matching_skips)
             if matching_skips
+            else f"required profile review `{item.name}` does not cover current changed paths ({_paths_text(item_unreviewed_paths)}); run `hk review prompt {item.name}` and record a targeted follow-up with `hk review add --review {item.name} --path PATH ...`, or `hk dangerously-skip review --label {item.name} --reason ... --mitigation ...`"
+            if named_reviews
             else f"missing required profile review `{item.name}` ({_paths_text(item.matched_paths)}); run `hk review prompt {item.name}` and record with `hk review add --review {item.name} ...`, or `hk dangerously-skip review --label {item.name} --reason ... --mitigation ...`",
         )
 

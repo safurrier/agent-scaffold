@@ -419,6 +419,7 @@ def profile_resolve(
         print(resolution_to_json(resolution))
         return
     print(f"Profile: {resolution.profile} [{resolution.source}]")
+    print(f"Match kind: {resolution.match_kind}")
     print(f"Reason: {resolution.reason}")
     print(f"Target: {resolution.target}")
     if resolution.matched_target:
@@ -664,6 +665,8 @@ def checks(
                 print(
                     f"  reason: {item.matched_by} matched {', '.join(item.matched_paths)}"
                 )
+                if item.matched_patterns:
+                    print(f"  patterns: {', '.join(item.matched_patterns)}")
                 if item.record_command:
                     print(f"  record: {item.record_command}")
         else:
@@ -679,6 +682,8 @@ def checks(
                 print(
                     f"  reason: {item.matched_by} matched {', '.join(item.matched_paths)}"
                 )
+                if item.matched_patterns:
+                    print(f"  patterns: {', '.join(item.matched_patterns)}")
                 if item.prompt_command:
                     print(f"  prompt: {item.prompt_command}")
                 if item.record_command:
@@ -1228,11 +1233,52 @@ def capture(
 
 
 @artifact_app.command(
+    name="list",
+    help_epilogue=examples(
+        "hk artifact list --target .",
+        "hk artifact list --target . --json",
+    ),
+)
+def artifact_list(
+    *,
+    target: Path = Path("."),
+    no_local_files: bool = False,
+    json: bool = False,
+) -> None:
+    """List attached harness/tool-produced files for the active work."""
+    try:
+        result = lifecycle_app.artifact_records(TargetRequest(target, no_local_files))
+    except LocalWorkflowError as e:
+        print_error(str(e))
+        raise SystemExit(1) from e
+    if json:
+        print(json_dump_dataclass(result))
+        return
+    if not result.work_id:
+        print(
+            "No active HK work. Try: hk start demo-work --plan '...'", file=sys.stderr
+        )
+        return
+    if not result.artifacts:
+        print("No artifacts attached.")
+        return
+    for artifact in result.artifacts:
+        label = f" — {artifact.label}" if artifact.label else ""
+        copied = "copied" if artifact.copied else "referenced"
+        path = artifact.artifact_path or artifact.source_path
+        print(
+            f"{artifact.seq}: {artifact.kind} ({copied}, {artifact.redaction}, "
+            f"{artifact.size_bytes} bytes, {artifact.sha256}) `{path}`{label}"
+        )
+
+
+@artifact_app.command(
     name="attach",
     help_epilogue=examples(
         "hk artifact attach --path /tmp/session.jsonl --kind agent-session --json",
-        "hk artifact attach --path /tmp/review.md --kind codex-review --label review",
+        "hk artifact attach --path /tmp/review.md --kind codex-review --label review --redaction external",
         "hk artifact attach --path /tmp/large.har --kind browser-har --no-copy",
+        "hk artifact list --target . --json",
     ),
 )
 def artifact_attach(
@@ -1275,6 +1321,7 @@ def artifact_attach(
     help_epilogue=examples(
         "hk review add --review cli-review --backend subagent --reviewer fresh --rubric core --summary OK",
         "hk review add --backend codex --reviewer bug-hunter --rubric bugs --summary OK",
+        "hk review add --review cli-review --path src/cli.py --backend subagent --reviewer fresh --rubric follow-up --summary OK",
         "hk dangerously-skip review --label no-review --reason unavailable --mitigation follow-up --json",
         note=(
             "Review is required by default. Preferred: independent AI/tool reviewer.\n"
@@ -1292,6 +1339,7 @@ def review_add(
     summary: str,
     disposition: str = "accepted",
     review: str = "",
+    path: tuple[str, ...] = (),
     target: Path = Path("."),
     no_local_files: bool = False,
     json: bool = False,
@@ -1314,6 +1362,7 @@ def review_add(
                 summary=summary,
                 disposition=disposition,
                 review_name=review,
+                reviewed_paths=path,
             )
         )
     except LocalWorkflowError as e:
@@ -1325,6 +1374,8 @@ def review_add(
     print(f"review={result.backend}/{result.reviewer}")
     if result.review_name:
         print(f"profile_review={result.review_name}")
+    if result.reviewed_paths:
+        print(f"reviewed_paths={', '.join(result.reviewed_paths)}")
     print(f"rubrics={', '.join(result.rubrics)}")
     print(f"summary={result.summary}")
 

@@ -27,9 +27,10 @@ class ReviewEvent:
     review_name: str = ""
     diff_hash: str = ""
     changed_paths: tuple[str, ...] = ()
+    changed_path_hashes: dict[str, str] | None = None
 
     def as_payload(self) -> dict[str, object]:
-        return {
+        payload: dict[str, object] = {
             "backend": self.backend,
             "reviewer": self.reviewer,
             "rubrics": list(self.rubrics),
@@ -39,6 +40,9 @@ class ReviewEvent:
             "diff_hash": self.diff_hash,
             "changed_paths": list(self.changed_paths),
         }
+        if self.changed_path_hashes is not None:
+            payload["changed_path_hashes"] = dict(self.changed_path_hashes)
+        return payload
 
 
 @dataclass(frozen=True)
@@ -110,6 +114,12 @@ def _str_tuple(value: object) -> tuple[str, ...]:
     return tuple(str(item) for item in value)
 
 
+def _str_dict(value: object) -> dict[str, str] | None:
+    if not isinstance(value, dict):
+        return None
+    return {str(key): str(item) for key, item in value.items()}
+
+
 def _optional_int(value: object) -> int | None:
     return value if isinstance(value, int) and not isinstance(value, bool) else None
 
@@ -142,6 +152,7 @@ def review_events(events: list[EventRecord]) -> list[ReviewEvent]:
             review_name=_str(event.data.get("review_name")),
             diff_hash=_str(event.data.get("diff_hash")),
             changed_paths=_str_tuple(event.data.get("changed_paths")),
+            changed_path_hashes=_str_dict(event.data.get("changed_path_hashes")),
         )
         for event in events
         if event.type == "review_added"
