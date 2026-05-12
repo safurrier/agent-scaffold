@@ -31,14 +31,15 @@ Attach real harness/tool transcript files to active Harness Kit work. Do not wri
 4. Attach the confirmed file with a source-specific kind:
 
    ```bash
-   hk artifact attach --path "$TRANSCRIPT" --kind "$ARTIFACT_KIND" --label "$LABEL" --redaction unknown --target .
+   hk artifact attach --path "$TRANSCRIPT" --kind "$ARTIFACT_KIND" --label "$LABEL" --redaction unknown --target . --json
    ```
 
    Common kinds: `pi-session-transcript`, `claude-session-transcript`, `codex-review-transcript`, `codex-review-summary`, `codex-session-transcript`.
 
-5. Render or inspect handoff:
+5. Verify the ledger recorded the intended attachments, then render or inspect handoff:
 
    ```bash
+   hk artifact list --target . --json
    hk handoff --target .
    ```
 
@@ -46,8 +47,9 @@ Attach real harness/tool transcript files to active Harness Kit work. Do not wri
 
 - Prefer exact producer-provided paths over latest-session heuristics.
 - Never attach global latest sessions without confirming timestamp, repo scope, prompt, session id, or file contents.
-- Default copy is appropriate for intentional review transcripts and small session exports.
+- Default copy is appropriate for intentional review transcripts and small session exports; copied attachments are included in handoff-dir exports under explicit `artifacts/`.
 - Use `--no-copy` only when the transcript is too large or too sensitive to copy into HK artifacts; record the reason in context/decision if handoff readers need to know.
+- After every attach, run `hk artifact list --target . --json` and confirm kind, label, redaction, size, hash, and copied/reference path before handoff.
 - Use `--redaction external` when a tool or harness already produced a curated transcript; use `unknown` for raw agent sessions.
 
 ## Recipes
@@ -57,8 +59,8 @@ Attach real harness/tool transcript files to active Harness Kit work. Do not wri
 ```bash
 OUT="$(mktemp -d)"
 codex exec review --uncommitted --json -o "$OUT/codex-last.md" > "$OUT/codex-events.jsonl"
-hk artifact attach --path "$OUT/codex-events.jsonl" --kind codex-review-transcript --label "Codex review JSONL" --redaction external --target .
-hk artifact attach --path "$OUT/codex-last.md" --kind codex-review-summary --label "Codex review final message" --redaction external --target .
+hk artifact attach --path "$OUT/codex-events.jsonl" --kind codex-review-transcript --label "Codex review JSONL" --redaction external --target . --json
+hk artifact attach --path "$OUT/codex-last.md" --kind codex-review-summary --label "Codex review final message" --redaction external --target . --json
 ```
 
 ### Claude headless transcript
@@ -66,7 +68,7 @@ hk artifact attach --path "$OUT/codex-last.md" --kind codex-review-summary --lab
 ```bash
 OUT="$(mktemp -d)"
 claude -p "Review this change" --output-format stream-json --verbose > "$OUT/claude-stream.jsonl"
-hk artifact attach --path "$OUT/claude-stream.jsonl" --kind claude-session-transcript --label "Claude stream JSONL" --redaction unknown --target .
+hk artifact attach --path "$OUT/claude-stream.jsonl" --kind claude-session-transcript --label "Claude stream JSONL" --redaction unknown --target . --json
 ```
 
 ### Pi child-session transcript
@@ -77,7 +79,7 @@ pi --session-dir "$OUT/pi-sessions" --no-tools --no-context-files -p "Review thi
 find "$OUT/pi-sessions" -name '*.jsonl' -type f | tee "$OUT/pi-session-files.txt"
 test "$(wc -l < "$OUT/pi-session-files.txt")" -eq 1
 PI_SESSION="$(cat "$OUT/pi-session-files.txt")"
-hk artifact attach --path "$PI_SESSION" --kind pi-session-transcript --label "Pi session transcript" --redaction unknown --target .
+hk artifact attach --path "$PI_SESSION" --kind pi-session-transcript --label "Pi session transcript" --redaction unknown --target . --json
 ```
 
 ## More detail

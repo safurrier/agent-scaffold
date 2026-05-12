@@ -316,6 +316,7 @@ def test_checks_changed_suggests_applicable_profile_items(
     assert payload["suggested_checks"][0]["name"] == "unit-tests"
     assert payload["suggested_checks"][0]["required"] is True
     assert payload["suggested_checks"][0]["enforced"] is True
+    assert payload["suggested_checks"][0]["matched_patterns"] == ["src/**/cli.py"]
     assert (
         "hk validate --check unit-tests"
         in payload["suggested_checks"][0]["record_command"]
@@ -323,6 +324,7 @@ def test_checks_changed_suggests_applicable_profile_items(
     assert payload["suggested_reviews"][0]["name"] == "agent-friendly-cli-review"
     assert payload["suggested_reviews"][0]["required"] is True
     assert payload["suggested_reviews"][0]["enforced"] is True
+    assert payload["suggested_reviews"][0]["matched_patterns"] == ["src/**/cli.py"]
     assert (
         "hk review prompt agent-friendly-cli-review"
         in payload["suggested_reviews"][0]["prompt_command"]
@@ -592,6 +594,7 @@ applies_when = ["cap/**"]
     assert payload["changed_paths"] == ["discord_cap/cap/bot.py"]
     assert payload["suggested_checks"][0]["name"] == "target-relative"
     assert payload["suggested_checks"][0]["matched_paths"] == ["discord_cap/cap/bot.py"]
+    assert payload["suggested_checks"][0]["matched_patterns"] == ["cap/**"]
     assert payload["suggested_reviews"][0]["name"] == "target-relative-review"
 
 
@@ -869,6 +872,7 @@ run_from = "target"
     assert result.returncode == 0, result.stderr
     payload = json.loads(result.stdout)
     assert payload["profile"] == "module-profile"
+    assert payload["match_kind"] == "direct"
     assert payload["matched_name"] == "module"
 
 
@@ -967,6 +971,7 @@ run_from = "target"
     assert repo_result.returncode == 0, repo_result.stderr
     repo_payload = json.loads(repo_result.stdout)
     assert repo_payload["profile"] == "repo-profile"
+    assert repo_payload["match_kind"] == "worktree"
     assert repo_payload["matched_name"] == "repo"
     assert repo_payload["matched_target"] == str(repo)
     assert "worktree" in repo_payload["reason"]
@@ -986,6 +991,7 @@ run_from = "target"
     assert file_result.returncode == 0, file_result.stderr
     file_payload = json.loads(file_result.stdout)
     assert file_payload["profile"] == "module-profile"
+    assert file_payload["match_kind"] == "worktree"
     assert file_payload["matched_name"] == "module"
     assert file_payload["matched_target"] == str(module)
     assert file_payload["worktree_projected_target"] == str(

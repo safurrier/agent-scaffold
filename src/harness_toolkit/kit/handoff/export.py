@@ -45,3 +45,30 @@ def safe_write_generated_file(path: Path, content: str) -> None:
     finally:
         if tmp_path.exists():
             tmp_path.unlink()
+
+
+def safe_copy_generated_file(source: Path, destination: Path) -> None:
+    """Copy generated binary/text content without following an existing symlink."""
+    if source.is_symlink():
+        raise HandoffExportError(f"refusing to copy symlinked export source: {source}")
+    if not source.is_file():
+        raise HandoffExportError(f"export artifact source is not a file: {source}")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if destination.is_symlink():
+        destination.unlink()
+    if destination.exists() and not destination.is_file():
+        raise HandoffExportError(
+            f"refusing to overwrite non-file export path: {destination}"
+        )
+    fd, tmp_name = tempfile.mkstemp(
+        prefix=f".{destination.name}.", suffix=".tmp", dir=destination.parent
+    )
+    tmp_path = Path(tmp_name)
+    try:
+        with os.fdopen(fd, "wb") as file_obj, source.open("rb") as source_obj:
+            while chunk := source_obj.read(1024 * 1024):
+                file_obj.write(chunk)
+        tmp_path.replace(destination)
+    finally:
+        if tmp_path.exists():
+            tmp_path.unlink()

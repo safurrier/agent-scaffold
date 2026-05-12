@@ -7,6 +7,7 @@ visible in the normal agent shell loop.
 
 from harness_toolkit.kit.profiles.applicability import (
     _matched_paths,
+    _matched_paths_and_patterns,
     _matches_pattern,
     checks_view,
 )
@@ -78,6 +79,7 @@ __all__ = [
     "TargetBinding",
     "WorkflowProfile",
     "_matched_paths",
+    "_matched_paths_and_patterns",
     "_matches_pattern",
     "checks_to_json",
     "checks_view",

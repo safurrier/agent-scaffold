@@ -330,6 +330,16 @@ HK_EXPORT_REQUIRED_FILES = (
     "artifacts/README.md",
 )
 HK_EXPORT_HASHED_FILES = frozenset({"README.md", "artifacts/README.md"})
+
+
+def _safe_export_relative(value: object) -> str | None:
+    relative = str(value)
+    path = Path(relative)
+    if path.is_absolute() or ".." in path.parts or not relative.strip():
+        return None
+    return path.as_posix()
+
+
 HK_EXPORT_OBSOLETE_GENERATED_FILES = (
     "AGENTS.md",
     "SUMMARY.md",
@@ -386,6 +396,11 @@ def validate_hk_export_dir(root: Path, export_dir: Path) -> None:
             + REGENERATE_HK_EXPORT_HINT
         )
     meta_path = export_dir / "meta.json"
+    if meta_path.is_symlink():
+        raise ContractCheckError(
+            f"HK export metadata must not be a symlink: {meta_path.relative_to(root)}\n"
+            + REGENERATE_HK_EXPORT_HINT
+        )
     try:
         metadata = json.loads(meta_path.read_text())
     except json.JSONDecodeError as e:
@@ -427,9 +442,27 @@ def validate_hk_export_dir(root: Path, export_dir: Path) -> None:
             f"HK export metadata output_path does not match directory: {meta_path.relative_to(root)}\n"
             + REGENERATE_HK_EXPORT_HINT
         )
-    if metadata.get("files") != list(HK_EXPORT_REQUIRED_FILES):
+    files_value = metadata.get("files")
+    if not isinstance(files_value, list):
         raise ContractCheckError(
-            f"HK export metadata files list does not match compact package shape: {meta_path.relative_to(root)}\n"
+            f"HK export metadata files list is invalid: {meta_path.relative_to(root)}\n"
+            + REGENERATE_HK_EXPORT_HINT
+        )
+    files = [str(item) for item in files_value]
+    unsafe_files = sorted(item for item in files if _safe_export_relative(item) is None)
+    missing_required_files = sorted(set(HK_EXPORT_REQUIRED_FILES) - set(files))
+    if unsafe_files or missing_required_files:
+        details = []
+        if missing_required_files:
+            details.append(
+                "missing required files: " + ", ".join(missing_required_files)
+            )
+        if unsafe_files:
+            details.append("unsafe files: " + ", ".join(unsafe_files))
+        raise ContractCheckError(
+            f"HK export metadata files list does not match compact package shape: {meta_path.relative_to(root)} ("
+            + "; ".join(details)
+            + ")\n"
             + REGENERATE_HK_EXPORT_HINT
         )
     if not str(metadata.get("diff_hash", "")).startswith("sha256:"):
@@ -455,6 +488,77 @@ def validate_hk_export_dir(root: Path, export_dir: Path) -> None:
             f"HK export metadata file_hashes is invalid: {meta_path.relative_to(root)}\n"
             + REGENERATE_HK_EXPORT_HINT
         )
+    attached_artifacts = metadata.get("attached_artifacts", [])
+    if not isinstance(attached_artifacts, list):
+        raise ContractCheckError(
+            f"HK export metadata attached_artifacts is invalid: {meta_path.relative_to(root)}\n"
+            + REGENERATE_HK_EXPORT_HINT
+        )
+    copied_artifact_paths: set[str] = set()
+    for index, item in enumerate(attached_artifacts):
+        if not isinstance(item, dict):
+            raise ContractCheckError(
+                f"HK export attached_artifacts[{index}] is invalid: {meta_path.relative_to(root)}\n"
+                + REGENERATE_HK_EXPORT_HINT
+            )
+        if "source_path" in item or "artifact_path" in item:
+            raise ContractCheckError(
+                f"HK export attached artifact metadata contains local-only paths: {meta_path.relative_to(root)}\n"
+                + REGENERATE_HK_EXPORT_HINT
+            )
+        if not item.get("copied"):
+            continue
+        export_path = _safe_export_relative(item.get("export_path", ""))
+        if export_path is None or not export_path.startswith("artifacts/"):
+            raise ContractCheckError(
+                f"HK export copied artifact has invalid export_path in {meta_path.relative_to(root)}\n"
+                + REGENERATE_HK_EXPORT_HINT
+            )
+        copied_artifact_paths.add(export_path)
+        if export_path not in files:
+            raise ContractCheckError(
+                f"HK export copied artifact is missing from files list: {export_path}\n"
+                + REGENERATE_HK_EXPORT_HINT
+            )
+        if export_path not in file_hashes:
+            raise ContractCheckError(
+                f"HK export copied artifact is missing from file_hashes: {export_path}\n"
+                + REGENERATE_HK_EXPORT_HINT
+            )
+        if item.get("sha256") and item.get("sha256") != file_hashes.get(export_path):
+            raise ContractCheckError(
+                f"HK export copied artifact sha256 does not match file_hashes: {export_path}\n"
+                + REGENERATE_HK_EXPORT_HINT
+            )
+    expected_files = set(HK_EXPORT_REQUIRED_FILES) | copied_artifact_paths
+    unexpected_files = sorted(set(files) - expected_files)
+    if unexpected_files:
+        raise ContractCheckError(
+            f"HK export metadata files list has unexpected entries in {meta_path.relative_to(root)}: "
+            + ", ".join(unexpected_files)
+            + "\n"
+            + REGENERATE_HK_EXPORT_HINT
+        )
+    unsafe_hash_paths = sorted(
+        str(relative)
+        for relative in file_hashes
+        if _safe_export_relative(relative) is None
+    )
+    unexpected_hash_paths = sorted(
+        str(relative) for relative in file_hashes if str(relative) not in set(files)
+    )
+    if unsafe_hash_paths or unexpected_hash_paths:
+        details = []
+        if unsafe_hash_paths:
+            details.append("unsafe paths: " + ", ".join(unsafe_hash_paths))
+        if unexpected_hash_paths:
+            details.append("unexpected paths: " + ", ".join(unexpected_hash_paths))
+        raise ContractCheckError(
+            f"HK export metadata file_hashes contains invalid paths in {meta_path.relative_to(root)}: "
+            + "; ".join(details)
+            + "\n"
+            + REGENERATE_HK_EXPORT_HINT
+        )
     missing_hashes = sorted(HK_EXPORT_HASHED_FILES - set(file_hashes))
     if missing_hashes:
         raise ContractCheckError(
@@ -464,13 +568,21 @@ def validate_hk_export_dir(root: Path, export_dir: Path) -> None:
             + REGENERATE_HK_EXPORT_HINT
         )
     for relative, expected_hash in file_hashes.items():
-        file_path = export_dir / str(relative)
+        safe_relative = _safe_export_relative(relative)
+        assert safe_relative is not None
+        file_path = export_dir / safe_relative
         if not file_path.exists():
             raise ContractCheckError(
                 f"HK export hashed file is missing: {file_path.relative_to(root)}\n"
                 + REGENERATE_HK_EXPORT_HINT
             )
-        actual_hash = "sha256:" + hashlib.sha256(file_path.read_bytes()).hexdigest()
+        if file_path.is_symlink():
+            raise ContractCheckError(
+                f"HK export hashed file must not be a symlink: {file_path.relative_to(root)}\n"
+                + REGENERATE_HK_EXPORT_HINT
+            )
+        content = file_path.read_bytes()
+        actual_hash = "sha256:" + hashlib.sha256(content).hexdigest()
         if actual_hash != expected_hash:
             raise ContractCheckError(
                 f"HK export file hash mismatch: {file_path.relative_to(root)}\n"

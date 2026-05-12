@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import subprocess
 from pathlib import Path
+from typing import Any, cast
 
 import pytest
 
@@ -203,6 +204,140 @@ run_from = "target"
     assert resolved["worktree_projected_target"] == str((worktree / "module").resolve())
 
 
+def test_agent_sim_attaches_tool_transcript_and_exports_handoff(
+    tmp_path: Path,
+) -> None:
+    target = git_init(tmp_path / "repo")
+    transcript = tmp_path / "codex-review-events.jsonl"
+    transcript.write_text('{"event":"review","message":"No blockers"}\n')
+    summary = tmp_path / "codex-review-last.md"
+    summary.write_text("# Codex review\nNo blockers.\n")
+
+    _json(
+        run_hk(
+            "start",
+            "agent-artifact-attach",
+            "--plan",
+            "Attach tool-produced transcript evidence before handoff.",
+            "--target",
+            str(target),
+            "--json",
+        )
+    )
+    (target / "README.md").write_text(
+        "# demo\n\nArtifact simulation touched this file.\n"
+    )
+    _json(
+        run_hk(
+            "decide",
+            "Artifact attachment changes no product spec.",
+            "--spec-impact",
+            "not-needed",
+            "--target",
+            str(target),
+            "--json",
+        )
+    )
+    attached = _json(
+        run_hk(
+            "artifact",
+            "attach",
+            "--path",
+            str(transcript),
+            "--kind",
+            "codex-review-transcript",
+            "--label",
+            "Codex review JSONL",
+            "--redaction",
+            "external",
+            "--target",
+            str(target),
+            "--json",
+        )
+    )
+    _json(
+        run_hk(
+            "artifact",
+            "attach",
+            "--path",
+            str(summary),
+            "--kind",
+            "codex-review-summary",
+            "--label",
+            "Codex review final message",
+            "--redaction",
+            "external",
+            "--target",
+            str(target),
+            "--json",
+        )
+    )
+    listed = _json(run_hk("artifact", "list", "--target", str(target), "--json"))
+    artifacts = listed["artifacts"]
+    assert isinstance(artifacts, list)
+    artifact_rows = cast("list[dict[str, Any]]", artifacts)
+    assert [item["kind"] for item in artifact_rows] == [
+        "codex-review-transcript",
+        "codex-review-summary",
+    ]
+    assert attached["copied"] is True
+
+    _json(
+        run_hk(
+            "validate",
+            "--why",
+            "Native validation command path still works with attached artifacts.",
+            "--target",
+            str(target),
+            "--json",
+            "--",
+            "python3",
+            "-c",
+            "print('artifact workflow ok')",
+        )
+    )
+    _json(
+        run_hk(
+            "review",
+            "add",
+            "--backend",
+            "codex-cli",
+            "--reviewer",
+            "fresh-context-reviewer",
+            "--rubric",
+            "artifact-workflow",
+            "--summary",
+            "Transcript attachment workflow is understandable.",
+            "--target",
+            str(target),
+            "--json",
+        )
+    )
+    _json(run_hk("sync", "--target", str(target), "--json"))
+    ready = _json(run_hk("ready", "--target", str(target), "--json"))
+    assert ready["ready"] is True
+
+    export_dir = tmp_path / "export"
+    exported = _json(
+        run_hk(
+            "export",
+            "--format",
+            "handoff-dir",
+            "--output",
+            str(export_dir),
+            "--target",
+            str(target),
+            "--json",
+        )
+    )
+    assert exported["fresh"] is True
+    metadata = json.loads((export_dir / "meta.json").read_text())
+    export_paths = [item["export_path"] for item in metadata["attached_artifacts"]]
+    assert all(path in metadata["files"] for path in export_paths)
+    assert all((export_dir / path).exists() for path in export_paths)
+    assert "Codex review JSONL" in (export_dir / "README.md").read_text()
+
+
 def test_agent_sim_validation_and_review_go_stale_after_diff_changes(
     tmp_path: Path,
 ) -> None:
@@ -271,7 +406,8 @@ def test_agent_sim_validation_and_review_go_stale_after_diff_changes(
     assert payload["ready"] is False
     messages = {check["id"]: check["message"] for check in payload["checks"]}
     assert "validation evidence is stale" in messages["validation"]
-    assert "accepted review is stale" in messages["review"]
+    assert "does not cover current changed paths" in messages["review"]
+    assert "targeted follow-up" in messages["review"]
 
 
 def test_agent_sim_local_state_churn_stales_sync_exclusion(tmp_path: Path) -> None:

@@ -27,6 +27,7 @@ from harness_toolkit.kit.handoff.export import (
     HandoffExportError,
     prepare_generated_directory,
     reject_symlink_ancestors,
+    safe_copy_generated_file,
     safe_write_generated_file,
 )
 from harness_toolkit.kit.ledger.events import append_lifecycle_event
@@ -211,6 +212,7 @@ class ReviewResult:
     summary: str
     disposition: str
     review_name: str = ""
+    reviewed_paths: list[str] | None = None
 
 
 @dataclass(frozen=True)
@@ -263,6 +265,25 @@ class ArtifactResult:
     redaction: str
 
 
+@dataclass(frozen=True)
+class ArtifactRecord:
+    seq: int
+    kind: str
+    label: str
+    source_path: str
+    artifact_path: str
+    sha256: str
+    size_bytes: int
+    copied: bool
+    redaction: str
+
+
+@dataclass(frozen=True)
+class ArtifactListResult:
+    work_id: str
+    artifacts: list[ArtifactRecord]
+
+
 JsonDataclass = (
     Brief
     | InitResult
@@ -280,6 +301,7 @@ JsonDataclass = (
     | HandoffResult
     | ExportResult
     | ArtifactResult
+    | ArtifactListResult
 )
 
 
@@ -601,6 +623,14 @@ def git_path_state_hash(path: Path, candidate: str) -> str:
     return git_snapshot.git_path_state_hash(path, candidate)
 
 
+def changed_path_hashes(path: Path, changed_paths: tuple[str, ...]) -> dict[str, str]:
+    return {
+        candidate: digest
+        for candidate in changed_paths
+        if (digest := git_snapshot.git_worktree_path_hash(path, candidate))
+    }
+
+
 def excluded_path_metadata(
     path: Path, exclude_paths: tuple[str, ...]
 ) -> list[dict[str, str]]:
@@ -904,6 +934,38 @@ def artifact_filename(source: Path, *, kind: str) -> str:
     return f"artifact_{timestamp}_{kind}_{name}"
 
 
+def _artifact_record_from_event(event: EventRecord) -> ArtifactRecord | None:
+    if event.type != "artifact_attached":
+        return None
+    data = event.data
+    return ArtifactRecord(
+        seq=event.seq,
+        kind=str(data.get("kind", "")),
+        label=str(data.get("label", "")),
+        source_path=str(data.get("source_path", "")),
+        artifact_path=str(data.get("artifact_path", "")),
+        sha256=str(data.get("sha256", "")),
+        size_bytes=int_from_event_data(data, "size_bytes"),
+        copied=bool(data.get("copied", False)),
+        redaction=str(data.get("redaction", "unknown")),
+    )
+
+
+def artifact_records(
+    target: Path, *, no_local_files: bool = False
+) -> ArtifactListResult:
+    state = resolve_local_state(target, no_local_files=no_local_files)
+    work_dir = active_work_dir(state) if state.state_dir.exists() else None
+    if work_dir is None:
+        return ArtifactListResult(work_id="", artifacts=[])
+    records = [
+        artifact
+        for event in read_events(work_dir)
+        if (artifact := _artifact_record_from_event(event)) is not None
+    ]
+    return ArtifactListResult(work_id=work_dir.name, artifacts=records)
+
+
 def attach_artifact(
     target: Path,
     *,
@@ -929,6 +991,10 @@ def attach_artifact(
     size_bytes = source.stat().st_size
     digest = file_sha256(source)
     artifacts_dir = work_dir / "artifacts"
+    if artifacts_dir.is_symlink():
+        raise LocalWorkflowError(
+            f"artifact directory must not be a symlink: {artifacts_dir}"
+        )
     artifacts_dir.mkdir(exist_ok=True)
     if copy:
         destination = artifacts_dir / artifact_filename(source, kind=clean_kind)
@@ -1118,7 +1184,11 @@ def brief_markdown(value: Brief) -> str:
 
 
 def render_handoff(
-    work_dir: Path, state: LocalState, *, format: HandoffFormat = "markdown"
+    work_dir: Path,
+    state: LocalState,
+    *,
+    format: HandoffFormat = "markdown",
+    freshness_excludes: tuple[str, ...] = (),
 ) -> str:
     events = read_events(work_dir)
     evidence = read_evidence(work_dir)
@@ -1131,7 +1201,12 @@ def render_handoff(
         sync_status=sync_status_for(state),
         events=events,
         evidence=evidence,
-        readiness=ready_for_work(work_dir, state, check_handoff=False),
+        readiness=ready_for_work(
+            work_dir,
+            state,
+            check_handoff=False,
+            freshness_excludes=freshness_excludes,
+        ),
     )
 
 
@@ -1201,6 +1276,7 @@ def add_review(
     summary: str,
     disposition: str = "accepted",
     review_name: str = "",
+    reviewed_paths: tuple[str, ...] = (),
     no_local_files: bool = False,
 ) -> ReviewResult:
     if not backend.strip():
@@ -1222,6 +1298,28 @@ def add_review(
             ProfileContext.resolve(state.target_scope).review_named(clean_review_name)
         except (KeyError, ProfileError) as e:
             raise LocalWorkflowError(str(e)) from e
+    current_changed_paths = tuple(changed_paths_for_work(state.target_root, work_dir))
+    normalized_reviewed_paths: list[str] = []
+    for path in reviewed_paths:
+        clean_path = path.strip().replace("\\", "/")
+        while clean_path.startswith("./"):
+            clean_path = clean_path[2:]
+        clean_path = clean_path.strip("/")
+        if clean_path:
+            normalized_reviewed_paths.append(clean_path)
+    clean_reviewed_paths = tuple(dict.fromkeys(normalized_reviewed_paths))
+    if clean_reviewed_paths:
+        current_changed_set = set(current_changed_paths)
+        unknown_paths = [
+            path for path in clean_reviewed_paths if path not in current_changed_set
+        ]
+        if unknown_paths:
+            preview = ", ".join(unknown_paths[:3])
+            raise LocalWorkflowError(
+                "review --path must name currently changed repo-relative paths; "
+                f"not currently changed: {preview}"
+            )
+    covered_paths = clean_reviewed_paths or current_changed_paths
     record_data: dict[str, object] = {
         "backend": backend.strip(),
         "reviewer": reviewer.strip(),
@@ -1231,7 +1329,8 @@ def add_review(
         "diff_hash": validation_diff_hash(
             state.target_root, base_sha=work_start_git_sha(read_events(work_dir))
         ),
-        "changed_paths": changed_paths_for_work(state.target_root, work_dir),
+        "changed_paths": list(covered_paths),
+        "changed_path_hashes": changed_path_hashes(state.target_root, covered_paths),
     }
     if clean_review_name:
         record_data["review_name"] = clean_review_name
@@ -1245,6 +1344,7 @@ def add_review(
         summary=summary.strip(),
         disposition=disposition.strip() or "accepted",
         review_name=clean_review_name,
+        reviewed_paths=list(covered_paths),
     )
 
 
@@ -1314,13 +1414,15 @@ def ready(target: Path, *, no_local_files: bool = False) -> ReadyResult:
 
 
 def required_profile_items_for_work(
-    state: LocalState, work_dir: Path
+    state: LocalState, work_dir: Path, *, changed_paths: tuple[str, ...] | None = None
 ) -> tuple[tuple[RequiredProfileItem, ...], tuple[RequiredProfileItem, ...]]:
     try:
         context = ProfileContext.resolve(
             state.target_scope,
             repo_root=state.target_root,
-            changed_paths=tuple(changed_paths_for_work(state.target_root, work_dir)),
+            changed_paths=changed_paths
+            if changed_paths is not None
+            else tuple(changed_paths_for_work(state.target_root, work_dir)),
         )
     except (KeyError, ProfileError) as e:
         raise LocalWorkflowError(str(e)) from e
@@ -1347,36 +1449,69 @@ def required_profile_items_for_work(
     return required_checks, required_reviews
 
 
+def _path_is_under_any(path: str, prefixes: tuple[str, ...]) -> bool:
+    return any(
+        path == prefix or path.startswith(f"{prefix.rstrip('/')}/")
+        for prefix in prefixes
+    )
+
+
+def _filtered_changed_paths(
+    paths: tuple[str, ...], excludes: tuple[str, ...]
+) -> tuple[str, ...]:
+    return tuple(path for path in paths if not _path_is_under_any(path, excludes))
+
+
 def ready_for_work(
-    work_dir: Path, state: LocalState, *, check_handoff: bool = True
+    work_dir: Path,
+    state: LocalState,
+    *,
+    check_handoff: bool = True,
+    freshness_excludes: tuple[str, ...] = (),
 ) -> ReadyResult:
     events = read_events(work_dir)
     evidence = read_evidence(work_dir)
-    required_checks, required_reviews = required_profile_items_for_work(state, work_dir)
+    current_changed_paths = _filtered_changed_paths(
+        tuple(changed_paths_for_work(state.target_root, work_dir)), freshness_excludes
+    )
+    required_checks, required_reviews = required_profile_items_for_work(
+        state, work_dir, changed_paths=current_changed_paths
+    )
     sync_status = sync_status_for(state)
     if sync_status == "sync-dangerously-skipped":
         current_diff_hashes = (
             validation_diff_hash(
                 state.target_root,
                 base_sha=work_start_git_sha(events),
-                extra_excludes=COMMON_AGENT_LOCAL_STATE_PATHS,
+                extra_excludes=(*COMMON_AGENT_LOCAL_STATE_PATHS, *freshness_excludes),
             ),
             validation_diff_hash(
-                state.target_root, base_sha=work_start_git_sha(events)
+                state.target_root,
+                base_sha=work_start_git_sha(events),
+                extra_excludes=freshness_excludes,
             ),
         )
+        review_excludes = COMMON_AGENT_LOCAL_STATE_PATHS
     else:
         sync_excludes = latest_sync_excluded_paths(events)
+        review_excludes = sync_excludes
         current_diff_hashes = (
             validation_diff_hash(
                 state.target_root,
                 base_sha=work_start_git_sha(events),
-                extra_excludes=sync_excludes,
+                extra_excludes=(*sync_excludes, *freshness_excludes),
             ),
             validation_diff_hash(
-                state.target_root, base_sha=work_start_git_sha(events)
+                state.target_root,
+                base_sha=work_start_git_sha(events),
+                extra_excludes=freshness_excludes,
             ),
         )
+    review_changed_paths = tuple(
+        path
+        for path in current_changed_paths
+        if not _path_is_under_any(path, review_excludes)
+    )
     return ready_for_events(
         work_id=work_dir.name,
         events=events,
@@ -1388,7 +1523,11 @@ def ready_for_work(
         handoff_check=lambda: render_handoff(work_dir, state),
         required_profile_checks=required_checks,
         required_profile_reviews=required_reviews,
-        changed_paths=tuple(changed_paths_for_work(state.target_root, work_dir)),
+        changed_paths=review_changed_paths,
+        current_changed_path_hashes=changed_path_hashes(
+            state.target_root,
+            review_changed_paths,
+        ),
     )
 
 
@@ -1546,7 +1685,84 @@ def _text_hash(content: str) -> str:
 
 
 def _file_hash(path: Path) -> str:
+    if path.is_symlink():
+        raise LocalWorkflowError(f"HK export contains symlinked file: {path}")
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _artifact_export_filename(record: ArtifactRecord) -> str:
+    clean_kind = validate_artifact_kind(record.kind)
+    source_name = Path(record.artifact_path or record.source_path).name or "artifact"
+    clean_name = re.sub(r"[^a-zA-Z0-9_.-]+", "-", source_name).strip(".-")
+    clean_name = clean_name or "artifact"
+    return f"artifact_{record.seq}_{clean_kind}_{clean_name}"
+
+
+def _attached_artifact_export_records(
+    events: list[EventRecord],
+) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+    for event in events:
+        record = _artifact_record_from_event(event)
+        if record is None:
+            continue
+        export_path = (
+            f"artifacts/{_artifact_export_filename(record)}" if record.copied else ""
+        )
+        rows.append(
+            {
+                "seq": record.seq,
+                "kind": record.kind,
+                "label": record.label,
+                "redaction": record.redaction,
+                "copied": record.copied,
+                "export_path": export_path,
+                "sha256": record.sha256,
+                "size_bytes": record.size_bytes,
+            }
+        )
+    return rows
+
+
+def _copied_artifacts_for_export(
+    work_dir: Path, events: list[EventRecord]
+) -> list[tuple[Path, str, str]]:
+    rows: list[tuple[Path, str, str]] = []
+    artifacts_dir_raw = work_dir / "artifacts"
+    if artifacts_dir_raw.is_symlink():
+        raise LocalWorkflowError(
+            f"artifact directory must not be a symlink: {artifacts_dir_raw}"
+        )
+    artifacts_dir = artifacts_dir_raw.resolve(strict=False)
+    for event in events:
+        record = _artifact_record_from_event(event)
+        if record is None or not record.copied:
+            continue
+        raw_source = Path(record.artifact_path)
+        try:
+            source = raw_source.resolve(strict=True)
+            source.relative_to(artifacts_dir)
+        except (FileNotFoundError, ValueError) as e:
+            raise LocalWorkflowError(
+                "attached copied artifact is not in this work's HK artifacts "
+                f"directory: {record.artifact_path}"
+            ) from e
+        if raw_source.is_symlink() or source.is_symlink():
+            raise LocalWorkflowError(
+                f"attached copied artifact must not be a symlink: {record.artifact_path}"
+            )
+        if not source.is_file():
+            raise LocalWorkflowError(
+                f"attached artifact is missing from local HK state: {record.artifact_path}"
+            )
+        digest = file_sha256(source)
+        if digest != record.sha256:
+            raise LocalWorkflowError(
+                "attached artifact content changed after attachment: "
+                f"{record.artifact_path}"
+            )
+        rows.append((source, f"artifacts/{_artifact_export_filename(record)}", digest))
+    return rows
 
 
 def _handoff_dir_metadata(
@@ -1560,6 +1776,10 @@ def _handoff_dir_metadata(
     file_hashes: dict[str, str] | None = None,
 ) -> dict[str, object]:
     output_relative = _relative_to_root(output_path, state.target_root)
+    artifact_exports = _attached_artifact_export_records(events)
+    artifact_files = [
+        str(row["export_path"]) for row in artifact_exports if row.get("export_path")
+    ]
     return {
         "schema_version": 1,
         "generated_by": "hk export --format handoff-dir",
@@ -1587,7 +1807,9 @@ def _handoff_dir_metadata(
             "README.md",
             "meta.json",
             "artifacts/README.md",
+            *artifact_files,
         ],
+        "attached_artifacts": artifact_exports,
         "file_hashes": file_hashes or {},
     }
 
@@ -1673,7 +1895,29 @@ def _remove_obsolete_export_files(destination: Path, keep: set[str]) -> None:
 
 def _sanitize_export_content(content: str, state: LocalState) -> str:
     root = str(state.target_root)
-    return content.replace(root + "/", "").replace(root, ".")
+    sanitized = content.replace(root + "/", "").replace(root, ".")
+    return re.sub(
+        r"\.harness-local/[^`\s)]+",
+        "<local HK state not exported>",
+        sanitized,
+    )
+
+
+def _sanitize_export_artifact_paths(content: str, events: list[EventRecord]) -> str:
+    sanitized = content
+    for event in events:
+        record = _artifact_record_from_event(event)
+        if record is None:
+            continue
+        replacement = (
+            f"artifacts/{_artifact_export_filename(record)}"
+            if record.copied
+            else "<referenced artifact not copied into export>"
+        )
+        for value in (record.artifact_path, record.source_path):
+            if value:
+                sanitized = sanitized.replace(value, replacement)
+    return sanitized
 
 
 def _compare_export_metadata(
@@ -1722,9 +1966,17 @@ def export_handoff_dir(
         reject_symlink_ancestors(destination)
     except HandoffExportError as e:
         raise LocalWorkflowError(str(e)) from e
+    output_relative = _relative_to_root(destination, state.target_root)
+    export_freshness_excludes = (output_relative,)
     events = read_events(work_dir)
     evidence = read_evidence(work_dir)
-    readiness = ready_for_work(work_dir, state, check_handoff=False)
+    readiness = ready_for_work(
+        work_dir,
+        state,
+        check_handoff=False,
+        freshness_excludes=export_freshness_excludes,
+    )
+    artifact_files = _copied_artifacts_for_export(work_dir, events)
     metadata = _handoff_dir_metadata(
         state=state,
         work_dir=work_dir,
@@ -1739,6 +1991,10 @@ def export_handoff_dir(
             raise LocalWorkflowError(
                 f"HK export metadata missing: {meta_path}\n"
                 + _regenerate_export_hint(destination)
+            )
+        if meta_path.is_symlink():
+            raise LocalWorkflowError(
+                f"HK export metadata must not be a symlink: {meta_path}"
             )
         try:
             recorded = json.loads(meta_path.read_text())
@@ -1768,14 +2024,56 @@ def export_handoff_dir(
                 f"HK export metadata file_hashes field is invalid: {meta_path}\n"
                 + _regenerate_export_hint(destination)
             )
-        hash_mismatches = [
-            str(relative)
-            for relative, expected_hash in recorded_hashes.items()
-            if (destination / str(relative)).exists()
-            and _file_hash(destination / str(relative)) != expected_hash
+        expected_artifact_hashes = {
+            relative: digest for _, relative, digest in artifact_files
+        }
+        stale_artifact_hashes = [
+            relative
+            for relative, digest in expected_artifact_hashes.items()
+            if recorded_hashes.get(relative) != digest
         ]
+        unsafe_hash_paths: list[str] = []
+        unexpected_hash_paths: list[str] = []
+        hash_mismatches: list[str] = []
+        artifact_hash_mismatches: list[str] = []
+        symlink_files = [
+            str(item)
+            for item in expected_files
+            if (destination / str(item)).is_symlink()
+        ]
+        expected_file_set = {str(item) for item in expected_files}
+        for relative, expected_hash in recorded_hashes.items():
+            safe_relative = _safe_export_relative(relative)
+            if safe_relative is None:
+                unsafe_hash_paths.append(str(relative))
+                continue
+            if safe_relative not in expected_file_set:
+                unexpected_hash_paths.append(safe_relative)
+                continue
+            hashed_path = destination / safe_relative
+            if hashed_path.is_symlink():
+                if safe_relative not in symlink_files:
+                    symlink_files.append(safe_relative)
+                continue
+            if not hashed_path.exists():
+                continue
+            actual_hash = _file_hash(hashed_path)
+            if safe_relative in expected_artifact_hashes:
+                if actual_hash != expected_artifact_hashes[safe_relative]:
+                    artifact_hash_mismatches.append(safe_relative)
+            elif actual_hash != expected_hash:
+                hash_mismatches.append(safe_relative)
         mismatches = _compare_export_metadata(metadata, recorded)
-        if missing_files or mismatches or hash_mismatches:
+        if (
+            missing_files
+            or mismatches
+            or hash_mismatches
+            or unsafe_hash_paths
+            or unexpected_hash_paths
+            or stale_artifact_hashes
+            or artifact_hash_mismatches
+            or symlink_files
+        ):
             details = []
             if missing_files:
                 details.append("missing files: " + ", ".join(missing_files))
@@ -1785,6 +2083,26 @@ def export_handoff_dir(
                 details.append(
                     "modified generated files: " + ", ".join(hash_mismatches)
                 )
+            if unsafe_hash_paths:
+                details.append(
+                    "unsafe file_hashes paths: " + ", ".join(unsafe_hash_paths)
+                )
+            if unexpected_hash_paths:
+                details.append(
+                    "unexpected file_hashes paths: " + ", ".join(unexpected_hash_paths)
+                )
+            if stale_artifact_hashes:
+                details.append(
+                    "stale attached artifact hashes: "
+                    + ", ".join(stale_artifact_hashes)
+                )
+            if artifact_hash_mismatches:
+                details.append(
+                    "modified attached artifacts: "
+                    + ", ".join(artifact_hash_mismatches)
+                )
+            if symlink_files:
+                details.append("symlinked files: " + ", ".join(symlink_files))
             raise LocalWorkflowError(
                 "HK export is stale or incomplete: "
                 + "; ".join(details)
@@ -1804,9 +2122,17 @@ def export_handoff_dir(
     prepare_generated_directory(destination)
     artifacts_dir = destination / "artifacts"
     prepare_generated_directory(artifacts_dir)
-    output_relative = _relative_to_root(destination, state.target_root)
     handoff_content = _sanitize_export_content(
-        render_handoff(work_dir, state, format="markdown"), state
+        _sanitize_export_artifact_paths(
+            render_handoff(
+                work_dir,
+                state,
+                format="markdown",
+                freshness_excludes=export_freshness_excludes,
+            ),
+            events,
+        ),
+        state,
     )
     files = {
         "README.md": _export_readme(
@@ -1817,6 +2143,7 @@ def export_handoff_dir(
         "artifacts/README.md": _artifacts_readme(),
     }
     file_hashes = {relative: _text_hash(content) for relative, content in files.items()}
+    file_hashes.update({relative: digest for _, relative, digest in artifact_files})
     metadata = _handoff_dir_metadata(
         state=state,
         work_dir=work_dir,
@@ -1827,11 +2154,17 @@ def export_handoff_dir(
         file_hashes=file_hashes,
     )
     files["meta.json"] = json.dumps(metadata, indent=2, sort_keys=True) + "\n"
-    _remove_obsolete_export_files(destination, set(files))
+    keep_files = set(files) | {relative for _, relative, _ in artifact_files}
+    _remove_obsolete_export_files(destination, keep_files)
     for relative, content in files.items():
         path = destination / relative
         try:
             safe_write_generated_file(path, content)
+        except HandoffExportError as e:
+            raise LocalWorkflowError(str(e)) from e
+    for source, relative, _ in artifact_files:
+        try:
+            safe_copy_generated_file(source, destination / relative)
         except HandoffExportError as e:
             raise LocalWorkflowError(str(e)) from e
     return ExportResult(

@@ -29,12 +29,30 @@ def artifact_display_path(artifact: lifecycle_events.ArtifactEvent) -> str:
     return path or "<unrecorded>"
 
 
+def artifact_metadata(artifact: lifecycle_events.ArtifactEvent) -> str:
+    copied = "copied" if artifact.copied else "referenced"
+    digest = artifact.sha256.removeprefix("sha256:")[:12] or "unknown"
+    return f"{copied}, redaction={artifact.redaction}, {artifact.size_bytes} bytes, sha256:{digest}"
+
+
 def evidence_label(record: EvidenceRecord) -> str:
     return f" [{record.check_name}]" if record.check_name else ""
 
 
 def review_label(review: lifecycle_events.ReviewEvent) -> str:
     return f" [{review.review_name}]" if review.review_name else ""
+
+
+def review_paths_text(review: lifecycle_events.ReviewEvent) -> str:
+    if not review.changed_paths:
+        return ""
+    preview = ", ".join(review.changed_paths[:3])
+    suffix = (
+        ""
+        if len(review.changed_paths) <= 3
+        else f", +{len(review.changed_paths) - 3} more"
+    )
+    return f" paths: {preview}{suffix}."
 
 
 def render_handoff_pr_markdown(
@@ -88,7 +106,7 @@ def render_handoff_pr_markdown(
             label = artifact.label.strip()
             label_text = f" — {label}" if label else ""
             lines.append(
-                f"- {artifact.kind}: `{artifact_display_path(artifact)}`{label_text}"
+                f"- {artifact.kind}: `{artifact_display_path(artifact)}` ({artifact_metadata(artifact)}){label_text}"
             )
     if not readiness.ready:
         lines.extend(["", "## Open readiness checks"])
@@ -143,7 +161,7 @@ def render_summary_markdown(
         for review in reviews:
             rubrics = ", ".join(review.rubrics)
             lines.append(
-                f"- {review.backend} / {review.reviewer}{review_label(review)} ({rubrics}): {review.summary} [{review.disposition}]"
+                f"- {review.backend} / {review.reviewer}{review_label(review)} ({rubrics}): {review.summary}{review_paths_text(review)} [{review.disposition}]"
             )
     elif review_skips:
         lines.append("- No review recorded; see dangerous review skip below.")
@@ -161,7 +179,7 @@ def render_summary_markdown(
             label = artifact.label.strip()
             label_text = f" — {label}" if label else ""
             lines.append(
-                f"- {artifact.kind}: `{artifact_display_path(artifact)}`{label_text}"
+                f"- {artifact.kind}: `{artifact_display_path(artifact)}` ({artifact_metadata(artifact)}){label_text}"
             )
     lines.extend(["", "## Readiness checks"])
     for check in readiness.checks:
@@ -245,7 +263,7 @@ def render_handoff_markdown(
         for review in reviews:
             rubrics = ", ".join(review.rubrics)
             lines.append(
-                f"- {review.backend} / {review.reviewer}{review_label(review)} ({rubrics}): {review.summary} [{review.disposition}]"
+                f"- {review.backend} / {review.reviewer}{review_label(review)} ({rubrics}): {review.summary}{review_paths_text(review)} [{review.disposition}]"
             )
     else:
         lines.append("- None recorded.")
@@ -255,9 +273,8 @@ def render_handoff_markdown(
         for artifact in artifacts:
             label = artifact.label.strip()
             label_text = f" — {label}" if label else ""
-            copied = "copied" if artifact.copied else "referenced"
             lines.append(
-                f"- {artifact.kind}: `{artifact_display_path(artifact)}` ({copied}, {artifact.size_bytes} bytes, {artifact.sha256}){label_text}"
+                f"- {artifact.kind}: `{artifact_display_path(artifact)}` ({artifact_metadata(artifact)}){label_text}"
             )
     sync_exclusions = [
         checkpoint

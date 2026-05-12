@@ -51,6 +51,7 @@ class ProfileSuggestion:
     required: bool
     matched_by: str
     matched_paths: tuple[str, ...]
+    matched_patterns: tuple[str, ...] = ()
     enforced: bool = False
     record_command: str = ""
     prompt_command: str = ""
@@ -95,6 +96,7 @@ class ProfileResolution:
     source: str
     reason: str
     target: str
+    match_kind: str
     matched_target: str | None = None
     matched_name: str | None = None
     config_path: str | None = None

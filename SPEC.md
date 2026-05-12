@@ -117,8 +117,9 @@ hk context --from-file <path|-> --target <repo-or-module> --json
 hk decide "TEXT" --spec-impact none|updated|not-needed --spec-ref <path> --target <repo-or-module> --json
 hk validate [--check <profile-check>] [--timeout-seconds N] [--max-log-bytes N] --why "WHAT THIS VALIDATES" --target <repo-or-module> -- <command...>
 hk review prompt [profile-review] --target <repo-or-module> --json
-hk review add [--review <profile-review>] --backend <independent-tool> --reviewer <independent-reviewer-or-fresh-context-subagent> --rubric <name> --summary "TEXT" --target <repo-or-module> --json
+hk review add [--review <profile-review>] [--path <repo-relative-path>]... --backend <independent-tool> --reviewer <independent-reviewer-or-fresh-context-subagent> --rubric <name> --summary "TEXT" --target <repo-or-module> --json
 hk artifact attach --path <file> --kind <kind> --label "TEXT" --target <repo-or-module> --json
+hk artifact list --target <repo-or-module> --json
 hk sync --exclude <path> --reason "TEXT" --target <repo-or-module> --json
 hk sync --target <repo-or-module> --json
 hk sync --check --target <repo-or-module> --json
@@ -147,7 +148,11 @@ if the harness provides a fresh-context review mechanism, the agent should dispa
 `hk review prompt` to it before handoff. Examples include Pi `subagent`, Claude
 Code `Agent`/legacy `Task`, and Codex via the Shell tool running
 `codex review --uncommitted`. Agents should re-run `hk status` after review
-because review tools may create agent-local state. If no independent AI/tool
+because review tools may create agent-local state. Reviews record deterministic
+path/content facts for the reviewed changed paths. Readiness may accept multiple
+targeted follow-up reviews when their reviewed paths cover the current
+review-relevant diff, and generated active HK export refreshes do not by
+themselves require another external review. If no independent AI/tool
 or fresh-context review is available, the
 agent must use an explicit dangerous review skip with a label, reason, and
 mitigation. If sync freshness is stale only because of
@@ -157,11 +162,19 @@ rather than limited to a hardcoded `.pi`/`.claude` allowlist, while root,
 pathspec, tracked, staged, and missing paths remain invalid. Whole-sync dangerous
 skips remain an explicit fallback.
 
+`hk profile resolve` and `hk checks --changed` MUST explain profile/check/review
+selection without changing readiness semantics. JSON diagnostics may grow only
+additively and should include the profile match kind plus changed files/patterns
+that triggered suggested or required profile items.
+
 `hk artifact attach` records harness/tool-produced files such as agent session
 transcripts, Codex review transcripts, HAR files, or raw validation artifacts by
 copying or referencing the source file, hashing it, and appending metadata to the
-Harness Kit lifecycle ledger. Agents should attach real files produced by tools rather
-than narrating their own session text into HK.
+Harness Kit lifecycle ledger. `hk artifact list` is a read-only inspection surface
+for those attachments. Handoff-dir exports include copied attached artifacts under
+explicit-only `artifacts/` and record their metadata; referenced `--no-copy`
+artifacts stay referenced by metadata only. Agents should attach real files
+produced by tools rather than narrating their own session text into HK.
 
 Captured validation evidence may bound process runtime and transcript size with
 `--timeout-seconds` and `--max-log-bytes`. Timeout and truncation are part of the

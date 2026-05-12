@@ -146,10 +146,10 @@ are the common commands to reach for when the coach asks for something specific:
 | Record useful framing | `hk context "..."` |
 | Record or refine the adopted plan | `hk plan "..."` / `hk plan --from-file FILE` |
 | Record decisions and spec impact | `hk decide "..." --spec-impact none\|updated\|not-needed` |
-| See configured guidance without running it | `hk profile ...`, `hk checks --target . --changed --json` |
+| See configured guidance without running it | `hk profile resolve --target . --json`, `hk checks --target . --changed --json` |
 | Capture validation evidence | `hk validate --why "Fast gate passes" -- mise run check`, `hk validate --why "Env-specific test" -- env PYTHONPATH=src pytest -q`, `hk validate --timeout-seconds 120 --max-log-bytes 200000 --why "Bounded test" -- pytest -q` |
-| Record external-enough review | `hk review prompt core-review`, `hk review add --review core-review --backend subagent --reviewer fresh-context --rubric core-quality --summary "No blockers."` |
-| Attach real tool/harness files | `hk artifact attach --path FILE --kind KIND` |
+| Record external-enough review | `hk review prompt core-review`, `hk review add --review core-review --backend subagent --reviewer fresh-context --rubric core-quality --summary "No blockers."`, `hk review add --review core-review --path src/foo.py ...` for targeted follow-up |
+| Attach/list real tool/harness files | `hk artifact attach --path FILE --kind KIND`, `hk artifact list --json` |
 | Reconcile local changes before handoff | `hk sync`, `hk sync --exclude PATH --reason "..."` |
 | Check readiness or explain it to humans | `hk ready`, `hk status`, `hk summary`, `hk handoff`, `hk export` |
 | Make an explicit exception | `hk dangerously-skip review\|validation\|sync --label LABEL --reason "..." --mitigation "..."` |
@@ -173,9 +173,13 @@ Planning can happen outside HK; agents translate the agreed intent into compact
 HK context/plan/decision records rather than asking HK to infer it. `hk start
 --plan` seeds the first lifecycle plan when work starts; `hk start` can also be
 used without a plan followed by repeated `hk plan "..."` calls as a living plan
-when the implementation shape emerges progressively. `hk artifact attach` can attach real harness/tool
-files such as agent session transcripts or Codex review transcripts by copying or
-referencing the file, hashing it, and rendering the metadata in handoff. Slugs should be short human-readable task names;
+when the implementation shape emerges progressively. `hk profile resolve` and
+`hk checks --changed` explain the resolved profile, direct/default/worktree match
+kind, and the changed files/patterns that triggered suggested or required
+checks/reviews. `hk artifact attach` can attach real harness/tool files such as
+agent session transcripts or Codex review transcripts by copying or referencing
+the file, hashing it, and rendering the metadata in handoff/export; `hk artifact
+list --json` gives agents a read-only way to verify what is attached. Slugs should be short human-readable task names;
 HK-generated work IDs provide chronological ordering. Review is required by
 default: prefer an independent AI/tool reviewer (ideally different model,
 runtime, or context) and use a fresh-context subagent as the minimum fallback.
@@ -183,7 +187,12 @@ Implementation-agent self-review does not satisfy readiness. If the harness has 
 fresh-context review mechanism, dispatch `hk review prompt` to it before handoff.
 Examples include Pi `subagent`, Claude Code `Agent`/legacy `Task`, and Codex via
 the Shell tool running `codex review --uncommitted`. Re-run `hk status` after
-review because review tools may create agent-local state. If review is impossible,
+review because review tools may create agent-local state. HK records path/content
+facts for reviewed changed paths, so later small fixes can be covered by targeted
+follow-up review records using `hk review add --path PATH ...` instead of always
+rerunning a full review. Generated `.ai/hk/<active-work-id>/` export refreshes are
+review-neutral; validate them with `hk export --check` / `mise run sync-check`.
+If review is impossible,
 record an explicit dangerous review skip with a label, reason, and mitigation.
 Use `hk status` for the agent next-action loop, `hk summary` for a concise
 human-readable readiness digest, and `hk handoff` for the longer transfer

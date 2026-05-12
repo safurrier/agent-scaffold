@@ -12,6 +12,7 @@ from harness_toolkit.kit.local import (
     add_dangerous_skip,
     add_note,
     add_review,
+    artifact_records,
     attach_artifact,
     brief,
     capture_command,
@@ -206,7 +207,207 @@ def test_artifact_attach_can_record_without_copying(tmp_path: Path) -> None:
     assert result.artifact_path == ""
     assert result.source_path == str(artifact.resolve())
     assert "referenced" in rendered.content
+    assert "redaction=external" in rendered.content
     assert str(artifact.resolve()) in rendered.content
+
+
+def test_artifact_list_returns_attached_records(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "list-artifacts")
+    artifact = tmp_path / "pi-session.jsonl"
+    artifact.write_text('{"event":"message"}\n')
+
+    attached = attach_artifact(
+        target,
+        source_path=artifact,
+        kind="pi-session-transcript",
+        label="Pi session transcript",
+        redaction="unknown",
+    )
+
+    records = artifact_records(target)
+
+    assert records.work_id.endswith("list-artifacts")
+    assert len(records.artifacts) == 1
+    record = records.artifacts[0]
+    assert record.seq == attached.seq
+    assert record.kind == "pi-session-transcript"
+    assert record.label == "Pi session transcript"
+    assert record.sha256 == attached.sha256
+    assert record.copied is True
+
+
+def test_handoff_dir_export_includes_explicit_copied_artifacts(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "export-artifacts")
+    add_note(target, kind="plan", text="Export attached artifacts.")
+    artifact = tmp_path / "codex-review.md"
+    artifact.write_text("# Codex review\nNo blockers.\n")
+    attached = attach_artifact(
+        target,
+        source_path=artifact,
+        kind="codex-review-summary",
+        label="Codex review final message",
+        redaction="external",
+    )
+    output = tmp_path / "handoff-export"
+
+    exported = export_handoff_dir(target, output_path=output)
+    metadata = json.loads((output / "meta.json").read_text())
+
+    assert exported.path == str(output)
+    attached_metadata = metadata["attached_artifacts"][0]
+    export_path = attached_metadata["export_path"]
+    assert attached_metadata["kind"] == "codex-review-summary"
+    assert export_path in metadata["files"]
+    copied = output / export_path
+    assert copied.exists()
+    assert copied.read_text() == artifact.read_text()
+    assert metadata["file_hashes"][export_path] == attached.sha256
+    assert "source_path" not in attached_metadata
+    assert "artifact_path" not in attached_metadata
+    assert str(artifact) not in (output / "README.md").read_text()
+    assert attached.artifact_path not in (output / "README.md").read_text()
+    assert ".harness-local/" not in (output / "README.md").read_text()
+    assert export_path in (output / "README.md").read_text()
+
+
+def test_artifact_attach_rejects_symlinked_artifacts_directory(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    work = create_work(target, "artifact-dir-symlink")
+    artifact_dir = Path(work.work_dir) / "artifacts"
+    shutil_target = tmp_path / "outside-artifacts"
+    shutil_target.mkdir()
+    artifact_dir.rmdir()
+    artifact_dir.symlink_to(shutil_target, target_is_directory=True)
+    artifact = tmp_path / "review.md"
+    artifact.write_text("review\n")
+
+    with pytest.raises(
+        LocalWorkflowError, match="artifact directory must not be a symlink"
+    ):
+        attach_artifact(target, source_path=artifact, kind="codex-review")
+
+
+def test_handoff_dir_export_rejects_tampered_artifact_kind_traversal(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    work = create_work(target, "artifact-kind-traversal")
+    artifact = tmp_path / "review.md"
+    artifact.write_text("review\n")
+    attach_artifact(target, source_path=artifact, kind="codex-review")
+    events_path = Path(work.work_dir) / "events.jsonl"
+    rows = [json.loads(line) for line in events_path.read_text().splitlines()]
+    for row in rows:
+        if row["type"] == "artifact_attached":
+            row["data"]["kind"] = "../../escape"
+    events_path.write_text("".join(json.dumps(row) + "\n" for row in rows))
+
+    with pytest.raises(LocalWorkflowError, match="invalid artifact kind"):
+        export_handoff_dir(target, output_path=tmp_path / "export")
+
+
+def test_handoff_dir_export_rejects_tampered_artifact_source_outside_work(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    work = create_work(target, "artifact-source-traversal")
+    artifact = tmp_path / "review.md"
+    artifact.write_text("review\n")
+    attached = attach_artifact(target, source_path=artifact, kind="codex-review")
+    external = tmp_path / "outside.md"
+    external.write_text("review\n")
+    events_path = Path(work.work_dir) / "events.jsonl"
+    rows = [json.loads(line) for line in events_path.read_text().splitlines()]
+    for row in rows:
+        if row["type"] == "artifact_attached":
+            row["data"]["artifact_path"] = str(external)
+            row["data"]["sha256"] = attached.sha256
+    events_path.write_text("".join(json.dumps(row) + "\n" for row in rows))
+
+    with pytest.raises(LocalWorkflowError, match="not in this work's HK artifacts"):
+        export_handoff_dir(target, output_path=tmp_path / "export")
+
+
+def test_handoff_dir_export_check_rejects_symlinked_export_artifact(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "artifact-export-symlink")
+    artifact = tmp_path / "review.md"
+    artifact.write_text("review\n")
+    attached = attach_artifact(target, source_path=artifact, kind="codex-review")
+    output = tmp_path / "export"
+    export_handoff_dir(target, output_path=output)
+    metadata = json.loads((output / "meta.json").read_text())
+    export_path = metadata["attached_artifacts"][0]["export_path"]
+    exported_artifact = output / export_path
+    exported_artifact.unlink()
+    exported_artifact.symlink_to(Path(attached.artifact_path))
+
+    with pytest.raises(LocalWorkflowError, match="symlinked files"):
+        export_handoff_dir(target, output_path=output, check=True)
+
+
+def test_handoff_dir_export_check_rejects_missing_artifact_file_hash(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "artifact-export-missing-hash")
+    artifact = tmp_path / "review.md"
+    artifact.write_text("review\n")
+    attach_artifact(target, source_path=artifact, kind="codex-review")
+    output = tmp_path / "export"
+    export_handoff_dir(target, output_path=output)
+    meta_path = output / "meta.json"
+    metadata = json.loads(meta_path.read_text())
+    export_path = metadata["attached_artifacts"][0]["export_path"]
+    (output / export_path).write_text("tampered\n")
+    metadata["file_hashes"].pop(export_path)
+    meta_path.write_text(json.dumps(metadata))
+
+    with pytest.raises(LocalWorkflowError, match="stale attached artifact hashes"):
+        export_handoff_dir(target, output_path=output, check=True)
+
+
+def test_handoff_dir_export_check_rejects_unsafe_file_hash_metadata(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "artifact-export-unsafe-meta")
+    artifact = tmp_path / "review.md"
+    artifact.write_text("review\n")
+    attach_artifact(target, source_path=artifact, kind="codex-review")
+    output = tmp_path / "export"
+    export_handoff_dir(target, output_path=output)
+    meta_path = output / "meta.json"
+    metadata = json.loads(meta_path.read_text())
+    metadata["file_hashes"]["../outside.txt"] = "sha256:deadbeef"
+    meta_path.write_text(json.dumps(metadata))
+
+    with pytest.raises(LocalWorkflowError, match="unsafe file_hashes paths"):
+        export_handoff_dir(target, output_path=output, check=True)
 
 
 def test_artifact_attach_requires_active_work_and_valid_file(tmp_path: Path) -> None:
@@ -267,6 +468,18 @@ def test_cli_artifact_attach_json_is_parseable(tmp_path: Path) -> None:
     assert payload["kind"] == "agent-session"
     assert payload["copied"] is True
     assert Path(payload["artifact_path"]).exists()
+
+    listed = _run_hk(
+        "artifact",
+        "list",
+        "--target",
+        str(target),
+        "--json",
+    )
+    assert listed.returncode == 0, listed.stderr
+    list_payload = json.loads(listed.stdout)
+    assert list_payload["artifacts"][0]["kind"] == "agent-session"
+    assert list_payload["artifacts"][0]["label"] == "Pi session transcript"
 
 
 def test_handoff_dir_export_rejects_symlinked_output_parent(
@@ -860,6 +1073,117 @@ def test_cli_review_help_warns_self_review_does_not_count() -> None:
     )
     assert "independent AI/tool reviewer" in result.stdout
     assert "reviewer-fresh-context" in result.stdout
+
+
+def test_review_remains_fresh_for_active_hk_export_changes(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    work = create_work(target, "review-export-neutral")
+    add_note(target, kind="plan", text="Review export-neutral behavior.")
+    add_note(target, kind="decision", text="No spec impact.")
+    add_note(target, kind="spec-impact", text="not-needed")
+    (target / "README.md").write_text("# reviewed\n")
+    add_review(
+        target,
+        backend="subagent",
+        reviewer="reviewer-fresh-context",
+        rubrics=("core",),
+        summary="Reviewed source change.",
+    )
+    export_file = target / ".ai" / "hk" / Path(work.work_dir).name / "README.md"
+    export_file.parent.mkdir(parents=True)
+    export_file.write_text("# generated export refresh\n")
+
+    result = ready(target)
+    review_check = next(check for check in result.checks if check.id == "review")
+
+    assert review_check.status == "pass"
+
+
+def test_review_reports_source_paths_changed_after_review(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "review-source-stale")
+    add_note(target, kind="plan", text="Review source staleness.")
+    add_note(target, kind="decision", text="No spec impact.")
+    add_note(target, kind="spec-impact", text="not-needed")
+    (target / "README.md").write_text("# reviewed\n")
+    add_review(
+        target,
+        backend="subagent",
+        reviewer="reviewer-fresh-context",
+        rubrics=("core",),
+        summary="Reviewed first source change.",
+    )
+    (target / "README.md").write_text("# changed after review\n")
+
+    result = ready(target)
+    review_check = next(check for check in result.checks if check.id == "review")
+
+    assert review_check.status == "fail"
+    assert "README.md" in review_check.message
+    assert "targeted follow-up" in review_check.message
+
+
+def test_review_add_path_normalizes_dot_slash(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "review-dot-slash")
+    (target / "README.md").write_text("# reviewed\n")
+
+    review = add_review(
+        target,
+        backend="subagent",
+        reviewer="reviewer-fresh-context",
+        rubrics=("core",),
+        summary="Reviewed README follow-up.",
+        reviewed_paths=("./README.md",),
+    )
+
+    assert review.reviewed_paths == ["README.md"]
+
+
+def test_targeted_follow_up_reviews_cover_changed_paths(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "review-targeted-follow-up")
+    add_note(target, kind="plan", text="Review targeted follow-up behavior.")
+    add_note(target, kind="decision", text="No spec impact.")
+    add_note(target, kind="spec-impact", text="not-needed")
+    (target / "README.md").write_text("# reviewed\n")
+    (target / "tests").mkdir()
+    (target / "tests" / "test_demo.py").write_text(
+        "def test_demo():\n    assert True\n"
+    )
+
+    add_review(
+        target,
+        backend="subagent",
+        reviewer="reviewer-fresh-context",
+        rubrics=("core",),
+        summary="Reviewed README follow-up.",
+        reviewed_paths=("README.md",),
+    )
+    first = ready(target)
+    first_review = next(check for check in first.checks if check.id == "review")
+    assert first_review.status == "fail"
+    assert "tests/test_demo.py" in first_review.message
+
+    add_review(
+        target,
+        backend="subagent",
+        reviewer="reviewer-fresh-context",
+        rubrics=("core",),
+        summary="Reviewed test follow-up.",
+        reviewed_paths=("tests/test_demo.py",),
+    )
+    second = ready(target)
+    second_review = next(check for check in second.checks if check.id == "review")
+    assert second_review.status == "pass"
 
 
 def test_review_add_rejects_self_review_identity(tmp_path: Path) -> None:
@@ -1945,7 +2269,7 @@ def test_ready_rejects_stale_validation_after_committed_work_change(
     assert result.ready is False
     messages = {check.id: check.message for check in result.checks}
     assert "validation evidence is stale" in messages["validation"]
-    assert "accepted review is stale" in messages["review"]
+    assert "does not cover current changed paths" in messages["review"]
 
 
 def test_ready_rejects_stale_validation_and_review_after_diff_changes(
@@ -1981,7 +2305,7 @@ def test_ready_rejects_stale_validation_and_review_after_diff_changes(
     messages = {check.id: check.message for check in result.checks}
     assert "validation evidence is stale" in messages["validation"]
     assert "README.md" in messages["validation"]
-    assert "accepted review is stale" in messages["review"]
+    assert "does not cover current changed paths" in messages["review"]
     assert "README.md" in messages["review"]
 
 
@@ -2046,7 +2370,7 @@ def test_dangerous_sync_skip_does_not_hide_source_diff_from_freshness(
     assert result.ready is False
     messages = {check.id: check.message for check in result.checks}
     assert "validation evidence is stale" in messages["validation"]
-    assert "accepted review is stale" in messages["review"]
+    assert "does not cover current changed paths" in messages["review"]
 
 
 def test_dangerous_validation_skip_goes_stale_after_diff_changes(

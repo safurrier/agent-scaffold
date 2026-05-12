@@ -278,6 +278,39 @@ def test_sync_check_validates_hk_exports_when_present(
     assert "HK export ready" in capsys.readouterr().out
 
 
+def test_sync_check_accepts_hk_export_with_explicit_attached_artifact(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    export = _write_hk_export(tmp_path)
+    artifact = export / "artifacts" / "artifact_7_codex-review-summary_review.md"
+    artifact.write_text("# Review\n")
+    metadata = json.loads((export / "meta.json").read_text())
+    relative = artifact.relative_to(export).as_posix()
+    metadata["files"].append(relative)
+    metadata["file_hashes"][relative] = (
+        "sha256:" + hashlib.sha256(artifact.read_bytes()).hexdigest()
+    )
+    metadata["attached_artifacts"] = [
+        {
+            "seq": 7,
+            "kind": "codex-review-summary",
+            "label": "Codex review final message",
+            "copied": True,
+            "redaction": "external",
+            "export_path": relative,
+            "sha256": metadata["file_hashes"][relative],
+            "size_bytes": artifact.stat().st_size,
+        }
+    ]
+    (export / "meta.json").write_text(json.dumps(metadata))
+    _git_init_and_commit(tmp_path)
+
+    code = _run_cli(["--repo", str(tmp_path), "sync-check"])
+
+    assert code == 0
+    assert "HK export ready" in capsys.readouterr().out
+
+
 def test_sync_check_validates_changed_hk_exports(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -343,6 +376,78 @@ def test_sync_check_rejects_obsolete_hk_export_files(
     captured = capsys.readouterr()
     assert "obsolete generated files" in captured.err
     assert "VALIDATION.md" in captured.err
+
+
+def test_sync_check_rejects_hk_export_local_only_attached_artifact_paths(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    export = _write_hk_export(tmp_path)
+    artifact = export / "artifacts" / "artifact_7_codex-review-summary_review.md"
+    artifact.write_text("# Review\n")
+    metadata = json.loads((export / "meta.json").read_text())
+    relative = artifact.relative_to(export).as_posix()
+    metadata["files"].append(relative)
+    metadata["file_hashes"][relative] = (
+        "sha256:" + hashlib.sha256(artifact.read_bytes()).hexdigest()
+    )
+    metadata["attached_artifacts"] = [
+        {
+            "seq": 7,
+            "kind": "codex-review-summary",
+            "copied": True,
+            "export_path": relative,
+            "source_path": "/Users/example/review.md",
+        }
+    ]
+    (export / "meta.json").write_text(json.dumps(metadata))
+    _git_init_and_commit(tmp_path)
+
+    code = _run_cli(["--repo", str(tmp_path), "sync-check"])
+
+    assert code == 1
+    assert "local-only paths" in capsys.readouterr().err
+
+
+def test_sync_check_rejects_hk_export_metadata_symlink(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    export = _write_hk_export(tmp_path)
+    original = export / "meta-real.json"
+    original.write_text((export / "meta.json").read_text())
+    (export / "meta.json").unlink()
+    (export / "meta.json").symlink_to(original)
+    _git_init_and_commit(tmp_path)
+
+    code = _run_cli(["--repo", str(tmp_path), "sync-check"])
+
+    assert code == 1
+    assert "must not be a symlink" in capsys.readouterr().err
+
+
+def test_sync_check_rejects_hk_export_attached_artifact_missing_hash(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    export = _write_hk_export(tmp_path)
+    artifact = export / "artifacts" / "artifact_7_codex-review-summary_review.md"
+    artifact.write_text("# Review\n")
+    metadata = json.loads((export / "meta.json").read_text())
+    relative = artifact.relative_to(export).as_posix()
+    metadata["files"].append(relative)
+    metadata["attached_artifacts"] = [
+        {
+            "seq": 7,
+            "kind": "codex-review-summary",
+            "copied": True,
+            "export_path": relative,
+        }
+    ]
+    (export / "meta.json").write_text(json.dumps(metadata))
+    _git_init_and_commit(tmp_path)
+
+    code = _run_cli(["--repo", str(tmp_path), "sync-check"])
+
+    assert code == 1
+    assert "missing from file_hashes" in capsys.readouterr().err
 
 
 def test_sync_check_rejects_metadata_with_wrong_hk_export_files_list(

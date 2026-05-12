@@ -234,9 +234,13 @@ path rule matches **when that profile is the target's resolved user-config
 profile**. Profiles inspected with `--profile` / `--profiles-dir` are discovery
 only unless they are also bound through user config. Agents satisfy required
 checks with `hk validate --check fast-gate --why "Fast gate passes" -- mise run check` using the matching native command, and required
-reviews with `hk review add --review NAME ...`. If the required item is genuinely
+reviews with `hk review add --review NAME ...`. Later small deltas can use
+`hk review add --review NAME --path REPO_RELATIVE_PATH ...` to record targeted
+follow-up review for specific changed paths. If the required item is genuinely
 impossible, record an auditable skip whose `--label` matches the check or review
-name.
+name. `hk checks --changed --json` includes matched repo-root paths and the
+triggering path patterns so agents can explain why a check/review is required
+without reverse-engineering the profile TOML.
 
 Path rules use gitignore-style patterns. Patterns are evaluated against the
 repo-root-relative changed path and, when `--target` points at a subdirectory,
@@ -256,8 +260,8 @@ Important examples:
 Use:
 
 ```bash
-hk profile resolve --target . --json
-hk checks --target . --changed --json
+hk profile resolve --target . --json   # includes direct/default/worktree match kind
+hk checks --target . --changed --json  # includes matched files and triggering patterns
 hk review prompt agent-friendly-cli-review --target .
 ```
 
@@ -292,8 +296,10 @@ persistent sync ignore config are deferred.
 | `hk status` | Show active work, readiness checks, and next-action guidance for the agent loop |
 | `hk sync` | Record or check a freshness checkpoint for the active work snapshot; use `--exclude PATH --reason TEXT` for explicit one-shot untracked local-state exclusions; HK records/revalidates excluded path metadata instead of using a tiny hardcoded allowlist |
 | `hk capture` | Advanced: run a native command and record exact evidence |
-| `hk artifact attach` | Attach a real harness/tool-produced file such as an agent session transcript, Codex review transcript, HAR file, or validation artifact; HK copies/references it, hashes it, and renders metadata in handoff |
+| `hk artifact attach` | Attach a real harness/tool-produced file such as an agent session transcript, Codex review transcript, HAR file, or validation artifact; HK copies/references it, hashes it, and renders metadata in handoff/export |
+| `hk artifact list` | Read-only list of attached artifacts for the active work; use after attach to verify kind, label, redaction, size, hash, and copied/reference path |
 | `hk review prompt core-review` | Print a generic or profile-named reviewer prompt to dispatch to an independent AI/tool or fresh-context reviewer, e.g. Pi `subagent`, Claude Code `Agent`/`Task` alias, or Codex via Shell tool running `codex review --uncommitted`; re-run `hk status` after review tools run |
+| `hk review add --path src/foo.py ...` | Record a targeted follow-up review for one or more currently changed repo-relative paths; HK uses path/content facts to avoid whole-diff review thrash |
 | `hk summary` | Render a concise human-readable readiness digest for PRs/review |
 | `hk handoff` | Render a longer transfer artifact from the work ledger |
 | `hk export --format handoff-dir` | Generate a compact committed handoff package such as `.ai/hk/2026-05-09-120000-demo/` from the HK ledger (`README.md`, `meta.json`, explicit-only `artifacts/`); use `--check` to validate freshness against local HK state |
@@ -303,7 +309,7 @@ persistent sync ignore config are deferred.
 | `hk profile resolve` | Resolve the configured profile for a target using explicit user config bindings, including Git linked-worktree projection |
 | `hk profile show <name>` | Show one profile's instructions, checks, and review guidance |
 | `hk profile create <name>` | Create an editable custom profile TOML template |
-| `hk checks [--profile <name>] [--changed]` | Show named verification loops and review guidance without executing them; `--changed` adds path-rule suggestions and required items |
+| `hk checks [--profile <name>] [--changed]` | Show named verification loops and review guidance without executing them; `--changed` adds path-rule suggestions, required items, matched files, and triggering patterns |
 | `hk plan <text>` | Record or refine the lifecycle implementation plan for active Harness Kit work |
 | `hk dangerously-skip review\|validation\|sync --label <name> --reason <text> --mitigation <text>` | Explicitly record an auditable dangerous skip when a lifecycle guarantee cannot be satisfied; skips render in summary, handoff, and PR handoff |
 
@@ -313,7 +319,7 @@ HK-native repos that want durable review artifacts, generate compact committed
 packages with `hk export --format handoff-dir --output .ai/hk/2026-05-09-120000-demo`
 instead of hand-authoring `.ai/plans` files. The export is a projection, not a
 second ledger: `README.md` is the human handoff, `meta.json` is machine
-freshness/integrity data, and `artifacts/` is for explicit attachments only.
+freshness/integrity data, and `artifacts/` is for explicit copied attachments only; `--no-copy` attachments remain referenced by metadata.
 
 Profiles are small workflow contracts for agentic engineering checks and
 reviews. They describe what exists for an environment; they do **not** run those
