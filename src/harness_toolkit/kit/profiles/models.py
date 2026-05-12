@@ -98,6 +98,10 @@ class ProfileResolution:
     matched_target: str | None = None
     matched_name: str | None = None
     config_path: str | None = None
+    worktree_target: str | None = None
+    worktree_matched_target: str | None = None
+    worktree_projected_target: str | None = None
+    worktree_git_common_dir: str | None = None
 
 
 @dataclass(frozen=True)

@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
 
-from tests.support.hk2_repo import git_init, run_hk
+from tests.support.hk2_repo import git_env, git_init, run_hk
 
 pytestmark = pytest.mark.agent_sim
 
@@ -113,6 +114,93 @@ def test_agent_sim_happy_path_reaches_ready_through_public_cli(tmp_path: Path) -
     assert handoff.returncode == 0, handoff.stderr
     assert "## Validation evidence" in handoff.stdout
     assert "## Review" in handoff.stdout
+
+
+def test_agent_sim_profile_resolution_follows_git_linked_worktree(
+    tmp_path: Path,
+) -> None:
+    repo = git_init(tmp_path / "repo")
+    module = repo / "module"
+    module.mkdir()
+    (module / "README.md").write_text("# module\n")
+    subprocess.run(
+        ["git", "add", "module/README.md"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        env=git_env(),
+    )
+    subprocess.run(
+        ["git", "commit", "--no-verify", "-m", "test: add module"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        env=git_env(),
+    )
+    worktree = tmp_path / "agent-worktree"
+    subprocess.run(
+        ["git", "worktree", "add", "--detach", str(worktree), "HEAD"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        env=git_env(),
+    )
+    config = tmp_path / "harness.toml"
+    config.write_text(
+        f'''
+version = 1
+
+[[targets]]
+name = "repo"
+path = "{repo}"
+profile = "repo-profile"
+
+[[targets]]
+name = "module"
+path = "{module}"
+profile = "module-profile"
+
+[profiles.repo-profile]
+title = "Repo"
+summary = "Repo profile."
+target_hint = "repo"
+instructions = "repo instructions"
+
+[[profiles.repo-profile.checks]]
+name = "repo-check"
+purpose = "Repo check."
+command_template = "repo-check"
+run_from = "repo-root"
+
+[profiles.module-profile]
+title = "Module"
+summary = "Module profile."
+target_hint = "module"
+instructions = "module instructions"
+
+[[profiles.module-profile.checks]]
+name = "module-check"
+purpose = "Module check."
+command_template = "module-check"
+run_from = "target"
+'''
+    )
+
+    resolved = _json(
+        run_hk(
+            "profile",
+            "resolve",
+            "--target",
+            str(worktree / "module"),
+            "--json",
+            env={"HARNESS_KIT_CONFIG": str(config)},
+        )
+    )
+
+    assert resolved["profile"] == "module-profile"
+    assert resolved["matched_name"] == "module"
+    assert resolved["matched_target"] == str(module)
+    assert resolved["worktree_projected_target"] == str((worktree / "module").resolve())
 
 
 def test_agent_sim_validation_and_review_go_stale_after_diff_changes(

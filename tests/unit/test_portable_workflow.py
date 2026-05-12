@@ -872,6 +872,271 @@ run_from = "target"
     assert payload["matched_name"] == "module"
 
 
+def test_profile_resolution_projects_configured_targets_into_linked_worktree(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "repo"
+    module = repo / "module"
+    module.mkdir(parents=True)
+    _git_init(repo)
+    (module / "README.md").write_text("# module\n")
+    subprocess.run(
+        ["git", "add", "module/README.md"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        env=_git_env(),
+    )
+    subprocess.run(
+        ["git", "commit", "--no-verify", "-m", "test: add module"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        env=_git_env()
+        | {
+            "GIT_AUTHOR_NAME": "Test",
+            "GIT_AUTHOR_EMAIL": "test@example.com",
+            "GIT_COMMITTER_NAME": "Test",
+            "GIT_COMMITTER_EMAIL": "test@example.com",
+        },
+    )
+    worktree = tmp_path / "repo linked worktree"
+    subprocess.run(
+        ["git", "worktree", "add", "--detach", str(worktree), "HEAD"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        env=_git_env(),
+    )
+    config = tmp_path / "harness.toml"
+    config.write_text(
+        f'''
+version = 1
+
+[[targets]]
+name = "repo"
+path = "{repo}"
+profile = "repo-profile"
+
+[[targets]]
+name = "module"
+path = "{module}"
+profile = "module-profile"
+
+[profiles.repo-profile]
+title = "Repo"
+summary = "Repo profile."
+target_hint = "repo"
+instructions = "repo instructions"
+
+[[profiles.repo-profile.checks]]
+name = "repo-check"
+purpose = "Repo check."
+command_template = "repo-check"
+run_from = "repo-root"
+
+[profiles.module-profile]
+title = "Module"
+summary = "Module profile."
+target_hint = "module"
+instructions = "module instructions"
+
+[[profiles.module-profile.checks]]
+name = "module-check"
+purpose = "Module check."
+command_template = "module-check"
+run_from = "target"
+'''
+    )
+    monkeypatch.setenv("HARNESS_KIT_CONFIG", str(config))
+
+    repo_result = _run_workflow(
+        "profile", "resolve", "--target", str(worktree), "--json"
+    )
+    module_result = _run_workflow(
+        "profile", "resolve", "--target", str(worktree / "module"), "--json"
+    )
+    file_result = _run_workflow(
+        "profile",
+        "resolve",
+        "--target",
+        str(worktree / "module" / "README.md"),
+        "--json",
+    )
+
+    assert repo_result.returncode == 0, repo_result.stderr
+    repo_payload = json.loads(repo_result.stdout)
+    assert repo_payload["profile"] == "repo-profile"
+    assert repo_payload["matched_name"] == "repo"
+    assert repo_payload["matched_target"] == str(repo)
+    assert "worktree" in repo_payload["reason"]
+    assert repo_payload["worktree_matched_target"] == str(repo)
+    assert repo_payload["worktree_target"] == str(worktree.resolve())
+
+    assert module_result.returncode == 0, module_result.stderr
+    module_payload = json.loads(module_result.stdout)
+    assert module_payload["profile"] == "module-profile"
+    assert module_payload["matched_name"] == "module"
+    assert module_payload["matched_target"] == str(module)
+    assert "worktree" in module_payload["reason"]
+    assert module_payload["worktree_projected_target"] == str(
+        (worktree / "module").resolve()
+    )
+
+    assert file_result.returncode == 0, file_result.stderr
+    file_payload = json.loads(file_result.stdout)
+    assert file_payload["profile"] == "module-profile"
+    assert file_payload["matched_name"] == "module"
+    assert file_payload["matched_target"] == str(module)
+    assert file_payload["worktree_projected_target"] == str(
+        (worktree / "module").resolve()
+    )
+
+
+def test_profile_resolution_uses_projected_specificity_for_worktree_matches(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "deep" / "canonical" / "repo"
+    module = repo / "module"
+    module.mkdir(parents=True)
+    _git_init(repo)
+    (module / "README.md").write_text("# module\n")
+    subprocess.run(
+        ["git", "add", "module/README.md"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        env=_git_env(),
+    )
+    subprocess.run(
+        ["git", "commit", "--no-verify", "-m", "test: add module"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        env=_git_env()
+        | {
+            "GIT_AUTHOR_NAME": "Test",
+            "GIT_AUTHOR_EMAIL": "test@example.com",
+            "GIT_COMMITTER_NAME": "Test",
+            "GIT_COMMITTER_EMAIL": "test@example.com",
+        },
+    )
+    module_binding_worktree = tmp_path / "wt1"
+    target_worktree = tmp_path / "wt2"
+    for worktree in (module_binding_worktree, target_worktree):
+        subprocess.run(
+            ["git", "worktree", "add", "--detach", str(worktree), "HEAD"],
+            cwd=repo,
+            check=True,
+            capture_output=True,
+            env=_git_env(),
+        )
+    config = tmp_path / "harness.toml"
+    config.write_text(
+        f'''
+version = 1
+
+[[targets]]
+name = "repo"
+path = "{repo}"
+profile = "repo-profile"
+
+[[targets]]
+name = "module-from-linked-worktree"
+path = "{module_binding_worktree / "module"}"
+profile = "module-profile"
+
+[profiles.repo-profile]
+title = "Repo"
+summary = "Repo profile."
+target_hint = "repo"
+instructions = "repo instructions"
+
+[[profiles.repo-profile.checks]]
+name = "repo-check"
+purpose = "Repo check."
+command_template = "repo-check"
+run_from = "repo-root"
+
+[profiles.module-profile]
+title = "Module"
+summary = "Module profile."
+target_hint = "module"
+instructions = "module instructions"
+
+[[profiles.module-profile.checks]]
+name = "module-check"
+purpose = "Module check."
+command_template = "module-check"
+run_from = "target"
+'''
+    )
+    monkeypatch.setenv("HARNESS_KIT_CONFIG", str(config))
+
+    result = _run_workflow(
+        "profile", "resolve", "--target", str(target_worktree / "module"), "--json"
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["profile"] == "module-profile"
+    assert payload["matched_name"] == "module-from-linked-worktree"
+    assert payload["worktree_projected_target"] == str(
+        (target_worktree / "module").resolve()
+    )
+
+
+def test_profile_resolution_does_not_autoselect_for_separate_clone_with_same_origin(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+    clone = tmp_path / "clone"
+    subprocess.run(
+        ["git", "clone", str(repo), str(clone)],
+        check=True,
+        capture_output=True,
+        env=_git_env(),
+    )
+    config = tmp_path / "harness.toml"
+    config.write_text(
+        f'''
+version = 1
+default_profile = "generic"
+
+[[targets]]
+name = "repo"
+path = "{repo}"
+profile = "repo-profile"
+
+[profiles.repo-profile]
+title = "Repo"
+summary = "Repo profile."
+target_hint = "repo"
+instructions = "repo instructions"
+
+[[profiles.repo-profile.checks]]
+name = "repo-check"
+purpose = "Repo check."
+command_template = "repo-check"
+run_from = "repo-root"
+'''
+    )
+    monkeypatch.setenv("HARNESS_KIT_CONFIG", str(config))
+
+    result = _run_workflow("profile", "resolve", "--target", str(clone), "--json")
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["profile"] == "generic"
+    assert (
+        payload["reason"]
+        == "no configured target matched; using config default_profile"
+    )
+    assert payload["worktree_matched_target"] is None
+
+
 def test_workflow_profiles_and_checks_are_discoverable_without_execution(
     tmp_path: Path,
 ) -> None:

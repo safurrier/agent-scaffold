@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import re
-import subprocess
 from pathlib import Path
+
+from harness_toolkit.kit.git.client import DEFAULT_GIT_CLIENT
 
 ROOT_SCOPE = "root"
 
@@ -19,41 +20,21 @@ def git_root(path: Path) -> Path:
         raise RepoStateError(f"target does not exist: {path}")
     if not path.is_dir():
         raise RepoStateError(f"target is not a directory: {path}")
-    result = subprocess.run(
-        ["git", "rev-parse", "--show-toplevel"],
-        cwd=path,
-        capture_output=True,
-        check=False,
-        text=True,
-    )
+    result = DEFAULT_GIT_CLIENT.root_result(path)
     if result.returncode != 0:
-        detail = result.stderr.strip() or "not a git repository"
+        detail = result.stderr_text.strip() or "not a git repository"
         raise RepoStateError(
             f"target is not inside a git repository: {path} ({detail})"
         )
-    return Path(result.stdout.strip()).resolve()
+    return Path(result.stdout_text.strip()).resolve()
 
 
 def git_branch(path: Path) -> str:
-    result = subprocess.run(
-        ["git", "symbolic-ref", "--quiet", "--short", "HEAD"],
-        cwd=path,
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    return result.stdout.strip() if result.returncode == 0 else ""
+    return DEFAULT_GIT_CLIENT.branch(path)
 
 
 def git_remote(path: Path) -> str:
-    result = subprocess.run(
-        ["git", "config", "--get", "remote.origin.url"],
-        cwd=path,
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    return result.stdout.strip() if result.returncode == 0 else ""
+    return DEFAULT_GIT_CLIENT.remote_origin_url(path)
 
 
 def repo_key(target_root: Path) -> str:

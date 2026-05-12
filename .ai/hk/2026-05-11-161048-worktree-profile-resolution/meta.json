@@ -1,0 +1,45 @@
+{
+  "branch": "hk-worktree-profile-resolution",
+  "diff_hash": "sha256:21f87c29aa9c069653c41284cb58cd2b68417de6912df8aeccaf68972aeb8f49",
+  "dirty": true,
+  "event_count": 33,
+  "event_seq": 45,
+  "evidence_count": 15,
+  "evidence_ids": [
+    "ev_20260511_162313_069680",
+    "ev_20260511_162328_393338",
+    "ev_20260511_162335_386290",
+    "ev_20260511_164716_074824",
+    "ev_20260511_164739_485033",
+    "ev_20260511_164746_328613",
+    "ev_20260511_165557_812884",
+    "ev_20260511_173241_615333",
+    "ev_20260511_173252_532878",
+    "ev_20260511_173756_734986",
+    "ev_20260511_173807_434448",
+    "ev_20260511_181627_617161",
+    "ev_20260511_181636_953651",
+    "ev_20260511_181700_214428",
+    "ev_20260511_182924_312926"
+  ],
+  "file_hashes": {
+    "README.md": "sha256:937673041a16eb4521991b91cb98f9dda35b711160b57460443ddec1da15d062",
+    "artifacts/README.md": "sha256:c4bad9d4652f296a7e4dcf175fe1dd0c66a99ec0b74941cd45c499e84792436c"
+  },
+  "files": [
+    "README.md",
+    "meta.json",
+    "artifacts/README.md"
+  ],
+  "generated_at": "2026-05-12T01:46:23.243685+00:00",
+  "generated_by": "hk export --format handoff-dir",
+  "git_sha": "9af0147",
+  "output_path": ".ai/hk/2026-05-11-161048-worktree-profile-resolution",
+  "ready": true,
+  "ready_status": "ready",
+  "schema_version": 1,
+  "sync_status": "synced",
+  "target_root": ".",
+  "target_scope": ".",
+  "work_id": "2026-05-11-161048-worktree-profile-resolution"
+}

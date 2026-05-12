@@ -5,44 +5,25 @@ from __future__ import annotations
 import hashlib
 import os
 import stat
-import subprocess
 from pathlib import Path
+
+from harness_toolkit.kit.git.client import DEFAULT_GIT_CLIENT
 
 
 def git_sha(path: Path) -> str:
-    result = subprocess.run(
-        ["git", "rev-parse", "--short", "HEAD"],
-        cwd=path,
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    return result.stdout.strip() if result.returncode == 0 else ""
+    return DEFAULT_GIT_CLIENT.sha_short(path)
 
 
 def git_dirty(path: Path) -> bool:
-    result = subprocess.run(
-        ["git", "status", "--porcelain"],
-        cwd=path,
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    return bool(result.stdout.strip()) if result.returncode == 0 else False
+    return bool(DEFAULT_GIT_CLIENT.status_porcelain(path).strip())
 
 
 def agent_local_state_paths(path: Path, candidates: tuple[str, ...]) -> list[str]:
     """Return common agent-local paths that are currently part of git status."""
     present: list[str] = []
     for candidate in candidates:
-        result = subprocess.run(
-            ["git", "status", "--porcelain", "--", candidate],
-            cwd=path,
-            capture_output=True,
-            check=False,
-            text=True,
-        )
-        if result.returncode == 0 and result.stdout.strip():
+        status = DEFAULT_GIT_CLIENT.status_porcelain(path, ("--", candidate))
+        if status.strip():
             present.append(candidate)
     return present
 
@@ -52,27 +33,11 @@ def git_pathspec_excludes(exclude_paths: tuple[str, ...] = ()) -> list[str]:
 
 
 def git_tracked_paths_for_path(path: Path, candidate: str) -> list[str]:
-    result = subprocess.run(
-        ["git", "ls-files", "--", candidate],
-        cwd=path,
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    if result.returncode != 0:
-        return []
-    return [line for line in result.stdout.splitlines() if line.strip()]
+    return DEFAULT_GIT_CLIENT.ls_tracked(path, candidate)
 
 
 def git_status_for_path(path: Path, candidate: str) -> str:
-    result = subprocess.run(
-        ["git", "status", "--porcelain", "--", candidate],
-        cwd=path,
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    return result.stdout if result.returncode == 0 else ""
+    return DEFAULT_GIT_CLIENT.status_porcelain(path, ("--", candidate))
 
 
 def sync_exclude_safety_error(path: Path, candidate: str) -> str:
@@ -141,15 +106,10 @@ def _hash_directory_contents(hasher, root: Path) -> None:
 
 
 def _hash_untracked_paths(hasher, path: Path, pathspec: list[str]) -> None:
-    untracked = subprocess.run(
-        ["git", "ls-files", "--others", "--exclude-standard", "-z", *pathspec],
-        cwd=path,
-        capture_output=True,
-        check=False,
-    )
-    if untracked.returncode != 0:
+    untracked = DEFAULT_GIT_CLIENT.ls_untracked(path, tuple(pathspec), nul=True)
+    if not isinstance(untracked, bytes):
         return
-    for raw_name in untracked.stdout.split(b"\0"):
+    for raw_name in untracked.split(b"\0"):
         if not raw_name:
             continue
         relative = Path(raw_name.decode("utf-8", errors="surrogateescape"))
@@ -187,20 +147,15 @@ def git_diff_hash(path: Path, exclude_paths: tuple[str, ...] = ()) -> str:
         ["--", ".", *git_pathspec_excludes(exclude_paths)] if exclude_paths else []
     )
     commands = (
-        ["git", "diff", "--no-ext-diff", "--binary", *pathspec],
-        ["git", "diff", "--cached", "--no-ext-diff", "--binary", *pathspec],
-        ["git", "status", "--porcelain", *pathspec],
+        ("diff", "--no-ext-diff", "--binary", *pathspec),
+        ("diff", "--cached", "--no-ext-diff", "--binary", *pathspec),
+        ("status", "--porcelain", *pathspec),
     )
     for command in commands:
-        result = subprocess.run(
-            command,
-            cwd=path,
-            capture_output=True,
-            check=False,
-        )
+        result = DEFAULT_GIT_CLIENT.run(path, command)
         if result.returncode != 0:
             return ""
-        hasher.update("\0".join(command).encode("utf-8"))
+        hasher.update("\0".join(result.argv).encode("utf-8"))
         hasher.update(b"\0")
         hasher.update(result.stdout)
         hasher.update(b"\0")
@@ -220,15 +175,15 @@ def git_validation_diff_hash(path: Path, exclude_paths: tuple[str, ...] = ()) ->
         ["--", ".", *git_pathspec_excludes(exclude_paths)] if exclude_paths else []
     )
     commands = (
-        (b"diff", ["git", "diff", "--no-ext-diff", "--binary", *pathspec]),
+        (b"diff", ("diff", "--no-ext-diff", "--binary", *pathspec)),
         (
             b"cached-diff",
-            ["git", "diff", "--cached", "--no-ext-diff", "--binary", *pathspec],
+            ("diff", "--cached", "--no-ext-diff", "--binary", *pathspec),
         ),
-        (b"status", ["git", "status", "--porcelain", *pathspec]),
+        (b"status", ("status", "--porcelain", *pathspec)),
     )
     for label, command in commands:
-        result = subprocess.run(command, cwd=path, capture_output=True, check=False)
+        result = DEFAULT_GIT_CLIENT.run(path, command)
         if result.returncode != 0:
             return ""
         hasher.update(label)
@@ -278,29 +233,24 @@ def git_validation_work_diff_hash(
     if not base_sha.strip():
         return git_validation_diff_hash(path, exclude_paths)
     pathspec = ["--", ".", *git_pathspec_excludes(exclude_paths)]
-    diff_result = subprocess.run(
-        ["git", "diff", "--name-only", base_sha, *pathspec],
-        cwd=path,
-        capture_output=True,
-        check=False,
-        text=True,
+    diff_result = DEFAULT_GIT_CLIENT.run(
+        path, ("diff", "--name-only", base_sha, *pathspec)
     )
     if diff_result.returncode != 0:
         return ""
-    untracked_result = subprocess.run(
-        ["git", "ls-files", "--others", "--exclude-standard", *pathspec],
-        cwd=path,
-        capture_output=True,
-        check=False,
-        text=True,
+    untracked_result = DEFAULT_GIT_CLIENT.ls_files(
+        path,
+        tuple(pathspec),
+        others=True,
+        exclude_standard=True,
     )
     if untracked_result.returncode != 0:
         return ""
     changed_paths = {
         line.strip().replace("\\", "/")
         for line in (
-            *diff_result.stdout.splitlines(),
-            *untracked_result.stdout.splitlines(),
+            *diff_result.stdout_text.splitlines(),
+            *untracked_result.stdout_text.splitlines(),
         )
         if line.strip()
     }
@@ -319,11 +269,9 @@ def git_work_diff_hash(
         return git_diff_hash(path, exclude_paths)
     hasher = hashlib.sha256()
     pathspec = ["--", ".", *git_pathspec_excludes(exclude_paths)]
-    result = subprocess.run(
-        ["git", "diff", "--no-ext-diff", "--binary", base_sha, *pathspec],
-        cwd=path,
-        capture_output=True,
-        check=False,
+    result = DEFAULT_GIT_CLIENT.run(
+        path,
+        ("diff", "--no-ext-diff", "--binary", base_sha, *pathspec),
     )
     if result.returncode != 0:
         return ""
@@ -341,15 +289,15 @@ def git_path_state_hash(path: Path, candidate: str) -> str:
     hasher = hashlib.sha256()
     pathspec = ["--", candidate]
     commands = (
-        ["git", "diff", "--no-ext-diff", "--binary", *pathspec],
-        ["git", "diff", "--cached", "--no-ext-diff", "--binary", *pathspec],
-        ["git", "status", "--porcelain", *pathspec],
+        ("diff", "--no-ext-diff", "--binary", *pathspec),
+        ("diff", "--cached", "--no-ext-diff", "--binary", *pathspec),
+        ("status", "--porcelain", *pathspec),
     )
     for command in commands:
-        result = subprocess.run(command, cwd=path, capture_output=True, check=False)
+        result = DEFAULT_GIT_CLIENT.run(path, command)
         if result.returncode != 0:
             return ""
-        hasher.update("\0".join(command).encode("utf-8"))
+        hasher.update("\0".join(result.argv).encode("utf-8"))
         hasher.update(b"\0")
         hasher.update(result.stdout)
         hasher.update(b"\0")
@@ -358,17 +306,9 @@ def git_path_state_hash(path: Path, candidate: str) -> str:
 
 
 def status_changed_paths(root: Path) -> list[str]:
-    result = subprocess.run(
-        ["git", "status", "--porcelain"],
-        cwd=root,
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    if result.returncode != 0:
-        return []
+    status = DEFAULT_GIT_CLIENT.status_porcelain(root)
     paths: list[str] = []
-    for line in result.stdout.splitlines():
+    for line in status.splitlines():
         if not line.strip():
             continue
         path = line[3:] if len(line) > 3 else line.strip()
@@ -383,26 +323,9 @@ def status_changed_paths(root: Path) -> list[str]:
 def diff_changed_paths(root: Path, base_sha: str) -> list[str]:
     if not base_sha.strip():
         return []
-    result = subprocess.run(
-        ["git", "diff", "--name-only", base_sha, "--"],
-        cwd=root,
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    if result.returncode != 0:
-        return []
-    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    return DEFAULT_GIT_CLIENT.diff_name_only(root, (base_sha, "--"))
 
 
 def untracked_paths(root: Path) -> list[str]:
-    result = subprocess.run(
-        ["git", "ls-files", "--others", "--exclude-standard"],
-        cwd=root,
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    if result.returncode != 0:
-        return []
-    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    result = DEFAULT_GIT_CLIENT.ls_untracked(root)
+    return result if isinstance(result, list) else []
