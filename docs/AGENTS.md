@@ -47,5 +47,7 @@ Agent routing index for MkDocs-managed documentation. Structure is owned by `mkd
 | `decisions/0007-harness-toolkit-naming.md` | Harness Engineering Toolkit naming split: `hk`, `harness-kit`, `harness-scaffold` |
 | `decisions/0008-harness-kit-ledger-first-local-assistant.md` | Initial lifecycle decision: local ledger, sync checkpoints, evidence capture |
 | `decisions/0009-harness-kit-lifecycle-first-cli.md` | Lifecycle-first CLI decision that preserves handoff-safety guarantees |
+| `decisions/0010-compact-hk-export-packages.md` | Compact `.ai/hk` export package shape and ledger/projection boundary |
+| `decisions/0011-path-aware-review-freshness.md` | Path/content-aware HK review freshness and targeted follow-up review coverage |
 
 <!-- generated-by: context-engineering@2.2.0 | last-updated: 2026-04-30 -->
