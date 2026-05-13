@@ -1,0 +1,35 @@
+{
+  "attached_artifacts": [],
+  "branch": "adr-path-aware-review-freshness",
+  "diff_hash": "sha256:08b3809c0db12f07cb1bc07c1664a5fbbfbe5386bf892541cb342d3fb2f9fe88",
+  "dirty": true,
+  "event_count": 11,
+  "event_seq": 11,
+  "evidence_count": 4,
+  "evidence_ids": [
+    "ev_20260513_102420_733322",
+    "ev_20260513_102430_007665",
+    "ev_20260513_102745_493546",
+    "ev_20260513_102834_205376"
+  ],
+  "file_hashes": {
+    "README.md": "sha256:d6da76f75997e7a730de1e921d3ef620186d99b3fa5a7ca943601619f9858594",
+    "artifacts/README.md": "sha256:c4bad9d4652f296a7e4dcf175fe1dd0c66a99ec0b74941cd45c499e84792436c"
+  },
+  "files": [
+    "README.md",
+    "meta.json",
+    "artifacts/README.md"
+  ],
+  "generated_at": "2026-05-13T17:28:53.848628+00:00",
+  "generated_by": "hk export --format handoff-dir",
+  "git_sha": "9c9440f",
+  "output_path": ".ai/hk/2026-05-13-102409-adr-review-freshness-docs",
+  "ready": true,
+  "ready_status": "ready-with-dangerous-skips",
+  "schema_version": 1,
+  "sync_status": "synced",
+  "target_root": ".",
+  "target_scope": ".",
+  "work_id": "2026-05-13-102409-adr-review-freshness-docs"
+}

@@ -442,7 +442,10 @@ review tools may create agent-local state. HK records deterministic path/content
 facts for reviewed changed paths. Later small fixes can be covered by targeted
 follow-up records with `hk review add --path PATH ...`; generated active HK export
 refreshes are review-neutral and should be validated with export/sync checks, not
-another broad review. If review is impossible, the agent must record `hk dangerously-skip review --label NAME --reason TEXT --mitigation TEXT`,
+another broad review. See
+[ADR 0011](decisions/0011-path-aware-review-freshness.md) for why review
+freshness is path/content-aware rather than exact whole-diff matching. If review
+is impossible, the agent must record `hk dangerously-skip review --label NAME --reason TEXT --mitigation TEXT`,
 which is auditable and renders in summary and handoff. Future review-source config is
 deferred.
 
