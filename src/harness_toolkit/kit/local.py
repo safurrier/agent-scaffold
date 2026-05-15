@@ -44,7 +44,7 @@ from harness_toolkit.kit.ledger.store import (
 from harness_toolkit.kit.ledger.store import (
     read_evidence as ledger_read_evidence,
 )
-from harness_toolkit.kit.profiles import ProfileError, profile_names
+from harness_toolkit.kit.profiles import ProfileError, ProfileSuggestion, profile_names
 from harness_toolkit.kit.profiles.context import ProfileContext
 from harness_toolkit.kit.readiness.diagnostics import ReadyCheck, ReadyResult
 from harness_toolkit.kit.readiness.policy import (
@@ -208,7 +208,6 @@ class ReviewResult:
     seq: int
     backend: str
     reviewer: str
-    rubrics: list[str]
     summary: str
     disposition: str
     review_name: str = ""
@@ -226,6 +225,8 @@ class StatusResult:
     phase: str
     checks: list[ReadyCheck]
     next_actions: list[str]
+    suggested_checks: list[ProfileSuggestion] | None = None
+    suggested_reviews: list[ProfileSuggestion] | None = None
 
 
 @dataclass(frozen=True)
@@ -1272,7 +1273,6 @@ def add_review(
     *,
     backend: str,
     reviewer: str,
-    rubrics: tuple[str, ...],
     summary: str,
     disposition: str = "accepted",
     review_name: str = "",
@@ -1287,9 +1287,6 @@ def add_review(
         raise LocalWorkflowError(f"review must be independent: {SELF_REVIEW_GUIDANCE}")
     if not summary.strip():
         raise LocalWorkflowError("review requires --summary")
-    clean_rubrics = [item.strip() for item in rubrics if item.strip()]
-    if not clean_rubrics:
-        raise LocalWorkflowError("review requires at least one --rubric")
     state = ensure_state(target, no_local_files=no_local_files)
     work_dir = require_work(state)
     clean_review_name = review_name.strip()
@@ -1323,7 +1320,6 @@ def add_review(
     record_data: dict[str, object] = {
         "backend": backend.strip(),
         "reviewer": reviewer.strip(),
-        "rubrics": clean_rubrics,
         "summary": summary.strip(),
         "disposition": disposition.strip() or "accepted",
         "diff_hash": validation_diff_hash(
@@ -1340,7 +1336,6 @@ def add_review(
         seq=record.seq,
         backend=backend.strip(),
         reviewer=reviewer.strip(),
-        rubrics=clean_rubrics,
         summary=summary.strip(),
         disposition=disposition.strip() or "accepted",
         review_name=clean_review_name,
@@ -1551,10 +1546,31 @@ def status(target: Path, *, no_local_files: bool = False) -> StatusResult:
             next_actions=[
                 "start: hk start demo-work --plan 'Describe the intended change and validation approach'"
             ],
+            suggested_checks=[],
+            suggested_reviews=[],
         )
 
     events = read_events(work_dir)
     readiness = ready_for_work(work_dir, state, check_handoff=False)
+    profile_view = None
+    try:
+        profile_view = ProfileContext.resolve(
+            state.target_scope,
+            repo_root=state.target_root,
+            changed_paths=tuple(changed_paths_for_work(state.target_root, work_dir)),
+        ).view
+    except (KeyError, ProfileError):
+        profile_view = None
+    suggested_checks = [
+        item
+        for item in (profile_view.suggested_checks if profile_view else ())
+        if not item.required
+    ]
+    suggested_reviews = [
+        item
+        for item in (profile_view.suggested_reviews if profile_view else ())
+        if not item.required
+    ]
     actions: list[str] = []
     if not notes_by_kind(events, "plan"):
         actions.append(
@@ -1606,6 +1622,8 @@ def status(target: Path, *, no_local_files: bool = False) -> StatusResult:
         phase=lifecycle_phase(events, readiness),
         checks=readiness.checks,
         next_actions=actions,
+        suggested_checks=suggested_checks,
+        suggested_reviews=suggested_reviews,
     )
 
 

@@ -136,8 +136,6 @@ def test_harness_kit_lifecycle_rollout_reaches_ready(tmp_path: Path) -> None:
             "subagent",
             "--reviewer",
             "rollout-fresh-context",
-            "--rubric",
-            "core-quality",
             "--summary",
             "Rollout parity accepted.",
             "--target",

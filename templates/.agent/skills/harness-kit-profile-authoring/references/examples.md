@@ -107,11 +107,13 @@ applies_when = ["home/**", "config/**", "dotfiles/**"]
 name = "agent-friendly-cli-review"
 purpose = "Review CLI changes against agent-facing CLI design principles."
 backend = "fresh-context-subagent"
-rubric = "agent-friendly-cli"
 dispatch_hint = "Use a fresh-context reviewer."
-prompt_file = "prompts/agent-friendly-cli-review.md"
 applies_when = ["src/**/cli*.py", "docs/**"]
 required_when = ["src/**/cli*.py"]
+
+[reviews.instructions]
+type = "file"
+path = "prompts/agent-friendly-cli-review.md"
 
 [[checks]]
 name = "ci-parity-tests"

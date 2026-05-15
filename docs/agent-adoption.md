@@ -129,11 +129,11 @@ Useful flows:
 # Generic review when no profile-specific review applies.
 hk review prompt --target .
 # Dispatch the prompt using the current harness if available, then record it.
-hk review add --backend subagent --reviewer reviewer-fresh-context --rubric core-quality --summary "Review summary" --target .
+hk review add --backend subagent --reviewer reviewer-fresh-context --summary "Review summary" --target .
 
-# Profile-named review suggested by hk checks --changed.
+# Profile-named review suggested by hk checks --changed or hk status.
 hk review prompt REVIEW_NAME --target .
-hk review add --review REVIEW_NAME --backend subagent --reviewer reviewer-fresh-context --rubric core-quality --summary "Review summary" --target .
+hk review add --review REVIEW_NAME --backend subagent --reviewer reviewer-fresh-context --summary "Review summary" --target .
 hk status --target .
 ```
 

@@ -86,12 +86,14 @@ applies_when = ["src/<area>/**", "tests/<area>/**"]
 name = "domain-review"
 purpose = "Review changes from a repo-specific risk perspective."
 backend = "fresh-context-subagent"
-rubric = "domain-risk"
 dispatch_hint = "Use an independent AI/tool or fresh-context subagent."
-prompt_file = "prompts/domain-review.md"
 applies_when = ["src/<area>/**"]
 # Use required_when only for review perspectives that must be recorded.
 required_when = ["src/<area>/critical/**"]
+
+[reviews.instructions]
+type = "file"
+path = "prompts/domain-review.md"
 
 [[checks]]
 name = "handoff"
@@ -110,7 +112,7 @@ notes = ["This checks recorded evidence; it does not rerun validation."]
 - For Python/Rust, Python/Node, or other mixed-stack repos, cite the closest
   built-in profile only as a fallback and draft a repo-specific profile when CI
   or task runners define recurring checks for more than one stack.
-- Prefer `prompt_file` for non-trivial review instructions; keep TOML concise.
+- Prefer `[reviews.instructions] type = "file"` for non-trivial review instructions; keep TOML concise.
 - Use `applies_when` for suggestions and `required_when` only for checks/reviews
   that readiness should require when matching files change. Path rules may be
   repo-root-relative or relative to the selected `--target`; HK reports matched

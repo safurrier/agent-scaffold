@@ -109,11 +109,13 @@ required_when = ["src/**/cli.py", "!src/**/generated/**"]
 name = "agent-friendly-cli-review"
 purpose = "Review CLI changes against agent-facing CLI design principles."
 backend = "fresh-context-subagent"
-rubric = "agent-friendly-cli"
 dispatch_hint = "Use a fresh-context reviewer."
-prompt_file = "{prompt}"
 applies_when = ["src/**/cli.py", "docs/**"]
 required_when = ["src/**/cli.py"]
+
+[profiles.hk-dogfood.reviews.instructions]
+type = "file"
+path = "{prompt}"
 '''.lstrip()
     )
     return config
@@ -253,6 +255,28 @@ def test_profile_flags_after_validate_separator_are_native_command_args() -> Non
     )
 
 
+def test_review_add_removed_rubric_flag_has_repair_hint() -> None:
+    result = _run_workflow(
+        "review",
+        "add",
+        "--backend",
+        "subagent",
+        "--reviewer",
+        "fresh",
+        "--rubric",
+        "core",
+        "--summary",
+        "OK",
+        "--target",
+        ".",
+    )
+
+    assert result.returncode == 1
+    assert "--rubric was removed" in result.stderr
+    assert "[reviews.instructions]" in result.stderr
+    assert "hk review add --backend subagent" in result.stderr
+
+
 def test_profile_applicability_uses_gitignore_style_patterns() -> None:
     from harness_toolkit.kit.profiles import _matches_pattern
 
@@ -329,7 +353,7 @@ def test_checks_changed_suggests_applicable_profile_items(
         "hk review prompt agent-friendly-cli-review"
         in payload["suggested_reviews"][0]["prompt_command"]
     )
-    assert "prompt_file_text" not in json.dumps(payload)
+    assert "Review CLI changes for non-interactive defaults" not in json.dumps(payload)
     assert "Review CLI changes for non-interactive defaults" not in result.stdout
 
     inspected = _run_workflow(
@@ -346,7 +370,49 @@ def test_checks_changed_suggests_applicable_profile_items(
     assert inspected_payload["suggested_checks"][0]["enforced"] is False
 
 
-def test_named_profile_review_prompt_uses_prompt_file(
+def test_status_surfaces_optional_profile_review_suggestions(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+    monkeypatch.setenv("HARNESS_KIT_CONFIG", str(_write_profile_config(tmp_path, repo)))
+    assert (
+        _run_workflow(
+            "start",
+            "docs-review-suggestion",
+            "--plan",
+            "Touch docs and surface optional review suggestions.",
+            "--target",
+            str(repo),
+        ).returncode
+        == 0
+    )
+    (repo / "docs").mkdir()
+    (repo / "docs" / "guide.md").write_text("# guide\n")
+
+    result = _run_workflow("status", "--target", str(repo), "--json")
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["suggested_reviews"][0]["name"] == "agent-friendly-cli-review"
+    assert payload["suggested_reviews"][0]["required"] is False
+    assert (
+        payload["suggested_reviews"][0]["dispatch_hint"]
+        == "Use a fresh-context reviewer."
+    )
+    assert payload["suggested_reviews"][0]["prompt_command"].startswith(
+        "hk review prompt agent-friendly-cli-review"
+    )
+    assert payload["ready_status"] == "not-ready"
+
+    text = _run_workflow("status", "--target", str(repo))
+    assert "optional profile suggestions:" in text.stdout
+    assert "review: agent-friendly-cli-review" in text.stdout
+    assert "not readiness blockers" in text.stdout
+
+
+def test_named_profile_review_prompt_uses_file_instructions(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     repo = tmp_path / "repo"
@@ -581,7 +647,6 @@ required_when = ["cap/**"]
 name = "target-relative-review"
 purpose = "Review target-relative changed path matching."
 backend = "fresh-context-subagent"
-rubric = "target-relative"
 applies_when = ["cap/**"]
 '''.lstrip()
     )
@@ -659,8 +724,6 @@ def test_ready_requires_matching_profile_check_and_review(
         "subagent",
         "--reviewer",
         "fresh-context",
-        "--rubric",
-        "agent-friendly-cli",
         "--summary",
         "No blockers.",
         "--target",
@@ -794,9 +857,11 @@ notes = ["Use for config behavior changes."]
 name = "core-quality"
 purpose = "Fresh-context review before handoff."
 backend = "codex"
-rubric = "core-quality"
 dispatch_hint = "codex review --uncommitted"
-prompt_file = "{prompt_file.name}"
+
+[profiles.foreman.reviews.instructions]
+type = "file"
+path = "{prompt_file.name}"
 '''
     )
     monkeypatch.setenv("HARNESS_KIT_CONFIG", str(config))
@@ -815,7 +880,10 @@ prompt_file = "{prompt_file.name}"
     assert payload["checks"][0]["command_template"] == "cargo test --test cli_config"
     assert payload["reviews"][0]["backend"] == "codex"
     assert payload["reviews"][0]["dispatch_hint"] == "codex review --uncommitted"
-    assert "prompt_file_text" not in payload["reviews"][0]
+    assert payload["reviews"][0]["instructions"] == {
+        "type": "file",
+        "path": prompt_file.name,
+    }
 
 
 def test_user_harness_config_uses_longest_target_prefix(

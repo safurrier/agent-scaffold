@@ -29,7 +29,6 @@ def test_lifecycle_happy_path_reaches_ready(tmp_path: Path) -> None:
         target,
         backend="codex",
         reviewer="codex-review",
-        rubrics=("core-quality",),
         summary="Accepted for parity.",
     )
     assert result.backend == "codex"

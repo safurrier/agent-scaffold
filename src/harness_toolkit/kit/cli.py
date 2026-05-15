@@ -181,7 +181,7 @@ Follow `hk status` next actions when it asks for them:
 # review is required by default: preferred independent AI/tool reviewer; minimum fresh-context subagent
 {KIT_COMMAND} review prompt core-review --target .
 # dispatch via your harness if available (Pi subagent tool, Claude Code Agent/Task tool, Codex Shell tool: codex review --uncommitted)
-{KIT_COMMAND} review add --backend subagent --reviewer reviewer-fresh-context --rubric core-quality --summary 'Review summary' --target . --json
+{KIT_COMMAND} review add --backend subagent --reviewer reviewer-fresh-context --summary 'Review summary' --target . --json
 # review tools may create local agent state; check status again before syncing
 {KIT_COMMAND} status --target . --json
 {KIT_COMMAND} sync --target . --json
@@ -256,7 +256,29 @@ def _profile_option_mistake(argv: list[str]) -> tuple[str, str] | None:
     return None
 
 
+def _removed_rubric_option_mistake(argv: list[str]) -> bool:
+    return len(argv) >= 2 and argv[:2] == ["review", "add"] and "--rubric" in argv[2:]
+
+
 def _preflight_agent_friendly_errors(argv: list[str]) -> None:
+    if _removed_rubric_option_mistake(argv):
+        print_error("--rubric was removed from `hk review add`.")
+        print(
+            "Review criteria now live in profile review instructions, e.g.:",
+            file=sys.stderr,
+        )
+        print("  [reviews.instructions]", file=sys.stderr)
+        print('  type = "inline"', file=sys.stderr)
+        print(
+            '  text = "Review correctness, validation, and handoff clarity."',
+            file=sys.stderr,
+        )
+        print("Try:", file=sys.stderr)
+        print(
+            f"  {KIT_COMMAND} review add --backend subagent --reviewer reviewer-fresh-context --summary 'Review summary' --target .",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
     mistake = _profile_option_mistake(argv)
     if mistake is None:
         return
@@ -487,11 +509,14 @@ def profile_show(
         print()
         print("Reviews:")
         for review in selected.profile.reviews:
-            print(
-                f"- {review.name} [{review.backend}/{review.rubric}]: {review.purpose}"
-            )
+            print(f"- {review.name} [{review.backend}]: {review.purpose}")
             if review.dispatch_hint:
                 print(f"  dispatch: {review.dispatch_hint}")
+            if review.instructions is not None:
+                if review.instructions.type == "file":
+                    print(f"  instructions: file {review.instructions.path}")
+                else:
+                    print("  instructions: inline")
             if review.applies_when:
                 print(f"  applies_when: {', '.join(review.applies_when)}")
             if review.required_when:
@@ -684,6 +709,8 @@ def checks(
                 )
                 if item.matched_patterns:
                     print(f"  patterns: {', '.join(item.matched_patterns)}")
+                if item.dispatch_hint:
+                    print(f"  hint: {item.dispatch_hint}")
                 if item.prompt_command:
                     print(f"  prompt: {item.prompt_command}")
                 if item.record_command:
@@ -707,13 +734,13 @@ def checks(
         for review in view.reviews:
             print(f"{review.name}: {review.purpose}")
             print(f"  backend: {review.backend}")
-            print(f"  rubric: {review.rubric}")
             if review.dispatch_hint:
                 print(f"  dispatch: {review.dispatch_hint}")
-            if review.prompt:
-                print(f"  prompt: {review.prompt}")
-            if review.prompt_file:
-                print(f"  prompt_file: {review.prompt_file}")
+            if review.instructions is not None:
+                if review.instructions.type == "file":
+                    print(f"  instructions: file {review.instructions.path}")
+                else:
+                    print("  instructions: inline")
             if review.applies_when:
                 print(f"  applies_when: {', '.join(review.applies_when)}")
             if review.required_when:
@@ -1319,9 +1346,9 @@ def artifact_attach(
 @review_app.command(
     name="add",
     help_epilogue=examples(
-        "hk review add --review cli-review --backend subagent --reviewer fresh --rubric core --summary OK",
-        "hk review add --backend codex --reviewer bug-hunter --rubric bugs --summary OK",
-        "hk review add --review cli-review --path src/cli.py --backend subagent --reviewer fresh --rubric follow-up --summary OK",
+        "hk review add --review cli-review --backend subagent --reviewer fresh --summary OK",
+        "hk review add --backend codex --reviewer bug-hunter --summary OK",
+        "hk review add --review cli-review --path src/cli.py --backend subagent --reviewer fresh --summary OK",
         "hk dangerously-skip review --label no-review --reason unavailable --mitigation follow-up --json",
         note=(
             "Review is required by default. Preferred: independent AI/tool reviewer.\n"
@@ -1335,7 +1362,6 @@ def review_add(
     *,
     backend: str,
     reviewer: str,
-    rubric: tuple[str, ...],
     summary: str,
     disposition: str = "accepted",
     review: str = "",
@@ -1358,7 +1384,6 @@ def review_add(
                 no_local_files=no_local_files,
                 backend=backend,
                 reviewer=reviewer,
-                rubrics=rubric,
                 summary=summary,
                 disposition=disposition,
                 review_name=review,
@@ -1376,7 +1401,6 @@ def review_add(
         print(f"profile_review={result.review_name}")
     if result.reviewed_paths:
         print(f"reviewed_paths={', '.join(result.reviewed_paths)}")
-    print(f"rubrics={', '.join(result.rubrics)}")
     print(f"summary={result.summary}")
 
 
@@ -1817,6 +1841,35 @@ def status(
             print(f"- {check.id}: {check.status} — {check.message}")
     else:
         print("- none")
+    if result.suggested_checks or result.suggested_reviews:
+        print("optional profile suggestions:")
+        if result.suggested_checks:
+            for item in result.suggested_checks:
+                print(f"- check: {item.name} — {item.purpose}")
+                print(
+                    f"  because: {item.matched_by} matched {', '.join(item.matched_paths)}"
+                )
+                if item.matched_patterns:
+                    print(f"  patterns: {', '.join(item.matched_patterns)}")
+                if item.record_command:
+                    print(f"  record: {item.record_command}")
+        if result.suggested_reviews:
+            for item in result.suggested_reviews:
+                print(f"- review: {item.name} — {item.purpose}")
+                print(
+                    f"  because: {item.matched_by} matched {', '.join(item.matched_paths)}"
+                )
+                if item.dispatch_hint:
+                    print(f"  hint: {item.dispatch_hint}")
+                if item.matched_patterns:
+                    print(f"  patterns: {', '.join(item.matched_patterns)}")
+                if item.prompt_command:
+                    print(f"  prompt: {item.prompt_command}")
+                if item.record_command:
+                    print(f"  record: {item.record_command}")
+        print(
+            "  note: these suggestions are not readiness blockers; required items appear in checks/next actions."
+        )
     print("next actions:")
     for action in result.next_actions:
         print(f"- {action}")

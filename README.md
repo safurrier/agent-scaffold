@@ -148,7 +148,7 @@ are the common commands to reach for when the coach asks for something specific:
 | Record decisions and spec impact | `hk decide "..." --spec-impact none\|updated\|not-needed` |
 | See configured guidance without running it | `hk profile resolve --target . --json`, `hk checks --target . --changed --json` |
 | Capture validation evidence | `hk validate --why "Fast gate passes" -- mise run check`, `hk validate --why "Env-specific test" -- env PYTHONPATH=src pytest -q`, `hk validate --timeout-seconds 120 --max-log-bytes 200000 --why "Bounded test" -- pytest -q` |
-| Record external-enough review | `hk review prompt core-review`, `hk review add --review core-review --backend subagent --reviewer fresh-context --rubric core-quality --summary "No blockers."`, `hk review add --review core-review --path src/foo.py ...` for targeted follow-up |
+| Record external-enough review | `hk review prompt core-review`, `hk review add --review core-review --backend subagent --reviewer fresh-context --summary "No blockers."`, `hk review add --review core-review --path src/foo.py ...` for targeted follow-up |
 | Attach/list real tool/harness files | `hk artifact attach --path FILE --kind KIND`, `hk artifact list --json` |
 | Reconcile local changes before handoff | `hk sync`, `hk sync --exclude PATH --reason "..."` |
 | Check readiness or explain it to humans | `hk ready`, `hk status`, `hk summary`, `hk handoff`, `hk export` |
@@ -173,10 +173,13 @@ Planning can happen outside HK; agents translate the agreed intent into compact
 HK context/plan/decision records rather than asking HK to infer it. `hk start
 --plan` seeds the first lifecycle plan when work starts; `hk start` can also be
 used without a plan followed by repeated `hk plan "..."` calls as a living plan
-when the implementation shape emerges progressively. `hk profile resolve` and
-`hk checks --changed` explain the resolved profile, direct/default/worktree match
+when the implementation shape emerges progressively. `hk profile resolve`, `hk checks --changed`, and `hk status` explain the resolved profile, direct/default/worktree match
 kind, and the changed files/patterns that triggered suggested or required
-checks/reviews. `hk artifact attach` can attach real harness/tool files such as
+checks/reviews. Suggested profile reviews appear as non-blocking status guidance;
+required profile reviews remain readiness blockers. Profile reviews can include
+inline or file-backed instructions, which is the recommended way to wrap a skill
+or checklist for a fresh-context reviewer. See [Profile Reviews](docs/profile-reviews.md).
+`hk artifact attach` can attach real harness/tool files such as
 agent session transcripts or Codex review transcripts by copying or referencing
 the file, hashing it, and rendering the metadata in handoff/export; `hk artifact
 list --json` gives agents a read-only way to verify what is attached. Slugs should be short human-readable task names;

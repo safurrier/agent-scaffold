@@ -31,15 +31,19 @@ class CheckDefinition:
 
 
 @dataclass(frozen=True)
+class ReviewInstructions:
+    type: Literal["inline", "file"] = "inline"
+    text: str = ""
+    path: str = ""
+
+
+@dataclass(frozen=True)
 class ReviewDefinition:
     name: str
     purpose: str
     backend: str
-    rubric: str
     dispatch_hint: str = ""
-    prompt: str = ""
-    prompt_file: str | None = None
-    prompt_file_text: str = ""
+    instructions: ReviewInstructions | None = None
     applies_when: tuple[str, ...] = ()
     required_when: tuple[str, ...] = ()
 
@@ -55,6 +59,7 @@ class ProfileSuggestion:
     enforced: bool = False
     record_command: str = ""
     prompt_command: str = ""
+    dispatch_hint: str = ""
 
 
 @dataclass(frozen=True)

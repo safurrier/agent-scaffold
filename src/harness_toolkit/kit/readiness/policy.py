@@ -393,9 +393,9 @@ def ready_for_events(
             if matching_reviews
             else dangerous_skip_message("review", matching_skips)
             if matching_skips
-            else f"required profile review `{item.name}` does not cover current changed paths ({_paths_text(item_unreviewed_paths)}); run `hk review prompt {item.name}` and record a targeted follow-up with `hk review add --review {item.name} --path PATH ...`, or `hk dangerously-skip review --label {item.name} --reason ... --mitigation ...`"
+            else f"required profile review `{item.name}` does not cover current changed paths ({_paths_text(item_unreviewed_paths)}); run `hk review prompt {item.name}` and record a targeted follow-up with `hk review add --review {item.name} --path PATH --backend subagent --reviewer reviewer-fresh-context --summary '...'`, or `hk dangerously-skip review --label {item.name} --reason ... --mitigation ...`"
             if named_reviews
-            else f"missing required profile review `{item.name}` ({_paths_text(item.matched_paths)}); run `hk review prompt {item.name}` and record with `hk review add --review {item.name} ...`, or `hk dangerously-skip review --label {item.name} --reason ... --mitigation ...`",
+            else f"missing required profile review `{item.name}` ({_paths_text(item.matched_paths)}); run `hk review prompt {item.name}` and record with `hk review add --review {item.name} --backend subagent --reviewer reviewer-fresh-context --summary '...'`, or `hk dangerously-skip review --label {item.name} --reason ... --mitigation ...`",
         )
 
     sync_skips = dangerous_skip_events(events, "sync")

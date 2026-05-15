@@ -218,7 +218,7 @@ The target split is:
 - `hk ready`: answers "is this work ready to hand off?"
 
 `hk ready` validates explicit ledger declarations, not inferred semantic quality.
-Agents choose plans, commands, and review rubrics; HK records and checks that
+Agents choose plans, commands, and review instructions; HK records and checks that
 required declarations are present, internally consistent, and renderable.
 
 ### Agent work lifecycle
@@ -256,10 +256,10 @@ The underlying lifecycle remains phase-oriented:
    decisions and spec impacts.
 4. **Validate** — run native repo commands directly and capture exact evidence
    with a rationale for what each command proves.
-5. **Review** — record external-enough reviews with backend, reviewer, rubric,
-   findings, and disposition. Multiple rubric-specific reviews should be
-   possible over time, such as core quality, repo conventions, design, security,
-   UX, or technology-specific best practices.
+5. **Review** — record external-enough reviews with backend, reviewer,
+   profile review name when applicable, findings, and disposition. Multiple named
+   reviews should be possible over time, such as core quality, repo conventions,
+   design, security, UX, or technology-specific best practices.
 6. **Handoff** — run sync/readiness checks and render a conservative handoff.
 
 The current scaffold artifacts map to those phases as follows:
@@ -270,7 +270,7 @@ The current scaffold artifacts map to those phases as follows:
 | Plan | `TODO.md`, `IMPLEMENTATION.md` | `hk plan` plus optional task/checklist records only when useful |
 | Decisions/spec | `DECISIONS.md`, ADR/ledger links | `hk decide` and spec-impact reflection records |
 | Validation | `VALIDATION.md`, `artifacts/manifest.yaml` | `hk validate --why ... -- <command>` captured evidence |
-| Review | `REVIEW.md` | `hk review add` records with backend/reviewer/rubrics/findings/disposition |
+| Review | `REVIEW.md` | `hk review add` records with backend/reviewer/profile-review/findings/disposition |
 | Handoff gate | `mise run sync-check` | `hk ready` plus `hk sync --check` |
 
 This keeps Harness Kit shell-first while making the plan package an optional
@@ -329,12 +329,17 @@ run_from = "repo-root"
 name = "core-quality"
 purpose = "Fresh-context review before handoff."
 backend = "codex"
-rubric = "core-quality"
 dispatch_hint = "codex review --uncommitted"
+
+[profiles.foreman.reviews.instructions]
+type = "inline"
+text = "Review correctness, regression coverage, and handoff clarity."
 ```
 
 Review entries are guidance just like checks: agents dispatch them via the current
 harness and record accepted results with `hk review add`; HK does not launch them.
+Review instructions can be inline or file-backed, including wrapper prompts that
+tell a fresh reviewer to load a skill or checklist.
 When a repo wants committed handoff artifacts, `hk export --format handoff-dir
 --output .ai/hk/2026-05-09-120000-demo` writes a compact generated package from
 the ledger. The ledger remains the source of truth; the package should not become
@@ -385,7 +390,7 @@ hk context "TEXT" [--target PATH] [--json]
 hk context --from-file PATH|- [--target PATH] [--json]
 hk decide "TEXT" [--spec-impact none|updated|not-needed] [--spec-ref PATH]... [--target PATH] [--json]
 hk validate --why "WHAT THIS VALIDATES" [--kind KIND] [--target PATH] -- <command...>
-hk review add --backend NAME --reviewer INDEPENDENT_OR_FRESH_CONTEXT_REVIEWER --rubric NAME --summary TEXT [--disposition TEXT] [--path REPO_RELATIVE_PATH]...
+hk review add [--review PROFILE_REVIEW] --backend NAME --reviewer INDEPENDENT_OR_FRESH_CONTEXT_REVIEWER --summary TEXT [--disposition TEXT] [--path REPO_RELATIVE_PATH]...
 hk review prompt [--target PATH] [--json]
 hk artifact attach --path FILE --kind KIND [--label TEXT] [--no-copy] [--target PATH] [--json]
 hk artifact list [--target PATH] [--json]
@@ -556,7 +561,7 @@ Each implementation phase must:
 9. Readiness parity with plan artifacts:
    - compact plan records and optional task/checklist events;
    - validation evidence rationale;
-   - review events with backend/reviewer/rubrics/findings/disposition;
+   - review events with backend/reviewer/profile-review/findings/disposition;
    - `hk ready`;
    - plan-directory export from the ledger as a future compatibility feature.
 10. Docs/release/public cutover.
