@@ -179,7 +179,8 @@ Follow `hk status` next actions when it asks for them:
 {KIT_COMMAND} decide 'Decision/spec reflection' --spec-impact none --target . --json
 {KIT_COMMAND} checks --target . --profile {profile.name}{profiles_dir_arg} --changed --json
 # review is required by default: preferred independent AI/tool reviewer; minimum fresh-context subagent
-{KIT_COMMAND} review prompt core-review --target .
+# use a profile review name from `hk status` / `hk checks --changed` when one is suggested
+{KIT_COMMAND} review prompt REVIEW_NAME --target .
 # dispatch via your harness if available (Pi subagent tool, Claude Code Agent/Task tool, Codex Shell tool: codex review --uncommitted)
 {KIT_COMMAND} review add --backend subagent --reviewer reviewer-fresh-context --summary 'Review summary' --target . --json
 # review tools may create local agent state; check status again before syncing
@@ -1605,16 +1606,25 @@ def export_command(
             "Try: hk export --format handoff-dir --output .ai/hk/2026-05-09-120000-demo --target ."
         )
         raise SystemExit(1)
+    request = ExportRequest(
+        target=target,
+        no_local_files=no_local_files,
+        format=format,
+        output_path=output,
+        check=check,
+    )
+    if format == "handoff-dir" and check and json:
+        try:
+            status_result = lifecycle_app.export_status(request)
+        except LocalWorkflowError as e:
+            print_error(str(e))
+            raise SystemExit(1) from e
+        print(json_dump_dataclass(status_result))
+        if not status_result.fresh:
+            raise SystemExit(1)
+        return
     try:
-        result = lifecycle_app.export(
-            ExportRequest(
-                target=target,
-                no_local_files=no_local_files,
-                format=format,
-                output_path=output,
-                check=check,
-            )
-        )
+        result = lifecycle_app.export(request)
     except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e

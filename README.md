@@ -194,10 +194,16 @@ review because review tools may create agent-local state. HK records path/conten
 facts for reviewed changed paths, so later small fixes can be covered by targeted
 follow-up review records using `hk review add --path PATH ...` instead of always
 rerunning a full review. Generated `.ai/hk/<active-work-id>/` export refreshes are
-review-neutral; validate them with `hk export --check` / `mise run sync-check`.
+review-neutral; validate them with `hk export --format handoff-dir --check` / `mise run sync-check`.
 If review is impossible,
 record an explicit dangerous review skip with a label, reason, and mitigation.
-Use `hk status` for the agent next-action loop, `hk summary` for a concise
+Use `hk brief --json` for read-only workspace cards: it reports repo/scope,
+branch/SHA/dirty state, Git worktree identity, active work, and handoff export
+status without writing files. Use `hk handoff --json` for a live deterministic
+handoff preview, and use `hk export --format handoff-dir --check --json` for a
+focused machine-readable export freshness check; JSON check failures still exit
+nonzero but return structured missing/stale/invalid/no-active-work states. Use
+`hk status` for the agent next-action loop, `hk summary` for a concise
 human-readable readiness digest, and `hk handoff` for the longer transfer
 artifact. Explicit untracked local-only state can
 be handled with recorded one-shot sync exclusions rather than silent ignores;
