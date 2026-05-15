@@ -1559,7 +1559,7 @@ def status(target: Path, *, no_local_files: bool = False) -> StatusResult:
             repo_root=state.target_root,
             changed_paths=tuple(changed_paths_for_work(state.target_root, work_dir)),
         ).view
-    except ProfileError:
+    except (KeyError, ProfileError):
         profile_view = None
     suggested_checks = [
         item

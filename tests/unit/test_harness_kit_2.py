@@ -1754,6 +1754,42 @@ def test_status_coaches_next_actions(tmp_path: Path) -> None:
     assert "fresh-context subagent" in review_actions[0]
 
 
+def test_status_ignores_profile_suggestion_resolution_key_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from harness_toolkit.kit import local as local_module
+    from harness_toolkit.kit.readiness.diagnostics import ReadyResult
+
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "profile-suggestion-error")
+    (target / "src").mkdir()
+    (target / "src" / "changed.py").write_text("print('changed')\n")
+
+    monkeypatch.setattr(
+        local_module,
+        "ready_for_work",
+        lambda *args, **kwargs: ReadyResult(
+            work_id="profile-suggestion-error",
+            ready=False,
+            status="not-ready",
+            checks=[],
+        ),
+    )
+
+    def raise_key_error(*args: object, **kwargs: object) -> object:
+        raise KeyError("Unknown profile 'missing'")
+
+    monkeypatch.setattr(local_module.ProfileContext, "resolve", raise_key_error)
+
+    result = status(target)
+
+    assert result.active_work.endswith("profile-suggestion-error")
+    assert result.suggested_checks == []
+    assert result.suggested_reviews == []
+
+
 def test_status_prompts_exact_agent_local_sync_exclusion(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
