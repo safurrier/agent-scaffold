@@ -194,7 +194,7 @@ review because review tools may create agent-local state. HK records path/conten
 facts for reviewed changed paths, so later small fixes can be covered by targeted
 follow-up review records using `hk review add --path PATH ...` instead of always
 rerunning a full review. Generated `.ai/hk/<active-work-id>/` export refreshes are
-review-neutral; validate them with `hk export --check` / `mise run sync-check`.
+review-neutral; validate them with `hk export --format handoff-dir --check` / `mise run sync-check`.
 If review is impossible,
 record an explicit dangerous review skip with a label, reason, and mitigation.
 Use `hk brief --json` for read-only workspace cards: it reports repo/scope,

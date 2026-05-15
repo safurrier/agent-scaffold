@@ -301,7 +301,7 @@ persistent sync ignore config are deferred.
 | `hk capture` | Advanced: run a native command and record exact evidence |
 | `hk artifact attach` | Attach a real harness/tool-produced file such as an agent session transcript, Codex review transcript, HAR file, or validation artifact; HK copies/references it, hashes it, and renders metadata in handoff/export |
 | `hk artifact list` | Read-only list of attached artifacts for the active work; use after attach to verify kind, label, redaction, size, hash, and copied/reference path |
-| `hk review prompt core-review` | Print a generic or profile-named reviewer prompt to dispatch to an independent AI/tool or fresh-context reviewer, e.g. Pi `subagent`, Claude Code `Agent`/`Task` alias, or Codex via Shell tool running `codex review --uncommitted`; re-run `hk status` after review tools run |
+| `hk review prompt REVIEW_NAME` | Print a profile-named reviewer prompt from `hk status` / `hk checks --changed` to dispatch to an independent AI/tool or fresh-context reviewer, e.g. Pi `subagent`, Claude Code `Agent`/`Task` alias, or Codex via Shell tool running `codex review --uncommitted`; re-run `hk status` after review tools run |
 | `hk review add --path src/foo.py ...` | Record a targeted follow-up review for one or more currently changed repo-relative paths; HK uses path/content facts to avoid whole-diff review thrash |
 | `hk summary` | Render a concise human-readable readiness digest for PRs/review |
 | `hk handoff` | Render a longer transfer artifact from the work ledger; `--json` returns live markdown content without writing files |

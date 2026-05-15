@@ -1386,14 +1386,13 @@ def _status_from_export_check_details(
     )
 
 
-def handoff_export_status(
-    target: Path,
+def _handoff_export_status_for_state(
+    state: LocalState,
+    work_dir: Path | None,
     *,
     output_path: Path | None = None,
-    no_local_files: bool = False,
+    exact: bool = True,
 ) -> HandoffExportStatus:
-    state = resolve_local_state(target, no_local_files=no_local_files)
-    work_dir = active_work_dir(state) if state.state_dir.exists() else None
     if work_dir is None:
         return _handoff_export_status_result(
             state,
@@ -1417,6 +1416,36 @@ def handoff_export_status(
             message=str(e),
             stale_reasons=["unsafe export path"],
         )
+    if not exact:
+        meta_path = destination / "meta.json"
+        readme_path = destination / "README.md"
+        if not meta_path.exists():
+            return _handoff_export_status_result(
+                state,
+                work_dir,
+                destination,
+                export_state="missing",
+                message=f"HK export metadata missing: {meta_path}",
+                stale_reasons=["metadata missing"],
+            )
+        if meta_path.is_symlink():
+            return _handoff_export_status_result(
+                state,
+                work_dir,
+                destination,
+                export_state="invalid",
+                message=f"HK export metadata must not be a symlink: {meta_path}",
+                stale_reasons=["metadata symlink"],
+            )
+        if not readme_path.exists():
+            return _handoff_export_status_result(
+                state,
+                work_dir,
+                destination,
+                export_state="missing",
+                message=f"HK export README missing: {readme_path}",
+                stale_reasons=["README missing"],
+            )
     output_relative = _relative_to_root(destination, state.target_root)
     events = read_events(work_dir)
     evidence = read_evidence(work_dir)
@@ -1447,6 +1476,21 @@ def handoff_export_status(
         )
     return _status_from_export_check_details(
         state, work_dir, destination, metadata, artifact_files
+    )
+
+
+def handoff_export_status(
+    target: Path,
+    *,
+    output_path: Path | None = None,
+    no_local_files: bool = False,
+) -> HandoffExportStatus:
+    state = resolve_local_state(target, no_local_files=no_local_files)
+    work_dir = active_work_dir(state) if state.state_dir.exists() else None
+    return _handoff_export_status_for_state(
+        state,
+        work_dir,
+        output_path=output_path,
     )
 
 
@@ -1481,7 +1525,7 @@ def brief(target: Path, *, no_local_files: bool = False) -> Brief:
         repo_surfaces=repo_surfaces(state.target_root),
         profiles=profiles,
         git=git_info(state.target_scope),
-        handoff_export=handoff_export_status(target, no_local_files=no_local_files),
+        handoff_export=_handoff_export_status_for_state(state, active, exact=False),
     )
 
 

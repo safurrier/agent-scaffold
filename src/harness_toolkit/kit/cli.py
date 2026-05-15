@@ -179,7 +179,8 @@ Follow `hk status` next actions when it asks for them:
 {KIT_COMMAND} decide 'Decision/spec reflection' --spec-impact none --target . --json
 {KIT_COMMAND} checks --target . --profile {profile.name}{profiles_dir_arg} --changed --json
 # review is required by default: preferred independent AI/tool reviewer; minimum fresh-context subagent
-{KIT_COMMAND} review prompt core-review --target .
+# use a profile review name from `hk status` / `hk checks --changed` when one is suggested
+{KIT_COMMAND} review prompt REVIEW_NAME --target .
 # dispatch via your harness if available (Pi subagent tool, Claude Code Agent/Task tool, Codex Shell tool: codex review --uncommitted)
 {KIT_COMMAND} review add --backend subagent --reviewer reviewer-fresh-context --summary 'Review summary' --target . --json
 # review tools may create local agent state; check status again before syncing

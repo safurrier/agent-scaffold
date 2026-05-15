@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+import harness_toolkit.kit.local as local_module
 from harness_toolkit.kit.local import (
     LocalWorkflowError,
     add_dangerous_skip,
@@ -135,6 +136,39 @@ def test_brief_is_read_only_and_does_not_recommend_commands(tmp_path: Path) -> N
     assert "recommended_command" not in payload
     assert "confidence" not in payload
     assert _git_status(target) == "?? .mise.toml\n?? AGENTS.md\n"
+
+
+def test_brief_handoff_export_missing_avoids_expensive_freshness_check(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "missing-export")
+    add_note(target, kind="plan", text="Check missing export cheaply.")
+
+    resolve_calls = 0
+    real_resolve_local_state = local_module.resolve_local_state
+
+    def count_resolve_local_state(
+        target_arg: Path, *, no_local_files: bool = False
+    ) -> local_module.LocalState:
+        nonlocal resolve_calls
+        resolve_calls += 1
+        return real_resolve_local_state(target_arg, no_local_files=no_local_files)
+
+    def fail_ready_for_work(*args: object, **kwargs: object) -> None:
+        raise AssertionError("missing export status should not compute readiness")
+
+    monkeypatch.setattr(local_module, "resolve_local_state", count_resolve_local_state)
+    monkeypatch.setattr(local_module, "ready_for_work", fail_ready_for_work)
+
+    result = brief(target)
+
+    assert resolve_calls == 1
+    assert result.handoff_export.state == "missing"
+    assert result.handoff_export.fresh is False
+    assert result.handoff_export.stale_reasons == ["metadata missing"]
 
 
 def test_brief_does_not_label_separate_git_dir_as_linked_worktree(
