@@ -1605,16 +1605,25 @@ def export_command(
             "Try: hk export --format handoff-dir --output .ai/hk/2026-05-09-120000-demo --target ."
         )
         raise SystemExit(1)
+    request = ExportRequest(
+        target=target,
+        no_local_files=no_local_files,
+        format=format,
+        output_path=output,
+        check=check,
+    )
+    if format == "handoff-dir" and check and json:
+        try:
+            status_result = lifecycle_app.export_status(request)
+        except LocalWorkflowError as e:
+            print_error(str(e))
+            raise SystemExit(1) from e
+        print(json_dump_dataclass(status_result))
+        if not status_result.fresh:
+            raise SystemExit(1)
+        return
     try:
-        result = lifecycle_app.export(
-            ExportRequest(
-                target=target,
-                no_local_files=no_local_files,
-                format=format,
-                output_path=output,
-                check=check,
-            )
-        )
+        result = lifecycle_app.export(request)
     except LocalWorkflowError as e:
         print_error(str(e))
         raise SystemExit(1) from e

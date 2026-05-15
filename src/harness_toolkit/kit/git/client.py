@@ -33,6 +33,7 @@ class GitCommandResult:
 @dataclass(frozen=True)
 class GitWorktreeInfo:
     repo_root: Path
+    git_dir: Path
     git_common_dir: Path
 
 
@@ -124,17 +125,23 @@ class GitClient:
 
     def worktree_info(self, path: Path) -> GitWorktreeInfo | None:
         repo_root = self.root(path)
+        git_dir = self.run(
+            path,
+            ("rev-parse", "--path-format=absolute", "--git-dir"),
+        )
         common_dir = self.run(
             path,
             ("rev-parse", "--path-format=absolute", "--git-common-dir"),
         )
-        if repo_root is None or common_dir.returncode != 0:
+        if repo_root is None or git_dir.returncode != 0 or common_dir.returncode != 0:
             return None
+        git_dir_text = git_dir.stdout_text.strip()
         common_text = common_dir.stdout_text.strip()
-        if not common_text:
+        if not git_dir_text or not common_text:
             return None
         return GitWorktreeInfo(
             repo_root=repo_root,
+            git_dir=Path(git_dir_text).resolve(strict=False),
             git_common_dir=Path(common_text).resolve(strict=False),
         )
 

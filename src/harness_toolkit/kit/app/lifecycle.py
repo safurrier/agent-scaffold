@@ -276,6 +276,13 @@ class LifecycleApp:
             request.target, no_local_files=request.no_local_files
         )
 
+    def export_status(self, request: ExportRequest) -> local.HandoffExportStatus:
+        return local.handoff_export_status(
+            request.target,
+            output_path=request.output_path,
+            no_local_files=request.no_local_files,
+        )
+
     def export(
         self, request: ExportRequest
     ) -> local.HandoffResult | local.ExportResult:

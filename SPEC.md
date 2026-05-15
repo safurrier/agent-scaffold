@@ -137,7 +137,12 @@ Slugs are short human-readable task names; chronological ordering comes from
 HK-generated timestamped work IDs. `hk start --plan` starts work and records the
 first lifecycle plan event; `hk plan` records or refines lifecycle plan text for
 already-active Harness Kit work, including progressive planning when the detailed
-implementation shape emerges after work starts. `hk status` is the agent
+implementation shape emerges after work starts. `hk brief --json` is the read-only
+workspace/card surface and reports repo/scope, Git worktree facts, active work,
+and handoff export status without writing files. `hk export --format handoff-dir
+--check --json` MUST return structured expected-state JSON for fresh, missing,
+stale, invalid, and no-active-work exports while preserving nonzero exits for
+non-fresh states. `hk status` is the agent
 next-action view; `hk summary` is the concise human-readable readiness digest;
 `hk handoff` is the longer transfer artifact. Spec impact uses explicit modes (`none`, `updated`, or
 `not-needed`) plus optional `--spec-ref` file references. Review is required by

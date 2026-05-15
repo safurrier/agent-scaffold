@@ -291,7 +291,7 @@ persistent sync ignore config are deferred.
 
 | Command | Purpose |
 |---|---|
-| `hk brief` | Print a read-only repo brief without choosing validation commands |
+| `hk brief` | Print a read-only repo brief without choosing validation commands; JSON includes Git worktree facts and handoff export status for dashboard/card integrations |
 | `hk init` | Initialize ignored local Harness Kit state |
 | `hk start demo-work --plan <text>` | Start a lifecycle work item and optionally seed context/plan records; same-slug retries resume the active work item |
 | `hk work start` | Advanced compatibility surface for ledger-backed local work units |
@@ -304,8 +304,8 @@ persistent sync ignore config are deferred.
 | `hk review prompt core-review` | Print a generic or profile-named reviewer prompt to dispatch to an independent AI/tool or fresh-context reviewer, e.g. Pi `subagent`, Claude Code `Agent`/`Task` alias, or Codex via Shell tool running `codex review --uncommitted`; re-run `hk status` after review tools run |
 | `hk review add --path src/foo.py ...` | Record a targeted follow-up review for one or more currently changed repo-relative paths; HK uses path/content facts to avoid whole-diff review thrash |
 | `hk summary` | Render a concise human-readable readiness digest for PRs/review |
-| `hk handoff` | Render a longer transfer artifact from the work ledger |
-| `hk export --format handoff-dir` | Generate a compact committed handoff package such as `.ai/hk/2026-05-09-120000-demo/` from the HK ledger (`README.md`, `meta.json`, explicit-only `artifacts/`); use `--check` to validate freshness against local HK state |
+| `hk handoff` | Render a longer transfer artifact from the work ledger; `--json` returns live markdown content without writing files |
+| `hk export --format handoff-dir` | Generate a compact committed handoff package such as `.ai/hk/2026-05-09-120000-demo/` from the HK ledger (`README.md`, `meta.json`, explicit-only `artifacts/`); use `--check --json` to validate freshness with structured fresh/missing/stale/invalid/no-active-work states while preserving nonzero exits for non-fresh exports |
 | `hk spec` | Manage optional local/external spec drafts |
 | `hk instructions` | Print the compact user-level `AGENTS.md` snippet; use `--scope repo` for a fuller profile-specific repo snippet |
 | `hk profile list` | List built-in/custom/user-config profile contracts and model-directed selection guidance |

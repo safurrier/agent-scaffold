@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+from dataclasses import asdict
 from pathlib import Path
 
 import pytest
@@ -20,6 +21,7 @@ from harness_toolkit.kit.local import (
     export_handoff_dir,
     git_diff_hash,
     handoff,
+    handoff_export_status,
     init_spec,
     init_state,
     materialize_work,
@@ -114,13 +116,92 @@ def test_brief_is_read_only_and_does_not_recommend_commands(tmp_path: Path) -> N
     result = brief(target)
 
     assert result.state_exists is False
+    assert result.git.available is True
+    assert result.git.worktree_root == str(target)
+    assert result.git.git_dir == str(target / ".git")
+    assert result.git.git_common_dir == str(target / ".git")
+    assert result.git.is_linked_worktree is False
+    assert result.handoff_export.state == "no-active-work"
+    assert result.handoff_export.path is None
+    assert result.handoff_export.commands is not None
+    assert "hk start" in result.handoff_export.commands["start"]
+    external_result = brief(target, no_local_files=True)
+    assert external_result.handoff_export.commands is not None
+    assert "--no-local-files" in external_result.handoff_export.commands["start"]
     assert "AGENTS.md" in result.repo_surfaces
     assert ".mise.toml" in result.repo_surfaces
-    payload = json.dumps(result.__dict__)
+    payload = json.dumps(asdict(result))
     assert "recommended_profile" not in payload
     assert "recommended_command" not in payload
     assert "confidence" not in payload
     assert _git_status(target) == "?? .mise.toml\n?? AGENTS.md\n"
+
+
+def test_brief_does_not_label_separate_git_dir_as_linked_worktree(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    git_dir = tmp_path / "separate-git-dir"
+    target.mkdir()
+    subprocess.run(
+        ["git", "init", "--separate-git-dir", str(git_dir), str(target)],
+        check=True,
+        capture_output=True,
+        env=_git_env(),
+    )
+    subprocess.run(
+        ["git", "checkout", "-b", "feat/demo"],
+        cwd=target,
+        check=True,
+        capture_output=True,
+        env=_git_env(),
+    )
+    (target / "README.md").write_text("# demo\n")
+    subprocess.run(
+        ["git", "add", "README.md"],
+        cwd=target,
+        check=True,
+        capture_output=True,
+        env=_git_env(),
+    )
+    subprocess.run(
+        ["git", "commit", "--no-verify", "-m", "chore: initial"],
+        cwd=target,
+        check=True,
+        capture_output=True,
+        env=_git_env(),
+    )
+
+    result = brief(target)
+
+    assert result.git.available is True
+    assert result.git.git_dir == str(git_dir)
+    assert result.git.git_common_dir == str(git_dir)
+    assert result.git.is_linked_worktree is False
+
+
+def test_brief_reports_git_linked_worktree_facts(tmp_path: Path) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    worktree = tmp_path / "linked-worktree"
+    subprocess.run(
+        ["git", "worktree", "add", "--detach", str(worktree), "HEAD"],
+        cwd=target,
+        check=True,
+        capture_output=True,
+        env=_git_env(),
+    )
+
+    result = brief(worktree)
+
+    assert result.target_root == str(worktree)
+    assert result.git.available is True
+    assert result.git.worktree_root == str(worktree)
+    assert result.git.git_dir is not None
+    assert Path(result.git.git_dir).parent.name == "worktrees"
+    assert result.git.git_common_dir == str(target / ".git")
+    assert result.git.is_linked_worktree is True
+    assert result.handoff_export.state == "no-active-work"
 
 
 def test_init_work_note_materialize_keep_local_state_ignored(tmp_path: Path) -> None:
@@ -549,6 +630,37 @@ def test_handoff_dir_export_does_not_follow_generated_file_symlink(
     assert "HK export" in (output / "README.md").read_text()
 
 
+def test_handoff_dir_export_hints_preserve_external_state_mode(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target, no_local_files=True)
+    work = create_work(target, "external-export", no_local_files=True)
+    add_note(
+        target,
+        kind="plan",
+        text="Export external-state work.",
+        no_local_files=True,
+    )
+
+    export_handoff_dir(target, no_local_files=True)
+    output = target / ".ai" / "hk" / work.work_id
+    readme = (output / "README.md").read_text()
+    assert "--no-local-files --check" in readme
+    status_result = brief(target, no_local_files=True).handoff_export
+    assert status_result.commands is not None
+    assert "--no-local-files" in status_result.commands["generate"]
+    add_note(
+        target,
+        kind="learning",
+        text="Stale external export.",
+        no_local_files=True,
+    )
+    with pytest.raises(LocalWorkflowError, match="--no-local-files"):
+        export_handoff_dir(target, check=True, no_local_files=True)
+
+
 def test_handoff_dir_export_writes_generated_package_and_checks_freshness(
     tmp_path: Path,
 ) -> None:
@@ -620,8 +732,22 @@ def test_handoff_dir_export_writes_generated_package_and_checks_freshness(
     assert metadata["diff_hash"].startswith("sha256:")
     assert metadata["files"] == ["README.md", "meta.json", "artifacts/README.md"]
     assert metadata["file_hashes"]["README.md"].startswith("sha256:")
+    fresh_status = handoff_export_status(target, output_path=output)
+    assert fresh_status.state == "fresh"
+    assert fresh_status.path == str(output)
+    assert fresh_status.readme_exists is True
+    assert fresh_status.commands is not None
+    assert "hk handoff" in fresh_status.commands["preview"]
+    assert "hk export --format handoff-dir" in fresh_status.commands["generate"]
 
     (target / "src.py").write_text("print('new source change')\n")
+    stale_status = handoff_export_status(target, output_path=output)
+    assert stale_status.state == "stale"
+    assert stale_status.fresh is False
+    assert stale_status.readme_exists is True
+    assert any(
+        "stale metadata" in reason for reason in stale_status.stale_reasons or []
+    )
     with pytest.raises(LocalWorkflowError, match="stale metadata: diff_hash"):
         export_handoff_dir(target, output_path=output, check=True)
     (target / "src.py").unlink()
@@ -661,6 +787,85 @@ def test_cli_export_rejects_check_without_handoff_dir_format(tmp_path: Path) -> 
 
 
 @pytest.mark.cli
+def test_cli_handoff_dir_export_check_json_reports_invalid_artifact_state(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "cli-invalid-artifact")
+    add_note(target, kind="plan", text="Check invalid artifact JSON.")
+    source = tmp_path / "artifact.log"
+    source.write_text("original artifact\n")
+    attached = attach_artifact(
+        target,
+        source_path=source,
+        kind="codex-review-transcript",
+        label="Codex review",
+    )
+    Path(attached.artifact_path).unlink()
+
+    result = _run_hk(
+        "export",
+        "--format",
+        "handoff-dir",
+        "--target",
+        str(target),
+        "--check",
+        "--json",
+    )
+
+    assert result.returncode == 1
+    assert result.stderr == ""
+    payload = json.loads(result.stdout)
+    assert payload["state"] == "invalid"
+    assert payload["fresh"] is False
+    assert "attached copied artifact" in payload["message"]
+    assert payload["stale_reasons"] == [payload["message"]]
+
+
+def test_cli_handoff_dir_export_check_json_reports_missing_export(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    assert _run_hk("init", "--target", str(target), "--json").returncode == 0
+    assert (
+        _run_hk(
+            "start",
+            "cli-missing-export",
+            "--target",
+            str(target),
+            "--plan",
+            "Check missing export JSON.",
+            "--json",
+        ).returncode
+        == 0
+    )
+
+    result = _run_hk(
+        "export",
+        "--format",
+        "handoff-dir",
+        "--target",
+        str(target),
+        "--check",
+        "--json",
+    )
+
+    assert result.returncode == 1
+    assert result.stderr == ""
+    payload = json.loads(result.stdout)
+    assert payload["state"] == "missing"
+    assert payload["fresh"] is False
+    assert payload["checked"] is True
+    assert payload["path"] == str(target / ".ai" / "hk" / payload["work_id"])
+    assert payload["readme_path"].endswith("/README.md")
+    assert "metadata missing" in payload["stale_reasons"]
+    assert "hk handoff" in payload["commands"]["preview"]
+    assert "hk export --format handoff-dir" in payload["commands"]["generate"]
+
+
 def test_cli_handoff_dir_export_json_is_parseable(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)

@@ -129,6 +129,33 @@ class LocalState:
 
 
 @dataclass(frozen=True)
+class GitInfo:
+    available: bool
+    worktree_root: str | None = None
+    git_dir: str | None = None
+    git_common_dir: str | None = None
+    is_linked_worktree: bool = False
+
+
+@dataclass(frozen=True)
+class HandoffExportStatus:
+    work_id: str | None
+    format: str
+    state: str
+    exists: bool
+    fresh: bool
+    path: str | None = None
+    relative_path: str | None = None
+    readme_path: str | None = None
+    meta_path: str | None = None
+    readme_exists: bool = False
+    checked: bool = True
+    message: str = ""
+    stale_reasons: list[str] | None = None
+    commands: dict[str, str] | None = None
+
+
+@dataclass(frozen=True)
 class Brief:
     target_root: str
     target_scope: str
@@ -143,6 +170,8 @@ class Brief:
     spec_sources: list[str]
     repo_surfaces: list[str]
     profiles: list[str]
+    git: GitInfo
+    handoff_export: HandoffExportStatus
 
 
 @dataclass(frozen=True)
@@ -301,6 +330,7 @@ JsonDataclass = (
     | SpecOutline
     | HandoffResult
     | ExportResult
+    | HandoffExportStatus
     | ArtifactResult
     | ArtifactListResult
 )
@@ -1111,6 +1141,315 @@ def unique_paths(paths: list[Path]) -> list[str]:
     return rows
 
 
+def git_info(target: Path) -> GitInfo:
+    info = DEFAULT_GIT_CLIENT.worktree_info(target)
+    if info is None:
+        return GitInfo(available=False)
+    is_linked = (
+        info.git_dir != info.git_common_dir
+        and info.git_dir.parent.name == "worktrees"
+        and info.git_dir.parent.parent == info.git_common_dir
+    )
+    return GitInfo(
+        available=True,
+        worktree_root=str(info.repo_root),
+        git_dir=str(info.git_dir),
+        git_common_dir=str(info.git_common_dir),
+        is_linked_worktree=is_linked,
+    )
+
+
+def _state_mode_arg(state: LocalState) -> str:
+    return " --no-local-files" if state.mode == "external" else ""
+
+
+def _handoff_export_commands(
+    state: LocalState, destination: Path | None = None
+) -> dict[str, str]:
+    target_arg = shlex.quote(str(state.target_scope))
+    mode_arg = _state_mode_arg(state)
+    output_arg = ""
+    if destination is not None:
+        output_arg = f" --output {shlex.quote(str(destination))}"
+    return {
+        "preview": f"hk handoff --target {target_arg}{mode_arg} --json",
+        "generate": f"hk export --format handoff-dir{output_arg} --target {target_arg}{mode_arg}",
+        "check": f"hk export --format handoff-dir{output_arg} --check --target {target_arg}{mode_arg} --json",
+    }
+
+
+def _start_work_commands(state: LocalState) -> dict[str, str]:
+    target_arg = shlex.quote(str(state.target_scope))
+    return {
+        "start": "hk start demo-work --plan 'Describe the intended change' "
+        f"--target {target_arg}{_state_mode_arg(state)}"
+    }
+
+
+def _handoff_export_status_result(
+    state: LocalState,
+    work_dir: Path | None,
+    destination: Path | None,
+    *,
+    export_state: str,
+    message: str,
+    stale_reasons: list[str] | None = None,
+) -> HandoffExportStatus:
+    if work_dir is None or destination is None:
+        return HandoffExportStatus(
+            work_id=None,
+            format="handoff-dir",
+            state=export_state,
+            exists=False,
+            fresh=False,
+            message=message,
+            stale_reasons=stale_reasons or [],
+            commands=_start_work_commands(state),
+        )
+    readme_path = destination / "README.md"
+    meta_path = destination / "meta.json"
+    return HandoffExportStatus(
+        work_id=work_dir.name,
+        format="handoff-dir",
+        state=export_state,
+        exists=destination.exists(),
+        fresh=export_state == "fresh",
+        path=str(destination),
+        relative_path=_relative_to_root(destination, state.target_root),
+        readme_path=str(readme_path),
+        meta_path=str(meta_path),
+        readme_exists=readme_path.exists(),
+        message=message,
+        stale_reasons=stale_reasons or [],
+        commands=_handoff_export_commands(state, destination),
+    )
+
+
+def _status_from_export_check_details(
+    state: LocalState,
+    work_dir: Path,
+    destination: Path,
+    metadata: dict[str, object],
+    artifact_files: list[tuple[Path, str, str]],
+) -> HandoffExportStatus:
+    meta_path = destination / "meta.json"
+    if not meta_path.exists():
+        return _handoff_export_status_result(
+            state,
+            work_dir,
+            destination,
+            export_state="missing",
+            message=f"HK export metadata missing: {meta_path}",
+            stale_reasons=["metadata missing"],
+        )
+    if meta_path.is_symlink():
+        return _handoff_export_status_result(
+            state,
+            work_dir,
+            destination,
+            export_state="invalid",
+            message=f"HK export metadata must not be a symlink: {meta_path}",
+            stale_reasons=["metadata symlink"],
+        )
+    try:
+        recorded = json.loads(meta_path.read_text())
+    except json.JSONDecodeError as e:
+        return _handoff_export_status_result(
+            state,
+            work_dir,
+            destination,
+            export_state="invalid",
+            message=f"invalid HK export metadata {meta_path}: {e}",
+            stale_reasons=["invalid metadata json"],
+        )
+    if not isinstance(recorded, dict):
+        return _handoff_export_status_result(
+            state,
+            work_dir,
+            destination,
+            export_state="invalid",
+            message=f"invalid HK export metadata {meta_path}: expected JSON object",
+            stale_reasons=["invalid metadata object"],
+        )
+    expected_files = metadata.get("files", [])
+    if not isinstance(expected_files, list):
+        return _handoff_export_status_result(
+            state,
+            work_dir,
+            destination,
+            export_state="invalid",
+            message=f"HK export metadata files field is invalid: {meta_path}",
+            stale_reasons=["invalid files field"],
+        )
+    missing_files = [
+        str(item) for item in expected_files if not (destination / str(item)).exists()
+    ]
+    recorded_hashes = recorded.get("file_hashes", {})
+    if not isinstance(recorded_hashes, dict):
+        return _handoff_export_status_result(
+            state,
+            work_dir,
+            destination,
+            export_state="invalid",
+            message=f"HK export metadata file_hashes field is invalid: {meta_path}",
+            stale_reasons=["invalid file_hashes field"],
+        )
+    expected_artifact_hashes = {
+        relative: digest for _, relative, digest in artifact_files
+    }
+    stale_artifact_hashes = [
+        relative
+        for relative, digest in expected_artifact_hashes.items()
+        if recorded_hashes.get(relative) != digest
+    ]
+    unsafe_hash_paths: list[str] = []
+    unexpected_hash_paths: list[str] = []
+    hash_mismatches: list[str] = []
+    artifact_hash_mismatches: list[str] = []
+    symlink_files = [
+        str(item) for item in expected_files if (destination / str(item)).is_symlink()
+    ]
+    expected_file_set = {str(item) for item in expected_files}
+    for relative, expected_hash in recorded_hashes.items():
+        safe_relative = _safe_export_relative(str(relative))
+        if safe_relative is None:
+            unsafe_hash_paths.append(str(relative))
+            continue
+        if safe_relative not in expected_file_set:
+            unexpected_hash_paths.append(safe_relative)
+            continue
+        hashed_path = destination / safe_relative
+        if hashed_path.is_symlink():
+            if safe_relative not in symlink_files:
+                symlink_files.append(safe_relative)
+            continue
+        if not hashed_path.exists():
+            continue
+        actual_hash = _file_hash(hashed_path)
+        if safe_relative in expected_artifact_hashes:
+            if actual_hash != expected_artifact_hashes[safe_relative]:
+                artifact_hash_mismatches.append(safe_relative)
+        elif actual_hash != expected_hash:
+            hash_mismatches.append(safe_relative)
+    mismatches = _compare_export_metadata(metadata, recorded)
+    if not (
+        missing_files
+        or mismatches
+        or hash_mismatches
+        or unsafe_hash_paths
+        or unexpected_hash_paths
+        or stale_artifact_hashes
+        or artifact_hash_mismatches
+        or symlink_files
+    ):
+        return _handoff_export_status_result(
+            state,
+            work_dir,
+            destination,
+            export_state="fresh",
+            message="HK export is fresh",
+        )
+    details = []
+    invalid_details = []
+    if missing_files:
+        details.append("missing files: " + ", ".join(missing_files))
+    if mismatches:
+        details.append("stale metadata: " + ", ".join(mismatches))
+    if hash_mismatches:
+        details.append("modified generated files: " + ", ".join(hash_mismatches))
+    if unsafe_hash_paths:
+        invalid_details.append(
+            "unsafe file_hashes paths: " + ", ".join(unsafe_hash_paths)
+        )
+    if unexpected_hash_paths:
+        invalid_details.append(
+            "unexpected file_hashes paths: " + ", ".join(unexpected_hash_paths)
+        )
+    if stale_artifact_hashes:
+        details.append(
+            "stale attached artifact hashes: " + ", ".join(stale_artifact_hashes)
+        )
+    if artifact_hash_mismatches:
+        details.append(
+            "modified attached artifacts: " + ", ".join(artifact_hash_mismatches)
+        )
+    if symlink_files:
+        invalid_details.append("symlinked files: " + ", ".join(symlink_files))
+    all_details = details + invalid_details
+    return _handoff_export_status_result(
+        state,
+        work_dir,
+        destination,
+        export_state="invalid" if invalid_details else "stale",
+        message="HK export is stale or incomplete: " + "; ".join(all_details),
+        stale_reasons=all_details,
+    )
+
+
+def handoff_export_status(
+    target: Path,
+    *,
+    output_path: Path | None = None,
+    no_local_files: bool = False,
+) -> HandoffExportStatus:
+    state = resolve_local_state(target, no_local_files=no_local_files)
+    work_dir = active_work_dir(state) if state.state_dir.exists() else None
+    if work_dir is None:
+        return _handoff_export_status_result(
+            state,
+            None,
+            None,
+            export_state="no-active-work",
+            message="No active HK work",
+            stale_reasons=["no active work"],
+        )
+    destination = output_path or (state.target_root / ".ai" / "hk" / work_dir.name)
+    if not destination.is_absolute():
+        destination = state.target_root / destination
+    try:
+        reject_symlink_ancestors(destination)
+    except HandoffExportError as e:
+        return _handoff_export_status_result(
+            state,
+            work_dir,
+            destination,
+            export_state="invalid",
+            message=str(e),
+            stale_reasons=["unsafe export path"],
+        )
+    output_relative = _relative_to_root(destination, state.target_root)
+    events = read_events(work_dir)
+    evidence = read_evidence(work_dir)
+    readiness = ready_for_work(
+        work_dir,
+        state,
+        check_handoff=False,
+        freshness_excludes=(output_relative,),
+    )
+    try:
+        artifact_files = _copied_artifacts_for_export(work_dir, events)
+        metadata = _handoff_dir_metadata(
+            state=state,
+            work_dir=work_dir,
+            output_path=destination,
+            events=events,
+            evidence=evidence,
+            readiness=readiness,
+        )
+    except LocalWorkflowError as e:
+        return _handoff_export_status_result(
+            state,
+            work_dir,
+            destination,
+            export_state="invalid",
+            message=str(e),
+            stale_reasons=[str(e)],
+        )
+    return _status_from_export_check_details(
+        state, work_dir, destination, metadata, artifact_files
+    )
+
+
 def brief(target: Path, *, no_local_files: bool = False) -> Brief:
     state = resolve_local_state(target, no_local_files=no_local_files)
     active = active_work_dir(state) if state.state_dir.exists() else None
@@ -1141,6 +1480,8 @@ def brief(target: Path, *, no_local_files: bool = False) -> Brief:
         spec_sources=spec_sources,
         repo_surfaces=repo_surfaces(state.target_root),
         profiles=profiles,
+        git=git_info(state.target_scope),
+        handoff_export=handoff_export_status(target, no_local_files=no_local_files),
     )
 
 
@@ -1155,11 +1496,25 @@ def brief_markdown(value: Brief) -> str:
         f"- Git SHA: `{value.git_sha}`",
         f"- Dirty: `{str(value.dirty).lower()}`",
         "",
+        "## Git worktree",
+        f"- Git available: `{str(value.git.available).lower()}`",
+        f"- Worktree root: `{value.git.worktree_root or 'unknown'}`",
+        f"- Git dir: `{value.git.git_dir or 'unknown'}`",
+        f"- Git common dir: `{value.git.git_common_dir or 'unknown'}`",
+        f"- Linked worktree: `{str(value.git.is_linked_worktree).lower()}`",
+        "",
         "## Harness state",
         f"- State exists: `{str(value.state_exists).lower()}`",
         f"- State dir: `{value.state_dir}`",
         f"- Active work: `{value.active_work or 'none'}`",
         f"- Sync status: `{value.sync_status}`",
+        "",
+        "## Handoff export",
+        f"- State: `{value.handoff_export.state}`",
+        f"- Fresh: `{str(value.handoff_export.fresh).lower()}`",
+        f"- Path: `{value.handoff_export.path or 'none'}`",
+        f"- README: `{value.handoff_export.readme_path or 'none'}`",
+        f"- Message: {value.handoff_export.message}",
         "",
         "## Instructions and specs",
     ]
@@ -1832,7 +2187,9 @@ def _handoff_dir_metadata(
     }
 
 
-def _export_readme(work_id: str, handoff_content: str, output_relative: str) -> str:
+def _export_readme(
+    work_id: str, handoff_content: str, output_relative: str, state: LocalState
+) -> str:
     handoff_body = handoff_content.removeprefix("# Handoff\n\n")
     return (
         f"# HK export: `{work_id}`\n\n"
@@ -1842,7 +2199,7 @@ def _export_readme(work_id: str, handoff_content: str, output_relative: str) -> 
         "## Freshness\n"
         "Validate this export against local HK state with:\n\n"
         "```bash\n"
-        f"hk export --format handoff-dir --output {shlex.quote(output_relative)} --target . --check\n"
+        f"hk export --format handoff-dir --output {shlex.quote(output_relative)} --target .{_state_mode_arg(state)} --check\n"
         "```\n\n"
         "Historical hand-authored slice plans live under `.ai/plans/`; new "
         "Harness Toolkit repo work should use HK and generated `.ai/hk/` exports.\n\n"
@@ -1961,11 +2318,8 @@ def _compare_export_metadata(
     return mismatches
 
 
-def _regenerate_export_hint(destination: Path) -> str:
-    return (
-        "Try: regenerate with `hk export --format handoff-dir "
-        f"--output {shlex.quote(str(destination))} --target .`."
-    )
+def _regenerate_export_hint(state: LocalState, destination: Path) -> str:
+    return f"Try: regenerate with `{_handoff_export_commands(state, destination)['generate']}`."
 
 
 def export_handoff_dir(
@@ -2003,129 +2357,15 @@ def export_handoff_dir(
         evidence=evidence,
         readiness=readiness,
     )
-    meta_path = destination / "meta.json"
     if check:
-        if not meta_path.exists():
+        status_result = _status_from_export_check_details(
+            state, work_dir, destination, metadata, artifact_files
+        )
+        if status_result.state != "fresh":
             raise LocalWorkflowError(
-                f"HK export metadata missing: {meta_path}\n"
-                + _regenerate_export_hint(destination)
-            )
-        if meta_path.is_symlink():
-            raise LocalWorkflowError(
-                f"HK export metadata must not be a symlink: {meta_path}"
-            )
-        try:
-            recorded = json.loads(meta_path.read_text())
-        except json.JSONDecodeError as e:
-            raise LocalWorkflowError(
-                f"invalid HK export metadata {meta_path}: {e}\n"
-                + _regenerate_export_hint(destination)
-            ) from e
-        if not isinstance(recorded, dict):
-            raise LocalWorkflowError(
-                f"invalid HK export metadata {meta_path}: expected JSON object\n"
-                + _regenerate_export_hint(destination)
-            )
-        expected_files = metadata.get("files", [])
-        if not isinstance(expected_files, list):
-            raise LocalWorkflowError(
-                f"HK export metadata files field is invalid: {meta_path}"
-            )
-        missing_files = [
-            str(item)
-            for item in expected_files
-            if not (destination / str(item)).exists()
-        ]
-        recorded_hashes = recorded.get("file_hashes", {})
-        if not isinstance(recorded_hashes, dict):
-            raise LocalWorkflowError(
-                f"HK export metadata file_hashes field is invalid: {meta_path}\n"
-                + _regenerate_export_hint(destination)
-            )
-        expected_artifact_hashes = {
-            relative: digest for _, relative, digest in artifact_files
-        }
-        stale_artifact_hashes = [
-            relative
-            for relative, digest in expected_artifact_hashes.items()
-            if recorded_hashes.get(relative) != digest
-        ]
-        unsafe_hash_paths: list[str] = []
-        unexpected_hash_paths: list[str] = []
-        hash_mismatches: list[str] = []
-        artifact_hash_mismatches: list[str] = []
-        symlink_files = [
-            str(item)
-            for item in expected_files
-            if (destination / str(item)).is_symlink()
-        ]
-        expected_file_set = {str(item) for item in expected_files}
-        for relative, expected_hash in recorded_hashes.items():
-            safe_relative = _safe_export_relative(relative)
-            if safe_relative is None:
-                unsafe_hash_paths.append(str(relative))
-                continue
-            if safe_relative not in expected_file_set:
-                unexpected_hash_paths.append(safe_relative)
-                continue
-            hashed_path = destination / safe_relative
-            if hashed_path.is_symlink():
-                if safe_relative not in symlink_files:
-                    symlink_files.append(safe_relative)
-                continue
-            if not hashed_path.exists():
-                continue
-            actual_hash = _file_hash(hashed_path)
-            if safe_relative in expected_artifact_hashes:
-                if actual_hash != expected_artifact_hashes[safe_relative]:
-                    artifact_hash_mismatches.append(safe_relative)
-            elif actual_hash != expected_hash:
-                hash_mismatches.append(safe_relative)
-        mismatches = _compare_export_metadata(metadata, recorded)
-        if (
-            missing_files
-            or mismatches
-            or hash_mismatches
-            or unsafe_hash_paths
-            or unexpected_hash_paths
-            or stale_artifact_hashes
-            or artifact_hash_mismatches
-            or symlink_files
-        ):
-            details = []
-            if missing_files:
-                details.append("missing files: " + ", ".join(missing_files))
-            if mismatches:
-                details.append("stale metadata: " + ", ".join(mismatches))
-            if hash_mismatches:
-                details.append(
-                    "modified generated files: " + ", ".join(hash_mismatches)
-                )
-            if unsafe_hash_paths:
-                details.append(
-                    "unsafe file_hashes paths: " + ", ".join(unsafe_hash_paths)
-                )
-            if unexpected_hash_paths:
-                details.append(
-                    "unexpected file_hashes paths: " + ", ".join(unexpected_hash_paths)
-                )
-            if stale_artifact_hashes:
-                details.append(
-                    "stale attached artifact hashes: "
-                    + ", ".join(stale_artifact_hashes)
-                )
-            if artifact_hash_mismatches:
-                details.append(
-                    "modified attached artifacts: "
-                    + ", ".join(artifact_hash_mismatches)
-                )
-            if symlink_files:
-                details.append("symlinked files: " + ", ".join(symlink_files))
-            raise LocalWorkflowError(
-                "HK export is stale or incomplete: "
-                + "; ".join(details)
+                status_result.message
                 + "\n"
-                + _regenerate_export_hint(destination)
+                + _regenerate_export_hint(state, destination)
             )
         return ExportResult(
             work_id=work_dir.name,
@@ -2157,6 +2397,7 @@ def export_handoff_dir(
             work_dir.name,
             handoff_content,
             output_relative,
+            state,
         ),
         "artifacts/README.md": _artifacts_readme(),
     }
