@@ -303,3 +303,114 @@ Common known sharp edges:
 
 Persist the synthesis under the active `.ai/plans/.../artifacts/` directory and
 list it in `artifacts/manifest.yaml`.
+
+## Profile review instructions variant
+
+Use this variant when changing HK profile review schema, suggested/required review
+behavior, or skill-backed review prompt rendering.
+
+### Purpose
+
+This tests whether agents can discover and use a profile review that wraps a
+skill/checklist without HK running the review itself. It should prove that:
+
+- `hk status` surfaces optional suggested reviews when changed paths match;
+- `hk review prompt REVIEW_NAME` renders file-backed review instructions;
+- review instructions can point at a skill directory or plugin without HK loading it;
+- `hk review add --review REVIEW_NAME ...` works without any rubric argument;
+- required reviews still block readiness when `required_when` matches.
+
+### Setup
+
+Create a temp repo and temp HK config that uses the checkout-local `hk-dev`:
+
+```bash
+ROOT=/tmp/hk-profile-review-instructions-trial
+rm -rf "$ROOT"
+mkdir -p "$ROOT/repo" "$ROOT/profiles" "$ROOT/prompts"
+cd "$ROOT/repo"
+git init
+git checkout -b profile-review-instructions
+cat > README.md <<'EOF'
+# profile review instructions trial
+EOF
+git add README.md
+git commit --no-verify -m 'init trial'
+
+cat > "$ROOT/prompts/architecture-polish-review.md" <<'EOF'
+# Architecture polish review
+
+Load and follow the architecture-polish-review skill if available.
+
+Skill directory:
+`~/git_repositories/dots/config/ai-config/plugins/alex-ai/skills/architecture-polish-review`
+
+Run this after implementation and validation, before considering the work complete.
+Do not self-review. Return blockers, non-blocking findings, fix order, and verification plan.
+EOF
+
+cat > "$ROOT/harness.toml" <<EOF
+version = 1
+default_profile = "trial"
+
+[[targets]]
+name = "trial"
+path = "$ROOT/repo"
+profile = "trial"
+
+[profiles.trial]
+title = "Trial"
+summary = "Profile review instructions trial."
+target_hint = "Use --target $ROOT/repo."
+instructions = "Use HK status and profile review suggestions before handoff."
+
+[[profiles.trial.checks]]
+name = "fast-gate"
+purpose = "Run a tiny validation command."
+command_template = "python3 -c 'print(\"ok\")'"
+run_from = "repo-root"
+required_when = ["src/**", "docs/**"]
+
+[[profiles.trial.reviews]]
+name = "architecture-polish-review"
+purpose = "Suggested final architecture/reviewability pass."
+backend = "subagent"
+dispatch_hint = "Run after validation before considering implementation complete. Use a fresh-context subagent. Do not self-review."
+applies_when = ["src/**", "docs/**"]
+required_when = []
+
+[profiles.trial.reviews.instructions]
+type = "file"
+path = "$ROOT/prompts/architecture-polish-review.md"
+EOF
+```
+
+### Trial commands
+
+```bash
+export HARNESS_KIT_CONFIG="$ROOT/harness.toml"
+/Users/alex.furrier/git_repositories/harness-toolkit/scripts/hk-dev start profile-review-instructions \
+  --plan 'Touch docs and validate suggested skill-backed review flow.' \
+  --target "$ROOT/repo"
+mkdir -p "$ROOT/repo/docs"
+echo '# guide' > "$ROOT/repo/docs/guide.md"
+/Users/alex.furrier/git_repositories/harness-toolkit/scripts/hk-dev status --target "$ROOT/repo"
+/Users/alex.furrier/git_repositories/harness-toolkit/scripts/hk-dev review prompt architecture-polish-review --target "$ROOT/repo"
+/Users/alex.furrier/git_repositories/harness-toolkit/scripts/hk-dev review add \
+  --review architecture-polish-review \
+  --backend subagent \
+  --reviewer reviewer-fresh-context \
+  --summary 'Accepted after architecture polish trial.' \
+  --target "$ROOT/repo"
+```
+
+### Evaluation
+
+Confirm:
+
+- status output has an `optional profile suggestions` section;
+- the suggested review includes the `dispatch_hint` and `hk review prompt` command;
+- the rendered prompt includes the file-backed instructions and skill directory;
+- `hk review add` does not require or mention `--rubric`;
+- readiness behavior is unchanged: optional suggestions do not block, while any
+  matching `required_when` entries still do.

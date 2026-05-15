@@ -117,7 +117,7 @@ hk context --from-file <path|-> --target <repo-or-module> --json
 hk decide "TEXT" --spec-impact none|updated|not-needed --spec-ref <path> --target <repo-or-module> --json
 hk validate [--check <profile-check>] [--timeout-seconds N] [--max-log-bytes N] --why "WHAT THIS VALIDATES" --target <repo-or-module> -- <command...>
 hk review prompt [profile-review] --target <repo-or-module> --json
-hk review add [--review <profile-review>] [--path <repo-relative-path>]... --backend <independent-tool> --reviewer <independent-reviewer-or-fresh-context-subagent> --rubric <name> --summary "TEXT" --target <repo-or-module> --json
+hk review add [--review <profile-review>] [--path <repo-relative-path>]... --backend <independent-tool> --reviewer <independent-reviewer-or-fresh-context-subagent> --summary "TEXT" --target <repo-or-module> --json
 hk artifact attach --path <file> --kind <kind> --label "TEXT" --target <repo-or-module> --json
 hk artifact list --target <repo-or-module> --json
 hk sync --exclude <path> --reason "TEXT" --target <repo-or-module> --json
@@ -162,10 +162,14 @@ rather than limited to a hardcoded `.pi`/`.claude` allowlist, while root,
 pathspec, tracked, staged, and missing paths remain invalid. Whole-sync dangerous
 skips remain an explicit fallback.
 
-`hk profile resolve` and `hk checks --changed` MUST explain profile/check/review
+`hk profile resolve`, `hk checks --changed`, and `hk status` MUST explain profile/check/review
 selection without changing readiness semantics. JSON diagnostics may grow only
 additively and should include the profile match kind plus changed files/patterns
-that triggered suggested or required profile items.
+that triggered suggested or required profile items. Suggested profile reviews are
+non-blocking status guidance; required profile reviews remain readiness checks.
+Profile reviews are named review policies with optional inline or file-backed
+`instructions`; HK renders those instructions but does not run reviewers or load
+skills/plugins itself.
 
 `hk artifact attach` records harness/tool-produced files such as agent session
 transcripts, Codex review transcripts, HAR files, or raw validation artifacts by

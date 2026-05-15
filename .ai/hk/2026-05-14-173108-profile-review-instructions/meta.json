@@ -1,0 +1,34 @@
+{
+  "attached_artifacts": [],
+  "branch": "feat/profile-review-instructions",
+  "diff_hash": "sha256:7a1cf1525e025b2c4bdbebed9ab40156edbc5147a4babdc8eecb4ce26baf8dcb",
+  "dirty": true,
+  "event_count": 10,
+  "event_seq": 10,
+  "evidence_count": 3,
+  "evidence_ids": [
+    "ev_20260514_173142_152526",
+    "ev_20260514_173143_107302",
+    "ev_20260514_173535_084824"
+  ],
+  "file_hashes": {
+    "README.md": "sha256:a27e10819b6c5b5816fee054abef97399199a06b942a0f27334fbe7766d78c84",
+    "artifacts/README.md": "sha256:c4bad9d4652f296a7e4dcf175fe1dd0c66a99ec0b74941cd45c499e84792436c"
+  },
+  "files": [
+    "README.md",
+    "meta.json",
+    "artifacts/README.md"
+  ],
+  "generated_at": "2026-05-15T00:40:53.471768+00:00",
+  "generated_by": "hk export --format handoff-dir",
+  "git_sha": "5d2ab2e",
+  "output_path": ".ai/hk/2026-05-14-173108-profile-review-instructions",
+  "ready": true,
+  "ready_status": "ready",
+  "schema_version": 1,
+  "sync_status": "synced",
+  "target_root": ".",
+  "target_scope": ".",
+  "work_id": "2026-05-14-173108-profile-review-instructions"
+}

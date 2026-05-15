@@ -13,6 +13,7 @@ from harness_toolkit.kit.profiles.models import (
     LoadedProfile,
     ProfileError,
     ReviewDefinition,
+    ReviewInstructions,
     RunFrom,
     WorkflowProfile,
 )
@@ -54,6 +55,42 @@ def _optional_str_tuple(
     if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
         raise ProfileError(f"profile {source} field '{key}' must be a string array")
     return tuple(cast("list[str]", value))
+
+
+def _review_instructions(
+    raw_review: dict[str, object],
+    *,
+    source: str,
+    index: int,
+    base_dir: Path | None,
+) -> ReviewInstructions | None:
+    instructions_value = raw_review.get("instructions")
+    if instructions_value is None:
+        return None
+    if not isinstance(instructions_value, dict):
+        raise ProfileError(
+            f"profile {source} review #{index} field 'instructions' must be a TOML table"
+        )
+    instructions = cast("dict[str, object]", instructions_value)
+    instruction_type = _required_str(instructions, "type", source=source)
+    if instruction_type == "inline":
+        text = _required_str(instructions, "text", source=source)
+        return ReviewInstructions(type="inline", text=text)
+    if instruction_type == "file":
+        path = _required_str(instructions, "path", source=source)
+        if base_dir is None:
+            return ReviewInstructions(type="file", path=path)
+        instruction_path = normalize_config_path(path, base_dir=base_dir)
+        try:
+            text = instruction_path.read_text()
+        except OSError as e:
+            raise ProfileError(
+                f"profile {source} review #{index} could not read instructions file {path}: {e}"
+            ) from e
+        return ReviewInstructions(type="file", text=text, path=path)
+    raise ProfileError(
+        f"profile {source} review #{index} instructions.type must be 'inline' or 'file'"
+    )
 
 
 def parse_profile_data(
@@ -128,23 +165,16 @@ def parse_profile_data(
         if not isinstance(raw_review, dict):
             raise ProfileError(f"profile {source} review #{index} must be a TOML table")
         raw_review = cast("dict[str, object]", raw_review)
-        prompt_file_value = raw_review.get("prompt_file")
-        prompt_file: str | None = None
-        prompt_file_text = ""
-        if prompt_file_value is not None:
-            if not isinstance(prompt_file_value, str) or not prompt_file_value.strip():
+        for removed_field in ("rubric", "prompt", "prompt_file"):
+            if removed_field in raw_review:
                 raise ProfileError(
-                    f"profile {source} review #{index} field 'prompt_file' must be a string"
+                    f"profile {source} review #{index} uses removed field '{removed_field}'; "
+                    "use [reviews.instructions] with type='inline' or type='file', "
+                    "for example: [reviews.instructions] type='inline' text='Review ...'"
                 )
-            prompt_file = prompt_file_value
-            if base_dir is not None:
-                prompt_path = normalize_config_path(prompt_file, base_dir=base_dir)
-                try:
-                    prompt_file_text = prompt_path.read_text()
-                except OSError as e:
-                    raise ProfileError(
-                        f"profile {source} review #{index} could not read prompt_file {prompt_file}: {e}"
-                    ) from e
+        review_instructions = _review_instructions(
+            raw_review, source=source, index=index, base_dir=base_dir
+        )
         review_name = _required_str(raw_review, "name", source=source)
         validate_item_name(review_name, kind="review", source=source)
         if review_name in review_names:
@@ -157,11 +187,8 @@ def parse_profile_data(
                 name=review_name,
                 purpose=_required_str(raw_review, "purpose", source=source),
                 backend=_required_str(raw_review, "backend", source=source),
-                rubric=_required_str(raw_review, "rubric", source=source),
                 dispatch_hint=_optional_str(raw_review, "dispatch_hint", source=source),
-                prompt=_optional_str(raw_review, "prompt", source=source),
-                prompt_file=prompt_file,
-                prompt_file_text=prompt_file_text,
+                instructions=review_instructions,
                 applies_when=_optional_str_tuple(
                     raw_review, "applies_when", source=source
                 ),

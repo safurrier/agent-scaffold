@@ -35,6 +35,7 @@ nav:
   - Task Contract: task-contract.md
   - Repo Shapes: shapes.md
   - Portable Workflow: portable-workflow.md
+  - Profile Reviews: profile-reviews.md
   - Harness Kit Design: harness-kit-lifecycle-design.md
   - Scripts Contract Prototype: script-contract-prototype.md
   - Release and Installation: release.md

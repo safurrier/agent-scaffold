@@ -159,9 +159,9 @@ def render_summary_markdown(
     lines.extend(["", "## Review"])
     if reviews:
         for review in reviews:
-            rubrics = ", ".join(review.rubrics)
+            criteria = f" ({', '.join(review.rubrics)})" if review.rubrics else ""
             lines.append(
-                f"- {review.backend} / {review.reviewer}{review_label(review)} ({rubrics}): {review.summary}{review_paths_text(review)} [{review.disposition}]"
+                f"- {review.backend} / {review.reviewer}{review_label(review)}{criteria}: {review.summary}{review_paths_text(review)} [{review.disposition}]"
             )
     elif review_skips:
         lines.append("- No review recorded; see dangerous review skip below.")
@@ -261,9 +261,9 @@ def render_handoff_markdown(
     reviews = lifecycle_events.review_events(events)
     if reviews:
         for review in reviews:
-            rubrics = ", ".join(review.rubrics)
+            criteria = f" ({', '.join(review.rubrics)})" if review.rubrics else ""
             lines.append(
-                f"- {review.backend} / {review.reviewer}{review_label(review)} ({rubrics}): {review.summary}{review_paths_text(review)} [{review.disposition}]"
+                f"- {review.backend} / {review.reviewer}{review_label(review)}{criteria}: {review.summary}{review_paths_text(review)} [{review.disposition}]"
             )
     else:
         lines.append("- None recorded.")

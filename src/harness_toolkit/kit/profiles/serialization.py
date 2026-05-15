@@ -16,22 +16,26 @@ from harness_toolkit.kit.profiles.models import (
 )
 
 
-def _without_prompt_file_text(value: object) -> object:
+def _without_loaded_instruction_text(value: object) -> object:
     if isinstance(value, dict):
+        data = cast("dict[str, object]", value)
+        omit_file_text = data.get("type") == "file" and bool(data.get("path"))
         return {
-            key: _without_prompt_file_text(item)
-            for key, item in value.items()
-            if key != "prompt_file_text"
+            key: _without_loaded_instruction_text(item)
+            for key, item in data.items()
+            if not (omit_file_text and key == "text")
         }
     if isinstance(value, list | tuple):
-        return [_without_prompt_file_text(item) for item in value]
+        return [_without_loaded_instruction_text(item) for item in value]
     return value
 
 
 def profile_to_json(
     profile: WorkflowProfile, *, source: str = "built-in", path: str | None = None
 ) -> str:
-    payload = cast("dict[str, object]", _without_prompt_file_text(asdict(profile)))
+    payload = cast(
+        "dict[str, object]", _without_loaded_instruction_text(asdict(profile))
+    )
     payload["source"] = source
     if path is not None:
         payload["path"] = path
@@ -70,7 +74,9 @@ def profiles_to_json(
 
 
 def checks_to_json(view: ProfileCheckView) -> str:
-    return json.dumps(_without_prompt_file_text(asdict(view)), indent=2, sort_keys=True)
+    return json.dumps(
+        _without_loaded_instruction_text(asdict(view)), indent=2, sort_keys=True
+    )
 
 
 def resolution_to_json(resolution: ProfileResolution) -> str:

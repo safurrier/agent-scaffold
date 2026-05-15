@@ -221,14 +221,16 @@ required_when = ["src/cli/**", "!src/cli/generated/**"]
 name = "agent-friendly-cli-review"
 purpose = "Review CLI changes against agent-facing CLI design principles."
 backend = "fresh-context-subagent"
-rubric = "agent-friendly-cli"
 dispatch_hint = "Use a fresh-context reviewer."
-prompt_file = "prompts/agent-friendly-cli-review.md"
 applies_when = ["src/cli/**", "docs/**"]
 required_when = ["src/cli/**", "!src/cli/generated/**"]
+
+[profiles.foreman.reviews.instructions]
+type = "file"
+path = "prompts/agent-friendly-cli-review.md"
 ```
 
-`applies_when` makes `hk checks --changed` suggest an item for matching changed
+`applies_when` makes `hk checks --changed` and `hk status` suggest an item for matching changed
 paths. `required_when` makes readiness expect that named check/review when the
 path rule matches **when that profile is the target's resolved user-config
 profile**. Profiles inspected with `--profile` / `--profiles-dir` are discovery
@@ -238,9 +240,10 @@ reviews with `hk review add --review NAME ...`. Later small deltas can use
 `hk review add --review NAME --path REPO_RELATIVE_PATH ...` to record targeted
 follow-up review for specific changed paths. If the required item is genuinely
 impossible, record an auditable skip whose `--label` matches the check or review
-name. `hk checks --changed --json` includes matched repo-root paths and the
+name. `hk checks --changed --json` and `hk status --json` include matched repo-root paths and the
 triggering path patterns so agents can explain why a check/review is required
-without reverse-engineering the profile TOML.
+without reverse-engineering the profile TOML. See [Profile Reviews](profile-reviews.md)
+for skill-backed review prompts and suggested vs required review patterns.
 
 Path rules use gitignore-style patterns. Patterns are evaluated against the
 repo-root-relative changed path and, when `--target` points at a subdirectory,

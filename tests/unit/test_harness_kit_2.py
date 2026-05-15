@@ -569,7 +569,6 @@ def test_handoff_dir_export_writes_generated_package_and_checks_freshness(
         target,
         backend="subagent",
         reviewer="fresh-context",
-        rubrics=("export",),
         summary="No blockers.",
     )
     sync_checkpoint(target)
@@ -1023,7 +1022,6 @@ def test_lifecycle_ready_requires_plan_decision_validation_review_and_sync(
         target,
         backend="manual_external",
         reviewer="Alex",
-        rubrics=("core-quality",),
         summary="No blocking findings.",
     )
     sync_checkpoint(target)
@@ -1088,7 +1086,6 @@ def test_review_remains_fresh_for_active_hk_export_changes(tmp_path: Path) -> No
         target,
         backend="subagent",
         reviewer="reviewer-fresh-context",
-        rubrics=("core",),
         summary="Reviewed source change.",
     )
     export_file = target / ".ai" / "hk" / Path(work.work_dir).name / "README.md"
@@ -1114,7 +1111,6 @@ def test_review_reports_source_paths_changed_after_review(tmp_path: Path) -> Non
         target,
         backend="subagent",
         reviewer="reviewer-fresh-context",
-        rubrics=("core",),
         summary="Reviewed first source change.",
     )
     (target / "README.md").write_text("# changed after review\n")
@@ -1138,7 +1134,6 @@ def test_review_add_path_normalizes_dot_slash(tmp_path: Path) -> None:
         target,
         backend="subagent",
         reviewer="reviewer-fresh-context",
-        rubrics=("core",),
         summary="Reviewed README follow-up.",
         reviewed_paths=("./README.md",),
     )
@@ -1164,7 +1159,6 @@ def test_targeted_follow_up_reviews_cover_changed_paths(tmp_path: Path) -> None:
         target,
         backend="subagent",
         reviewer="reviewer-fresh-context",
-        rubrics=("core",),
         summary="Reviewed README follow-up.",
         reviewed_paths=("README.md",),
     )
@@ -1177,7 +1171,6 @@ def test_targeted_follow_up_reviews_cover_changed_paths(tmp_path: Path) -> None:
         target,
         backend="subagent",
         reviewer="reviewer-fresh-context",
-        rubrics=("core",),
         summary="Reviewed test follow-up.",
         reviewed_paths=("tests/test_demo.py",),
     )
@@ -1197,7 +1190,6 @@ def test_review_add_rejects_self_review_identity(tmp_path: Path) -> None:
             target,
             backend="manual_external",
             reviewer="implementation-agent-self-check",
-            rubrics=("core-quality",),
             summary="I checked my own implementation.",
         )
 
@@ -1215,7 +1207,6 @@ def test_ready_warns_when_agent_local_state_makes_sync_stale(tmp_path: Path) -> 
         target,
         backend="manual_external",
         reviewer="Alex",
-        rubrics=("core-quality",),
         summary="No blocking findings.",
     )
     sync_checkpoint(target)
@@ -1246,7 +1237,6 @@ def test_dangerously_skip_sync_satisfies_readiness_and_handoff(tmp_path: Path) -
         target,
         backend="manual_external",
         reviewer="Alex",
-        rubrics=("core-quality",),
         summary="No blocking findings.",
     )
     sync_checkpoint(target)
@@ -1299,7 +1289,6 @@ def test_sync_exclude_allows_literal_untracked_local_path_without_stale_ready(
         target,
         backend="manual_external",
         reviewer="Alex",
-        rubrics=("core-quality",),
         summary="No blocking findings.",
     )
     (target / "tmp-output").mkdir()
@@ -1718,7 +1707,6 @@ def test_ready_accepts_evidence_with_existing_agent_local_state_after_sync_skip(
         target,
         backend="subagent",
         reviewer="reviewer-fresh-context",
-        rubrics=("core-quality",),
         summary="Review includes unchanged agent-local state.",
     )
     sync_checkpoint(target)
@@ -1784,7 +1772,6 @@ def test_status_prompts_exact_agent_local_sync_exclusion(tmp_path: Path) -> None
         target,
         backend="subagent",
         reviewer="reviewer-fresh-context",
-        rubrics=("core-quality",),
         summary="Review covers current diff.",
     )
     sync_checkpoint(target)
@@ -2135,7 +2122,6 @@ def test_ready_accepts_fresh_validation_when_preexisting_local_state_is_excluded
         target,
         backend="subagent",
         reviewer="reviewer-fresh-context",
-        rubrics=("core-quality",),
         summary="Review covers source diff while local state exists.",
     )
 
@@ -2169,7 +2155,6 @@ def test_ready_accepts_validation_when_validated_diff_is_committed_unchanged(
         target,
         backend="subagent",
         reviewer="reviewer-fresh-context",
-        rubrics=("core-quality",),
         summary="Review covers the README change.",
     )
     subprocess.run(["git", "add", "README.md"], cwd=target, check=True, env=_git_env())
@@ -2211,7 +2196,6 @@ def test_ready_accepts_validation_when_new_untracked_file_is_committed_unchanged
         target,
         backend="subagent",
         reviewer="reviewer-fresh-context",
-        rubrics=("core-quality",),
         summary="Review covers the new file.",
     )
     subprocess.run(["git", "add", "NEW.md"], cwd=target, check=True, env=_git_env())
@@ -2249,7 +2233,6 @@ def test_ready_rejects_stale_validation_after_committed_work_change(
         target,
         backend="subagent",
         reviewer="reviewer-fresh-context",
-        rubrics=("core-quality",),
         summary="Review covers initial committed state.",
     )
     sync_checkpoint(target)
@@ -2293,7 +2276,6 @@ def test_ready_rejects_stale_validation_and_review_after_diff_changes(
         target,
         backend="subagent",
         reviewer="reviewer-fresh-context",
-        rubrics=("core-quality",),
         summary="Review covers v1.",
     )
 
@@ -2352,7 +2334,6 @@ def test_dangerous_sync_skip_does_not_hide_source_diff_from_freshness(
         target,
         backend="subagent",
         reviewer="reviewer-fresh-context",
-        rubrics=("core-quality",),
         summary="Review covers v1.",
     )
     sync_checkpoint(target)
@@ -2394,7 +2375,6 @@ def test_dangerous_validation_skip_goes_stale_after_diff_changes(
         target,
         backend="subagent",
         reviewer="reviewer-fresh-context",
-        rubrics=("core-quality",),
         summary="Review covers current diff.",
     )
 
@@ -2427,7 +2407,6 @@ def test_ready_rejects_failed_validation_and_rejected_review(tmp_path: Path) -> 
         target,
         backend="manual_external",
         reviewer="Alex",
-        rubrics=("core-quality",),
         summary="Blocking findings remain.",
         disposition="rejected",
     )
@@ -2638,8 +2617,6 @@ def test_cli_lifecycle_commands_record_handoff_and_ready(tmp_path: Path) -> None
         "manual_external",
         "--reviewer",
         "Alex",
-        "--rubric",
-        "core-quality",
         "--summary",
         "No blocking findings.",
         "--json",

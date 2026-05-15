@@ -55,7 +55,7 @@ hk status
 hk decide "..." --spec-impact none
 hk validate --why "unit tests cover the new branch" -- uv run pytest ...
 hk review prompt
-hk review add --backend subagent --reviewer reviewer-fresh-context --rubric core-quality --summary "..."
+hk review add --backend subagent --reviewer reviewer-fresh-context --summary "..."
 hk sync --exclude .pi --reason "Only local agent state changed"
 hk ready
 hk handoff

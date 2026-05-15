@@ -69,7 +69,6 @@ class ArtifactAttachRequest(TargetRequest):
 class ReviewRequest(TargetRequest):
     backend: str = ""
     reviewer: str = ""
-    rubrics: tuple[str, ...] = ()
     summary: str = ""
     disposition: str = "accepted"
     review_name: str = ""
@@ -238,7 +237,6 @@ class LifecycleApp:
             request.target,
             backend=request.backend,
             reviewer=request.reviewer,
-            rubrics=request.rubrics,
             summary=request.summary,
             disposition=request.disposition,
             review_name=request.review_name,

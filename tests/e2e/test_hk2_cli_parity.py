@@ -48,8 +48,6 @@ def test_hk2_cli_lifecycle_happy_path(tmp_path: Path) -> None:
             "codex",
             "--reviewer",
             "codex-review",
-            "--rubric",
-            "core-quality",
             "--summary",
             "Accepted for parity.",
             "--target",
@@ -120,9 +118,11 @@ run_from = "target"
 name = "module-review"
 purpose = "Fresh review"
 backend = "codex"
-rubric = "core-quality"
 dispatch_hint = "codex review --uncommitted"
-prompt_file = {str(prompt)!r}
+
+[profiles.module.reviews.instructions]
+type = "file"
+path = {str(prompt)!r}
 """
     )
     env = {"HARNESS_KIT_CONFIG": str(config)}
@@ -136,7 +136,10 @@ prompt_file = {str(prompt)!r}
     payload = json.loads(checks.stdout)
     assert payload["profile"] == "module"
     assert payload["checks"][0]["name"] == "module-tests"
-    assert "prompt_file_text" not in payload["reviews"][0]
+    assert payload["reviews"][0]["instructions"] == {
+        "type": "file",
+        "path": str(prompt),
+    }
 
 
 def test_removed_legacy_surfaces_are_not_in_root_help() -> None:

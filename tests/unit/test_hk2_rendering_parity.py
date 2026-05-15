@@ -28,7 +28,6 @@ def test_handoff_contains_lifecycle_sections(tmp_path: Path) -> None:
         target,
         backend="codex",
         reviewer="codex-review",
-        rubrics=("core-quality",),
         summary="Accepted for rendering parity.",
     )
     sync_checkpoint(target)

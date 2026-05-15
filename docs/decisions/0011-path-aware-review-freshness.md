@@ -48,7 +48,7 @@ with targeted records:
 
 ```bash
 hk review add --review core-review --path src/foo.py --path tests/test_foo.py \
-  --backend subagent --reviewer fresh-context --rubric core-quality \
+  --backend subagent --reviewer fresh-context \
   --summary "No blockers."
 ```
 

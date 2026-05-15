@@ -57,7 +57,7 @@ def render_review_prompt(
         lines.append("- None recorded.")
     lines.extend(["", "Changed paths:"])
     lines.extend([f"- {path}" for path in changed_paths] or ["- none"])
-    review_add_hint = "hk review add --backend subagent --reviewer reviewer-fresh-context --rubric core-quality --summary '...'"
+    review_add_hint = "hk review add --backend subagent --reviewer reviewer-fresh-context --summary '...'"
     if profile_review is not None:
         lines.extend(
             [
@@ -65,24 +65,19 @@ def render_review_prompt(
                 f"Profile review: {profile_review.name}",
                 f"Purpose: {profile_review.purpose}",
                 f"Backend: {profile_review.backend}",
-                f"Rubric: {profile_review.rubric}",
             ]
         )
         if profile_review.dispatch_hint:
             lines.append(f"Dispatch hint: {profile_review.dispatch_hint}")
-        if profile_review.prompt_file:
-            lines.append(f"Prompt file: {profile_review.prompt_file}")
-        if profile_review.prompt or profile_review.prompt_file_text:
+        if profile_review.instructions is not None:
+            if profile_review.instructions.type == "file":
+                lines.append(f"Instructions file: {profile_review.instructions.path}")
             lines.extend(["", "Profile review instructions:"])
-            if profile_review.prompt:
-                lines.append(profile_review.prompt.strip())
-            if profile_review.prompt_file_text:
-                lines.append(profile_review.prompt_file_text.strip())
+            lines.append(profile_review.instructions.text.strip())
         review_add_hint = (
             f"hk review add --review {shlex.quote(profile_review.name)} "
             f"--backend {shlex.quote(profile_review.backend)} "
-            "--reviewer reviewer-fresh-context "
-            f"--rubric {shlex.quote(profile_review.rubric)} --summary '...'"
+            "--reviewer reviewer-fresh-context --summary '...'"
         )
     lines.extend(
         [

@@ -181,7 +181,11 @@ def _review_suggestions(
             f"hk review prompt {shlex.quote(review.name)} "
             f"--target {shlex.quote(str(target))}"
         )
-        record_command = f"hk review add --review {shlex.quote(review.name)} ..."
+        record_command = (
+            f"hk review add --review {shlex.quote(review.name)} "
+            f"--backend {shlex.quote(review.backend)} "
+            "--reviewer reviewer-fresh-context --summary '...'"
+        )
         required_matches, required_patterns = _matched_paths_and_patterns(
             review.required_when, changed_paths, target=target, repo_root=repo_root
         )
@@ -200,6 +204,7 @@ def _review_suggestions(
                     enforced=enforce_required,
                     record_command=record_command,
                     prompt_command=prompt_command,
+                    dispatch_hint=review.dispatch_hint,
                 )
             )
         elif applies_matches:
@@ -213,6 +218,7 @@ def _review_suggestions(
                     matched_patterns=applies_patterns,
                     record_command=record_command,
                     prompt_command=prompt_command,
+                    dispatch_hint=review.dispatch_hint,
                 )
             )
     return tuple(suggestions)

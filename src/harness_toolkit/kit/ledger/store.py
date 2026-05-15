@@ -166,7 +166,7 @@ def _validate_event_payload(
         _required_str(
             event_data, "reviewer", path=path, line_number=line_number, kind=kind
         )
-        _required_str_list(
+        _optional_str_list(
             event_data, "rubrics", path=path, line_number=line_number, kind=kind
         )
         _required_str(
