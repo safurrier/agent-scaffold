@@ -305,7 +305,7 @@ persistent sync ignore config are deferred.
 | `hk review add --path src/foo.py ...` | Record a targeted follow-up review for one or more currently changed repo-relative paths; HK uses path/content facts to avoid whole-diff review thrash |
 | `hk summary` | Render a concise human-readable readiness digest for PRs/review |
 | `hk handoff` | Render a longer transfer artifact from the work ledger; `--json` returns live markdown content without writing files |
-| `hk export --format handoff-dir` | Generate a compact committed handoff package such as `.ai/hk/2026-05-09-120000-demo/` from the HK ledger (`README.md`, `meta.json`, explicit-only `artifacts/`); use `--check --json` to validate freshness with structured fresh/missing/stale/invalid/no-active-work states while preserving nonzero exits for non-fresh exports |
+| `hk export --format handoff-dir` | Generate a compact committed handoff package such as `.ai/hk/2026-05-09-120000-demo/` from the HK ledger (`README.md`, `meta.json`, explicit-only `artifacts/`); active `.ai/hk/<work-id>/` exports are lifecycle-neutral for validation/review/sync freshness and readiness changed-path checks, and `--check --json` validates package freshness with structured fresh/missing/stale/invalid/no-active-work states while preserving nonzero exits for non-fresh exports |
 | `hk spec` | Manage optional local/external spec drafts |
 | `hk instructions` | Print the compact user-level `AGENTS.md` snippet; use `--scope repo` for a fuller profile-specific repo snippet |
 | `hk profile list` | List built-in/custom/user-config profile contracts and model-directed selection guidance |
@@ -322,7 +322,7 @@ HK-native repos that want durable review artifacts, generate compact committed
 packages with `hk export --format handoff-dir --output .ai/hk/2026-05-09-120000-demo`
 instead of hand-authoring `.ai/plans` files. The export is a projection, not a
 second ledger: `README.md` is the human handoff, `meta.json` is machine
-freshness/integrity data, and `artifacts/` is for explicit copied attachments only; `--no-copy` attachments remain referenced by metadata.
+freshness/integrity data, and `artifacts/` is for explicit copied attachments only; `--no-copy` attachments remain referenced by metadata. The active `.ai/hk/<work-id>/` package is generated/derived and does not by itself stale validation/review/sync freshness or readiness changed-path checks; validate export integrity with `hk export --format handoff-dir --check` or `mise run sync-check`.
 
 Profiles are small workflow contracts for agentic engineering checks and
 reviews. They describe what exists for an environment; they do **not** run those
@@ -437,7 +437,7 @@ This is intentionally an early implementation:
 
 - It does not install global mise tasks yet.
 - It does not render `slice-plan` prompts from portable state yet.
-- `sync-check` is local-only and does not replace committed-plan CI.
+- HK does not install global mise tasks yet; repos that adopt committed `.ai/hk` exports need a repo-owned sync-check task or CI hook to validate them.
 - External state is keyed by git remote URL when available, otherwise by target path.
 
 The spike proves that the workflow can be attached to an arbitrary repo without

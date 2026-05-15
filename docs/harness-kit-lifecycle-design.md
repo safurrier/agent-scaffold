@@ -446,10 +446,13 @@ that prompt to it before handoff. Examples include Pi `subagent`, Claude Code
 review tools may create agent-local state. HK records deterministic path/content
 facts for reviewed changed paths. Later small fixes can be covered by targeted
 follow-up records with `hk review add --path PATH ...`; generated active HK export
-refreshes are review-neutral and should be validated with export/sync checks, not
-another broad review. See
+refreshes are lifecycle-neutral for validation/review/sync freshness and readiness
+changed-path checks, and should be
+validated with export/sync checks, not another broad review or sync loop. See
 [ADR 0011](decisions/0011-path-aware-review-freshness.md) for why review
-freshness is path/content-aware rather than exact whole-diff matching. If review
+freshness is path/content-aware rather than exact whole-diff matching, and
+[ADR 0012](decisions/0012-lifecycle-neutral-active-hk-exports.md) for the active
+export projection boundary. If review
 is impossible, the agent must record `hk dangerously-skip review --label NAME --reason TEXT --mitigation TEXT`,
 which is auditable and renders in summary and handoff. Future review-source config is
 deferred.

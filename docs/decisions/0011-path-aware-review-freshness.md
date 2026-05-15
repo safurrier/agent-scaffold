@@ -53,9 +53,10 @@ hk review add --review core-review --path src/foo.py --path tests/test_foo.py \
 ```
 
 Generated active HK handoff exports under `.ai/hk/<active-work-id>/...` are
-review-neutral. They are validated by export and sync checks, not by source
-review. This keeps handoff regeneration from forcing another broad review loop
-while preserving deterministic integrity checks for generated artifacts.
+review-neutral. ADR 0012 extends this to lifecycle freshness: active exports are
+validated by export and sync checks, not by validation/review/sync freshness. This
+keeps handoff regeneration from forcing another broad validation, review, or sync
+loop while preserving deterministic integrity checks for generated artifacts.
 
 `hk dangerously-skip review` remains available for explicit exceptions, such as
 an external review tool being unavailable. The skip must record a reason and a
@@ -77,7 +78,7 @@ Trade-offs:
 - semantic coupling across paths may still require broad review by judgment or
   profile policy;
 - generated/export validation must stay strict because generated active handoff
-  exports are no longer review blockers;
+  exports are no longer validation, review, or sync blockers;
 - profiles may need to require broad review for high-risk areas even when path
   coverage exists.
 

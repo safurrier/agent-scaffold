@@ -60,6 +60,7 @@ nav:
       - ADR 0009 — Harness Kit Lifecycle-First CLI: decisions/0009-harness-kit-lifecycle-first-cli.md
       - ADR 0010 — Compact HK Export Packages: decisions/0010-compact-hk-export-packages.md
       - ADR 0011 — Path-Aware Review Freshness: decisions/0011-path-aware-review-freshness.md
+      - ADR 0012 — Lifecycle-Neutral Active HK Exports: decisions/0012-lifecycle-neutral-active-hk-exports.md
 
 markdown_extensions:
   - admonition

@@ -156,9 +156,11 @@ Code `Agent`/legacy `Task`, and Codex via the Shell tool running
 because review tools may create agent-local state. Reviews record deterministic
 path/content facts for the reviewed changed paths. Readiness may accept multiple
 targeted follow-up reviews when their reviewed paths cover the current
-review-relevant diff, and generated active HK export refreshes do not by
-themselves require another external review. If no independent AI/tool
-or fresh-context review is available, the
+review-relevant diff. Generated active HK export refreshes under
+`.ai/hk/<active-work-id>/...` are derived lifecycle artifacts: they must not by
+themselves make validation, review, or sync freshness stale, and their integrity
+is checked by `hk export --format handoff-dir --check` / `mise run sync-check`
+instead. If no independent AI/tool or fresh-context review is available, the
 agent must use an explicit dangerous review skip with a label, reason, and
 mitigation. If sync freshness is stale only because of
 understood untracked local-only state, the agent should prefer a constrained
@@ -252,7 +254,7 @@ class Stack(Protocol):
 - **Lifecycle-first Harness Kit**: Harness Kit MUST preserve the handoff-safety spine: useful context when it prevents rediscovery, explicit plan, spec/decision reflection, validation evidence, external-enough review, readiness gate, and handoff artifact. A generic note ledger without readiness parity is an implementation foundation, not the completed product.
 - **Shell-first command evidence**: `hk` MAY capture exact native commands and local work state, but MUST NOT hide validation behind `hk run`-style task-runner commands. Captured evidence preserves command identity, exit code, rationale, transcript metadata, timeout/truncation metadata, and redaction boundaries. Profiles and dumb scripts may guide which native commands to validate, but the proof remains `hk validate --why ... -- <native command>`.
 - **Internal Git client seam**: trusted Git queries inside `harness_toolkit.kit` MUST go through `kit.git.client.GitClient`; arbitrary command evidence capture stays isolated in `kit.capture.process`. Domain logic such as diff hashing, sync exclusion safety, profile resolution, and readiness remains in the existing semantic modules instead of becoming generic Git abstractions.
-- **Freshness vs readiness**: `hk sync --check` answers whether ledger work changed after the last checkpoint. `hk ready` is the ledger-backed Harness Kit lifecycle readiness gate; `mise run sync-check` remains scoped to scaffold/task-contract plan artifacts.
+- **Freshness vs readiness**: `hk sync --check` answers whether ledger work changed after the last checkpoint. `hk ready` is the ledger-backed Harness Kit lifecycle readiness gate. `mise run sync-check` validates committed handoff artifacts: legacy scaffold/task-contract plan artifacts and HK `.ai/hk/<work-id>/` export packages when present.
 - **No heuristic readiness/profile scoring**: `hk brief` and profile commands report facts and guidance, not readiness grades, confidence scores, or silent validation command selection. Planning may happen outside HK, but agents must translate the agreed intent into explicit lifecycle records; HK records those declarations and checks evidence consistency while humans/reviewers judge quality. HK does not infer whether context is non-obvious; agents record `hk context` when it improves handoff or prevents rediscovery.
 - **Profile catalog ergonomics**: user config MAY load standalone profile TOML from `profiles_dir` / `profiles_dirs` while retaining explicit target bindings. Profile resolution MUST prefer direct longest-prefix target matches, then MAY project configured target bindings across Git linked worktrees that share the same common Git directory; it MUST NOT silently select profiles for separate clones based only on matching remote URLs. Profile path rules MUST accept both Git repo-root-relative changed paths and target-relative paths for scoped module profiles, while reporting matched paths in repo-root-relative form.
 - **HK export views**: HK ledger state is the canonical lifecycle source for Harness Toolkit repo work. Committed `.ai/hk/<work-id>/` directories, when present, MUST be generated review/handoff packages from `hk export --format handoff-dir`. The default package is intentionally compact: `README.md` is the single human projection, `meta.json` stores freshness/integrity metadata (`work_id`, git SHA, diff hash, event/evidence counts, generated file hashes), and `artifacts/` is explicit-only. Hand-authored `.ai/plans` slices are legacy/scaffold-generated-repo compatibility artifacts, not the normal Harness Toolkit repo workflow.
