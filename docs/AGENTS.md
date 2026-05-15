@@ -25,6 +25,7 @@ Agent routing index for MkDocs-managed documentation. Structure is owned by `mkd
 | `ci.md` | CI workflow design: mise entrypoints, sync contract, pre-commit parity |
 | `portable-workflow.md` | Attaching the planning workflow to existing repos without committed scaffold files |
 | `profile-reviews.md` | HK profile reviews, suggested/required review policies, and skill-backed review instructions |
+| `profile-authoring.md` | HK profile authoring guidance for focused iteration, final gates, targeted follow-up, and avoiding closeout loops |
 | `harness-kit-lifecycle-design.md` | lifecycle-first local assistant design backed by ledger state |
 | `script-contract-prototype.md` | Prototype for thin `scripts/*` adapter contract as a future scaffold task surface |
 

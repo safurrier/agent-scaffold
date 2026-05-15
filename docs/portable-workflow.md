@@ -326,10 +326,12 @@ freshness/integrity data, and `artifacts/` is for explicit copied attachments on
 
 Profiles are small workflow contracts for agentic engineering checks and
 reviews. They describe what exists for an environment; they do **not** run those
-checks or reviews. Agents should run the suggested validation command directly so
-the raw output stays visible in the normal shell loop, then record the exact
-command/result with `hk validate --why` for Harness Kit lifecycle work. When a
-profile check is named, record it with `hk validate --check NAME --why ...`.
+checks or reviews. Well-authored profiles also separate focused iteration checks
+from final closeout gates so agents do not rerun broad validation and review
+stacks after every small edit. Agents should run the suggested validation command
+directly so the raw output stays visible in the normal shell loop, then record
+the exact command/result with `hk validate --why` for Harness Kit lifecycle work.
+When a profile check is named, record it with `hk validate --check NAME --why ...`.
 
 Initial built-in profiles:
 
@@ -349,9 +351,13 @@ hk checks --profile python --target /path/to/python-project --changed --json
 `profile list --target` does not score, rank, or implicitly choose a profile. It
 prints available profile contracts plus few-shot selection guidance for the
 agent. Agents inspect the target scope, choose the closest profile, tell the user
-once why they chose it, and then use that profile consistently. In monorepos,
-`--target` should usually be the module/package/crate directory that owns the
-work, not the repo root.
+once why they chose it, and then use that profile consistently. During
+implementation, use focused profile checks and targeted validation; save broad
+required gates and reviews for closeout once the implementation is stable. After
+small review fixes, prefer targeted follow-up validation/review for changed paths
+instead of rerunning the whole stack unless behavior or design changed. In
+monorepos, `--target` should usually be the module/package/crate directory that
+owns the work, not the repo root.
 
 The selection order is conceptual, not algorithmic:
 
@@ -382,6 +388,10 @@ sources override earlier profiles with the same name. This means a compact
 `harness.toml` can keep only target bindings while profile bodies live in
 separate files.
 
+See [Profile Authoring](profile-authoring.md) for guidance on choosing
+`applies_when` vs `required_when`, avoiding expensive `required_when = ["*"]`
+patterns, and bounding advisory reviews.
+
 Custom profiles can also be loaded ad hoc with `--profiles-dir`:
 
 ```bash
@@ -406,10 +416,10 @@ hk checks \
 repo, does not infer commands as facts, and refuses to overwrite an existing file
 unless `--force` is passed.
 
-Generated harness-scaffold repos include a `harness-kit-profile-authoring` skill
-that agents can load when no exact profile exists. It guides agents to mine CI,
-hooks, task runners, and repo docs, then propose TOML for user approval before
-writing a custom profile.
+This repo and generated harness-scaffold repos include a
+`harness-kit-profile-authoring` skill that agents can load when no exact profile
+exists. It guides agents to mine CI, hooks, task runners, and repo docs, then
+propose TOML for user approval before writing a custom profile.
 
 Harness Kit lifecycle commands accept:
 

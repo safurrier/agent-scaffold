@@ -19,9 +19,11 @@ Historical hand-authored slice plans live under `.ai/plans/`; new Harness Toolki
 
 ## Context
 - Feedback from Foreman dogfood: final handoff export can create a freshness loop because generated .ai/hk/<work-id>/ files and export/check metadata affect readiness/export metadata. Foreman must stay read-only; HK should make ready + exported stable.
+- User clarified dots changes should land in /Users/alex.furrier/git_repositories/dots on branch feat/foreman-hk-provider (mega branch, clean at e2e28ec), can be left uncommitted if desired, and must be applied/synced so current harness-toolkit repo uses updated profiles. Continue on current harness-toolkit branch and complete all phases, not only profile docs.
 
 ## Plan
 - Make active HK handoff-dir exports lifecycle-neutral and idempotent: generated .ai/hk/<active-work-id>/ packages should not make readiness/sync/validation/review freshness stale, while export --check and sync-check continue to strictly validate package integrity. Preserve non-active HK exports as normal changed files. Validate with focused tests, docs/spec contracts, full check, HK dogfood finalization, fresh-context docs/context review, agent-friendly CLI review, architecture polish review, and PR CI.
+- Expand the current lifecycle-neutral HK export slice to also reduce profile-driven review/validation closeout loops. Audit all dots HK profiles for broad expensive required checks/reviews; update affected profiles with iteration/closeout/post-review guidance, narrowed final-gate matching, and bounded advisory review wording. Update the dots profile-authoring skill so future generated profiles avoid loop-prone `required_when = ["*"]` patterns and teach targeted post-review follow-up. Add public harness-toolkit profile-authoring docs and a repo-local skill so other users can apply the guidance. Validate by parsing all dots profiles, loading/showing affected HK profiles, applying dots config, running harness-toolkit docs contracts/checks/sync-check, dogfooding the updated profile guidance, and recording required targeted reviews before final handoff.
 
 ## Decisions and spec reflection
 - Active .ai/hk/<work-id> exports are generated derived artifacts: HK excludes only the active export package from validation/review/sync freshness and readiness changed-path checks, while export --check and sync-check remain strict integrity gates for generated files and attached artifacts.
@@ -261,6 +263,34 @@ PY'`: pass (exit 0) — validates: Dogfood rollout after unexpected export file 
 - `uv run --frozen pytest -m contract -q`: pass (exit 0) — validates: Contract docs/spec checks after PR-comment fix — `<local HK state not exported>`
 - `env UV_FROZEN=true scripts/hk-dev brief --target . --json`: pass (exit 0) — validates: Dogfood remains covered after PR-comment fix; change is sync skip metadata only — `<local HK state not exported>`
 - `mise run sync-check`: pass (exit 0) — validates: Generated HK export validates after PR-comment fix — `<local HK state not exported>`
+- `uv run pytest -m contract`: pass (exit 0) — validates: Contract tests cover new profile-authoring docs, mkdocs nav, and profile guidance docs — `<local HK state not exported>`
+- `mise run check`: pass (exit 0) — validates: Full quality gate after profile closeout-loop docs and repo-local profile-authoring skill changes — `<local HK state not exported>`
+- `bash -lc 'scripts/hk-dev profile show harness-toolkit-root --json >/tmp/hk-dev-harness-toolkit-root.json && scripts/hk-dev profile show foreman-root --json >/tmp/hk-dev-foreman-root.json && scripts/hk-dev checks --target . --changed --json >/tmp/hk-dev-checks.json'`: pass (exit 0) — validates: Current checkout hk can load updated dots profiles and show harness-toolkit-root/foreman-root contracts — `<local HK state not exported>`
+- `uv run pytest -m contract`: pass (exit 0) — validates: Contract tests after syncing profile-authoring guidance into generated skill template and removing stale review fields — `<local HK state not exported>`
+- `mise run check`: pass (exit 0) — validates: Full quality gate after profile-authoring template sync and review guidance fixes — `<local HK state not exported>`
+- `bash -lc 'scripts/hk-dev profile show harness-toolkit-root --json >/tmp/hk-dev-harness-toolkit-root.json && scripts/hk-dev profile show foreman-root --json >/tmp/hk-dev-foreman-root.json && scripts/hk-dev checks --target . --changed --json >/tmp/hk-dev-checks.json'`: pass (exit 0) — validates: Current checkout hk still loads updated profile contracts after dispatch-hint and template sync fixes — `<local HK state not exported>`
+- `uv run pytest tests/unit/test_portable_workflow.py -k profile_create_stdout_and_rust_mise_preset -q`: pass (exit 0) — validates: Focused profile template test after adding closeout-loop guidance to generated profile scaffold — `<local HK state not exported>`
+- `uv run pytest -m contract`: pass (exit 0) — validates: Contract tests after generated profile scaffold closeout-loop guidance update — `<local HK state not exported>`
+- `mise run check`: pass (exit 0) — validates: Full quality gate after generated profile scaffold closeout-loop guidance update — `<local HK state not exported>`
+- `bash -lc 'scripts/hk-dev profile show harness-toolkit-root --json >/tmp/hk-dev-harness-toolkit-root.json && scripts/hk-dev checks --target . --changed --json >/tmp/hk-dev-checks.json'`: pass (exit 0) — validates: Current checkout hk loads profile contracts after generated profile scaffold guidance update — `<local HK state not exported>`
+- `bash -lc 'set -euo pipefail; tmp=$(mktemp -d); cp -R . "$tmp/harness-toolkit"; cd "$tmp/harness-toolkit"; mise run init -- --non-interactive --name profile-guidance-smoke --shape single --stack python --no-hooks; mise trust .mise.toml; mise run setup; mise run check'`: fail (exit 1) — attempted to validate: Generated Python scaffold smoke after updating shipped profile-authoring skill template — `<local HK state not exported>`
+- `bash -lc 'set -euo pipefail; tmp=$(mktemp -d); cp -R . "$tmp/harness-toolkit"; cd "$tmp/harness-toolkit"; mise trust .mise.toml; mise run init -- --non-interactive --name profile-guidance-smoke --shape single --stack python --no-hooks; mise trust .mise.toml; mise run setup; mise run check'`: fail (exit 4) — attempted to validate: Generated Python scaffold smoke after updating shipped profile-authoring skill template; trust copied mise config before destructive init — `<local HK state not exported>`
+- `bash -lc 'set -euo pipefail; tmp=$(mktemp -d); mkdir -p "$tmp/harness-toolkit"; rsync -a --exclude .git --exclude .venv --exclude .harness-local --exclude .ai/hk --exclude .pytest_cache ./ "$tmp/harness-toolkit/"; cd "$tmp/harness-toolkit"; git init -q; mise trust .mise.toml; mise run init -- --non-interactive --name profile-guidance-smoke --shape single --stack python --no-hooks; mise trust .mise.toml; mise run setup; mise run check'`: pass (exit 0) — validates: Generated Python scaffold smoke after profile-authoring template change using clean temp copy without inherited .venv — `<local HK state not exported>`
+- `bash -lc 'cd /Users/alex.furrier/git_repositories/dots && uv run python - <<"PY"
+from pathlib import Path
+import re, tomllib
+root = Path("config/harness-toolkit/profiles")
+for p in sorted(root.glob("*.toml")):
+    tomllib.loads(p.read_text())
+    if re.search(r"required_when\s*=\s*\[\s*\"\*\"\s*\]", p.read_text()):
+        raise SystemExit(f"broad required_when remains: {p}")
+for p in Path("config/ai-config/plugins/alex-ai/skills/harness-kit-profile-authoring").rglob("*.md"):
+    text = p.read_text()
+    if "prompt_file" in text or re.search(r"^rubric\s*=", text, re.M):
+        raise SystemExit(f"obsolete review field remains: {p}")
+print("dots profile and skill checks passed")
+PY'`: pass (exit 0) — validates: Dots profile TOML parses, no actual broad required_when = ["*"] remains in profile files, and updated skill examples avoid removed review fields — `<local HK state not exported>`
+- `mise run sync-check`: pass (exit 0) — validates: Generated HK export validates after profile closeout-loop changes and scaffold profile-authoring template updates — `<local HK state not exported>`
 
 ## Readiness
 - context: info — context recorded
@@ -268,11 +298,12 @@ PY'`: pass (exit 0) — validates: Dogfood rollout after unexpected export file 
 - decision: pass — decision and spec reflection recorded
 - validation: pass — validation evidence with rationale recorded
 - review: pass — external-enough review recorded
-- profile-check:focused-contract-tests: pass — required profile check recorded: focused-contract-tests (matched SPEC.md, docs/AGENTS.md, docs/decisions/0011-path-aware-review-freshness.md, +4 more)
-- profile-check:hk-dev-dogfood: pass — required profile check recorded: hk-dev-dogfood (matched src/harness_toolkit/kit/local.py)
-- profile-check:fast-gate: pass — required profile check recorded: fast-gate (matched README.md, SPEC.md, docs/AGENTS.md, +7 more)
-- profile-review:codex-review: pass — required profile review recorded: codex-review (matched SPEC.md, docs/AGENTS.md, docs/decisions/0011-path-aware-review-freshness.md, +5 more)
-- profile-review:hk-lifecycle-review: pass — required profile review recorded: hk-lifecycle-review (matched src/harness_toolkit/kit/local.py)
+- profile-check:focused-contract-tests: pass — required profile check recorded: focused-contract-tests (matched SPEC.md, docs/AGENTS.md, docs/decisions/0011-path-aware-review-freshness.md, +6 more)
+- profile-check:hk-dev-dogfood: pass — required profile check recorded: hk-dev-dogfood (matched src/harness_toolkit/kit/local.py, src/harness_toolkit/kit/profiles/templates.py)
+- profile-check:fast-gate: pass — required profile check recorded: fast-gate (matched AGENTS.md, README.md, SPEC.md, +16 more)
+- profile-check:generated-stack-smoke: pass — required profile check recorded: generated-stack-smoke (matched templates/.agent/skills/harness-kit-profile-authoring/SKILL.md, templates/.agent/skills/harness-kit-profile-authoring/references/examples.md, templates/.agent/skills/harness-kit-profile-authoring/references/harness-kit-workflow.md, +1 more)
+- profile-review:codex-review: pass — required profile review recorded: codex-review (matched AGENTS.md, SPEC.md, docs/AGENTS.md, +14 more)
+- profile-review:hk-lifecycle-review: pass — required profile review recorded: hk-lifecycle-review (matched src/harness_toolkit/kit/local.py, src/harness_toolkit/kit/profiles/templates.py)
 
 ## Review
 - subagent / docs-context-reviewer: Docs/context review found no blockers. Lifecycle-neutral active HK export docs are consistent across README, SPEC, portable workflow, lifecycle design, ADR 0011/0012, docs index, and mkdocs. paths: README.md, SPEC.md, docs/portable-workflow.md, +5 more. [accepted]
@@ -286,3 +317,6 @@ PY'`: pass (exit 0) — validates: Dogfood rollout after unexpected export file 
 - subagent / agent-friendly-cli: PR-comment fix review found no blockers. Verified dangerous sync skips record implicit_excluded_paths additively and preserve CLI/JSON compatibility. paths: src/harness_toolkit/kit/local.py, tests/unit/test_harness_kit_2.py. [accepted]
 - subagent / hk-lifecycle-reviewer [hk-lifecycle-review]: Lifecycle review for PR-comment fix found no blockers. Verified sync dangerous-skip hashing now records implicit active-export excludes like checkpoints while preserving legacy compatibility. paths: src/harness_toolkit/kit/local.py, tests/unit/test_harness_kit_2.py. [accepted]
 - subagent / codex-style-bug-review [codex-review]: Codex-style review for PR-comment fix found no blockers. Checked implicit_excluded_paths event shape, sync skip freshness matching, and regression test. paths: src/harness_toolkit/kit/local.py, tests/unit/test_harness_kit_2.py. [accepted]
+- subagent / reviewer-fresh-context [codex-review]: Final codex-style follow-up accepted. Scaffold and repo-local profile-authoring skills match; invalid rubric/prompt_file fields are gone; generated profile scaffold includes closeout-loop guardrails; docs bound review dispatch; focused unit test passed. paths: AGENTS.md, README.md, SPEC.md, +20 more. [accepted]
+- subagent / reviewer-fresh-context [hk-lifecycle-review]: Final HK lifecycle/profile review accepted. Profile create UX, docs, and templates distinguish focused iteration from final gates, discourage broad expensive required_when patterns, preserve targeted follow-up review semantics, and keep HK as guidance/evidence rather than a task runner. paths: AGENTS.md, README.md, SPEC.md, +20 more. [accepted]
+- subagent / harness-kit-profile-authoring-fresh-context: Profile-authoring/docs follow-up accepted for actual harness-toolkit and dots paths: no obsolete rubric/prompt_file fields remain, generated skill templates align, dots profiles parse with no required_when = ["*"], and required review dispatch hints now include near-handoff plus targeted follow-up guidance. paths: AGENTS.md, README.md, SPEC.md, +20 more. [accepted]
