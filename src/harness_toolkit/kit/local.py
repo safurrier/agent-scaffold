@@ -1943,15 +1943,16 @@ def add_dangerous_skip(
             raise LocalWorkflowError(
                 "dangerously-skip sync requires a prior `hk sync` checkpoint"
             )
+        implicit_excludes = active_handoff_export_excludes(work_dir)
         data.update(
             {
                 "git_sha": git_sha(state.target_root),
-                "diff_hash": git_diff_hash(
-                    state.target_root, active_handoff_export_excludes(work_dir)
-                ),
+                "diff_hash": git_diff_hash(state.target_root, implicit_excludes),
                 "event_seq": max((event.seq for event in events), default=0) + 1,
             }
         )
+        if implicit_excludes:
+            data["implicit_excluded_paths"] = list(implicit_excludes)
     elif check in {"validation", "review"}:
         data.update(
             {

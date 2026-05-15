@@ -1,11 +1,11 @@
 {
   "attached_artifacts": [],
   "branch": "lifecycle-neutral-hk-exports",
-  "diff_hash": "sha256:9b19a565cede72b79751b175da1fec3bd22eb1d8545cd832b3fc3675cf355146",
+  "diff_hash": "sha256:f4290934dbc2f585879f9691fdc43e87bfb2d88fc909eea6276ab985e546bb0e",
   "dirty": true,
-  "event_count": 37,
-  "event_seq": 38,
-  "evidence_count": 24,
+  "event_count": 45,
+  "event_seq": 48,
+  "evidence_count": 29,
   "evidence_ids": [
     "ev_20260515_092911_984520",
     "ev_20260515_092936_317422",
@@ -30,10 +30,15 @@
     "ev_20260515_114709_091175",
     "ev_20260515_114731_968531",
     "ev_20260515_114803_692223",
-    "ev_20260515_120446_854198"
+    "ev_20260515_120446_854198",
+    "ev_20260515_122526_959910",
+    "ev_20260515_122556_150250",
+    "ev_20260515_123944_923900",
+    "ev_20260515_123959_587040",
+    "ev_20260515_124034_308054"
   ],
   "file_hashes": {
-    "README.md": "sha256:6a45b176a4afc3ba6f99a7aff16973396ae4e2d77642bb47ac2d42e9b6472afe",
+    "README.md": "sha256:e8d991acf6f8cc7bc8f3d166233ec1fb264860e7f26ac7adec9b001e77cc71d0",
     "artifacts/README.md": "sha256:c4bad9d4652f296a7e4dcf175fe1dd0c66a99ec0b74941cd45c499e84792436c"
   },
   "files": [
@@ -41,9 +46,9 @@
     "meta.json",
     "artifacts/README.md"
   ],
-  "generated_at": "2026-05-15T19:04:51.275151+00:00",
+  "generated_at": "2026-05-15T19:40:39.753080+00:00",
   "generated_by": "hk export --format handoff-dir",
-  "git_sha": "50cebec",
+  "git_sha": "53f84cb",
   "output_path": ".ai/hk/2026-05-15-092117-lifecycle-neutral-hk-exports",
   "ready": true,
   "ready_status": "ready",

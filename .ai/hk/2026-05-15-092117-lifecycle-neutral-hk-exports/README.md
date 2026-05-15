@@ -256,6 +256,11 @@ print("dogfood ready_after=", after["status"])
 PY'`: pass (exit 0) — validates: Dogfood rollout after unexpected export file integrity fix — `<local HK state not exported>`
 - `bash -lc 'trap "git checkout -- uv.lock" EXIT; env UV_NO_CONFIG=1 UV_INDEX_URL=https://pypi.org/simple mise run check'`: pass (exit 0) — validates: Full quality gate after unexpected export file integrity fix — `<local HK state not exported>`
 - `mise run sync-check`: pass (exit 0) — validates: Generated HK export validates for lifecycle-neutral active export slice — `<local HK state not exported>`
+- `uv run --frozen pytest tests/unit/test_harness_kit_2.py -k 'dangerously_skip_sync_satisfies_readiness_and_handoff or handoff_dir_export_check_rejects_unexpected_export_files or active_hk_export_does_not_make_ready_or_sync_stale' -q`: pass (exit 0) — validates: Focused tests after Devin sync-skip implicit-exclude fix — `<local HK state not exported>`
+- `bash -lc 'trap "git checkout -- uv.lock" EXIT; env UV_NO_CONFIG=1 UV_INDEX_URL=https://pypi.org/simple mise run check'`: pass (exit 0) — validates: Full quality gate after Devin sync-skip implicit-exclude fix — `<local HK state not exported>`
+- `uv run --frozen pytest -m contract -q`: pass (exit 0) — validates: Contract docs/spec checks after PR-comment fix — `<local HK state not exported>`
+- `env UV_FROZEN=true scripts/hk-dev brief --target . --json`: pass (exit 0) — validates: Dogfood remains covered after PR-comment fix; change is sync skip metadata only — `<local HK state not exported>`
+- `mise run sync-check`: pass (exit 0) — validates: Generated HK export validates after PR-comment fix — `<local HK state not exported>`
 
 ## Readiness
 - context: info — context recorded
@@ -278,3 +283,6 @@ PY'`: pass (exit 0) — validates: Dogfood rollout after unexpected export file 
 - subagent / hk-lifecycle-reviewer [hk-lifecycle-review]: HK lifecycle review found no blockers. Verified validation/review/sync safety, lifecycle-neutral active export scope, strict export integrity gates, and HK remains guidance/evidence rather than a task runner. paths: src/harness_toolkit/kit/local.py, tests/unit/test_harness_kit_2.py, SPEC.md, +1 more. [accepted]
 - subagent / codex-style-bug-review [codex-review]: Codex-style bug review found no blockers after fixes. Checked export integrity false-fresh cases, path/symlink/hash safety, sync freshness regressions, and test coverage. paths: src/harness_toolkit/kit/local.py, tests/unit/test_harness_kit_2.py, SPEC.md, +2 more. [accepted]
 - subagent / codex-style-bug-review [codex-review]: Codex-style docs follow-up found no blockers for docs index, ADR 0011 lifecycle-neutral wording, and lifecycle design/portable workflow consistency. paths: docs/AGENTS.md, docs/decisions/0011-path-aware-review-freshness.md, docs/harness-kit-lifecycle-design.md, +3 more. [accepted]
+- subagent / agent-friendly-cli: PR-comment fix review found no blockers. Verified dangerous sync skips record implicit_excluded_paths additively and preserve CLI/JSON compatibility. paths: src/harness_toolkit/kit/local.py, tests/unit/test_harness_kit_2.py. [accepted]
+- subagent / hk-lifecycle-reviewer [hk-lifecycle-review]: Lifecycle review for PR-comment fix found no blockers. Verified sync dangerous-skip hashing now records implicit active-export excludes like checkpoints while preserving legacy compatibility. paths: src/harness_toolkit/kit/local.py, tests/unit/test_harness_kit_2.py. [accepted]
+- subagent / codex-style-bug-review [codex-review]: Codex-style review for PR-comment fix found no blockers. Checked implicit_excluded_paths event shape, sync skip freshness matching, and regression test. paths: src/harness_toolkit/kit/local.py, tests/unit/test_harness_kit_2.py. [accepted]

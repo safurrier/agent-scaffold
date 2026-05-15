@@ -1692,7 +1692,7 @@ def test_dangerously_skip_sync_satisfies_readiness_and_handoff(tmp_path: Path) -
     target = tmp_path / "repo"
     _git_init(target)
     init_state(target)
-    create_work(target, "skip-sync")
+    work = create_work(target, "skip-sync")
     add_note(target, kind="plan", text="Implement the lifecycle facade.")
     add_note(target, kind="decision", text="Use validate as the primary evidence verb.")
     add_note(target, kind="spec-impact", text="No spec impact declared.")
@@ -1720,8 +1720,15 @@ def test_dangerously_skip_sync_satisfies_readiness_and_handoff(tmp_path: Path) -
     rendered = handoff(target)
 
     assert stale.ready is False
+    skip_event = json.loads(
+        (Path(work.work_dir) / "events.jsonl").read_text().splitlines()[-1]
+    )
+
     assert skip.check == "sync"
     assert skip.label == "agent-local-state"
+    assert skip_event["data"]["implicit_excluded_paths"] == [
+        f".ai/hk/{Path(work.work_dir).name}"
+    ]
     assert checked.synced is True
     assert "sync dangerously skipped: agent-local-state" in checked.message
     assert done.ready is True
