@@ -1404,6 +1404,8 @@ def test_workflow_profile_create_stdout_and_rust_mise_preset(tmp_path: Path) -> 
         in result.stdout
     )
     assert result.stdout.count('name = "handoff-readiness"') == 1
+    assert "Do not chase final readiness after every edit" in result.stdout
+    assert "after small review fixes prefer targeted validation/review" in result.stdout
     assert _git_status(target) == ""
 
 

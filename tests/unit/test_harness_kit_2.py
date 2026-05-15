@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -481,6 +482,73 @@ def test_handoff_dir_export_check_rejects_symlinked_export_artifact(
         export_handoff_dir(target, output_path=output, check=True)
 
 
+def test_handoff_dir_export_preserves_user_status_bullets(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "export-status-note")
+    add_note(target, kind="plan", text="Status: important user context")
+    output = tmp_path / "export"
+
+    export_handoff_dir(target, output_path=output)
+
+    assert "Status: important user context" in (output / "README.md").read_text()
+
+
+def test_handoff_dir_export_check_rejects_unexpected_export_files(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "export-unexpected-files")
+    add_note(target, kind="plan", text="Export unexpected file check.")
+    output = tmp_path / "export"
+    export_handoff_dir(target, output_path=output)
+    (output / "extra.md").write_text("unexpected\n")
+
+    with pytest.raises(LocalWorkflowError, match="unexpected files: extra.md"):
+        export_handoff_dir(target, output_path=output, check=True)
+
+
+def test_handoff_dir_export_check_rejects_invalid_utf8_generated_file(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "export-invalid-utf8")
+    add_note(target, kind="plan", text="Export invalid UTF-8 check.")
+    output = tmp_path / "export"
+    export_handoff_dir(target, output_path=output)
+    (output / "README.md").write_bytes(b"\xff\xfe")
+
+    with pytest.raises(LocalWorkflowError, match="modified generated files"):
+        export_handoff_dir(target, output_path=output, check=True)
+
+
+def test_handoff_dir_export_check_rejects_modified_attached_artifact(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "artifact-export-modified")
+    artifact = tmp_path / "review.md"
+    artifact.write_text("review\n")
+    attach_artifact(target, source_path=artifact, kind="codex-review")
+    output = tmp_path / "export"
+    export_handoff_dir(target, output_path=output)
+    metadata = json.loads((output / "meta.json").read_text())
+    export_path = metadata["attached_artifacts"][0]["export_path"]
+    (output / export_path).write_text("tampered\n")
+
+    with pytest.raises(LocalWorkflowError, match="modified attached artifacts"):
+        export_handoff_dir(target, output_path=output, check=True)
+
+
 def test_handoff_dir_export_check_rejects_missing_artifact_file_hash(
     tmp_path: Path,
 ) -> None:
@@ -744,6 +812,7 @@ def test_handoff_dir_export_writes_generated_package_and_checks_freshness(
     exported = export_handoff_dir(target, output_path=output)
     checked = export_handoff_dir(target, output_path=output, check=True)
     sync_checkpoint(target)
+    export_handoff_dir(target, output_path=output)
     checked_after_sync = export_handoff_dir(target, output_path=output, check=True)
 
     assert exported.path == str(output)
@@ -787,7 +856,31 @@ def test_handoff_dir_export_writes_generated_package_and_checks_freshness(
     (target / "src.py").unlink()
     export_handoff_dir(target, output_path=output)
 
+    metadata = json.loads((output / "meta.json").read_text())
+    metadata["file_hashes"].pop("README.md")
+    (output / "meta.json").write_text(json.dumps(metadata, indent=2) + "\n")
+    with pytest.raises(LocalWorkflowError, match="stale generated file hashes"):
+        export_handoff_dir(target, output_path=output, check=True)
+    export_handoff_dir(target, output_path=output)
+
+    metadata = json.loads((output / "meta.json").read_text())
+    metadata["file_hashes"]["README.md"] = "sha256:bad"
+    (output / "meta.json").write_text(json.dumps(metadata, indent=2) + "\n")
+    with pytest.raises(LocalWorkflowError, match="stale generated file hashes"):
+        export_handoff_dir(target, output_path=output, check=True)
+    export_handoff_dir(target, output_path=output)
+
     (output / "README.md").write_text("tampered\n")
+    with pytest.raises(LocalWorkflowError, match="modified generated files"):
+        export_handoff_dir(target, output_path=output, check=True)
+    export_handoff_dir(target, output_path=output)
+
+    (output / "README.md").write_text("tampered with matching recorded hash\n")
+    forged_metadata = json.loads((output / "meta.json").read_text())
+    forged_metadata["file_hashes"]["README.md"] = (
+        "sha256:" + hashlib.sha256((output / "README.md").read_bytes()).hexdigest()
+    )
+    (output / "meta.json").write_text(json.dumps(forged_metadata, indent=2) + "\n")
     with pytest.raises(LocalWorkflowError, match="modified generated files"):
         export_handoff_dir(target, output_path=output, check=True)
     export_handoff_dir(target, output_path=output)
@@ -1337,6 +1430,138 @@ def test_review_remains_fresh_for_active_hk_export_changes(tmp_path: Path) -> No
     assert review_check.status == "pass"
 
 
+def test_active_hk_export_does_not_make_ready_or_sync_stale(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    work = create_work(target, "export-lifecycle-neutral")
+    add_note(target, kind="plan", text="Keep active exports lifecycle neutral.")
+    add_note(target, kind="decision", text="Generated exports are derived artifacts.")
+    add_note(target, kind="spec-impact", text="updated")
+    (target / "README.md").write_text("# lifecycle neutral export\n")
+    capture_command(
+        target,
+        ("python3", "-c", "print('ok')"),
+        kind="test",
+        why="Synthetic validation before exporting.",
+    )
+    add_review(
+        target,
+        backend="subagent",
+        reviewer="reviewer-fresh-context",
+        summary="Reviewed source change.",
+    )
+    sync_checkpoint(target)
+
+    before_export = ready(target)
+    exported = export_handoff_dir(target)
+    checked = export_handoff_dir(target, check=True)
+    sync_after_export = sync_checkpoint(target, check=True)
+    after_export = ready(target)
+
+    assert before_export.ready is True
+    assert exported.path.endswith(f".ai/hk/{Path(work.work_dir).name}")
+    assert checked.fresh is True
+    assert sync_after_export.synced is True
+    assert after_export.ready is True
+
+    subprocess.run(
+        ["git", "add", "README.md", ".ai/hk"],
+        cwd=target,
+        check=True,
+        capture_output=True,
+        env=_git_env(),
+    )
+    subprocess.run(
+        ["git", "commit", "--no-verify", "-m", "commit active export"],
+        cwd=target,
+        check=True,
+        capture_output=True,
+        env=_git_env(),
+    )
+    checked_after_commit = export_handoff_dir(target, check=True)
+
+    assert checked_after_commit.fresh is True
+
+
+def test_non_active_hk_export_changes_still_make_freshness_stale(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "other-export-is-real")
+    add_note(target, kind="plan", text="Non-active exports are real changes.")
+    add_note(target, kind="decision", text="Only active exports are neutral.")
+    add_note(target, kind="spec-impact", text="not-needed")
+    capture_command(
+        target,
+        ("python3", "-c", "print('ok')"),
+        kind="test",
+        why="Synthetic validation before unrelated export change.",
+    )
+    add_review(
+        target,
+        backend="subagent",
+        reviewer="reviewer-fresh-context",
+        summary="Reviewed before unrelated export change.",
+    )
+    sync_checkpoint(target)
+
+    other_export = target / ".ai" / "hk" / "other-work" / "README.md"
+    other_export.parent.mkdir(parents=True)
+    other_export.write_text("# other generated export\n")
+
+    checked = sync_checkpoint(target, check=True)
+    result = ready(target)
+    validation_check = next(
+        check for check in result.checks if check.id == "validation"
+    )
+    review_check = next(check for check in result.checks if check.id == "review")
+
+    assert checked.synced is False
+    assert "work changed after checkpoint" in checked.message
+    assert validation_check.status == "fail"
+    assert review_check.status == "fail"
+    assert ".ai/hk/other-work/README.md" in validation_check.message
+    assert ".ai/hk/other-work/README.md" in review_check.message
+
+
+def test_legacy_sync_checkpoint_remains_fresh_after_active_export_neutrality_upgrade(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    work = create_work(target, "legacy-sync-compat")
+    active_export = target / ".ai" / "hk" / Path(work.work_dir).name / "README.md"
+    active_export.parent.mkdir(parents=True)
+    active_export.write_text("# generated active export\n")
+    legacy_hash = git_diff_hash(target)
+    events_path = Path(work.work_dir) / "events.jsonl"
+    sync_event = {
+        "schema_version": 1,
+        "seq": 2,
+        "type": "sync_checkpoint",
+        "at": "2026-05-15T00:00:00+00:00",
+        "data": {
+            "git_sha": "legacy",
+            "diff_hash": legacy_hash,
+            "event_seq": 1,
+            "evidence_count": 0,
+            "note_count": 0,
+        },
+    }
+    with events_path.open("a") as file:
+        file.write(json.dumps(sync_event, sort_keys=True) + "\n")
+
+    checked = sync_checkpoint(target, check=True)
+
+    assert checked.synced is True
+
+
 def test_review_reports_source_paths_changed_after_review(tmp_path: Path) -> None:
     target = tmp_path / "repo"
     _git_init(target)
@@ -1467,7 +1692,7 @@ def test_dangerously_skip_sync_satisfies_readiness_and_handoff(tmp_path: Path) -
     target = tmp_path / "repo"
     _git_init(target)
     init_state(target)
-    create_work(target, "skip-sync")
+    work = create_work(target, "skip-sync")
     add_note(target, kind="plan", text="Implement the lifecycle facade.")
     add_note(target, kind="decision", text="Use validate as the primary evidence verb.")
     add_note(target, kind="spec-impact", text="No spec impact declared.")
@@ -1495,8 +1720,15 @@ def test_dangerously_skip_sync_satisfies_readiness_and_handoff(tmp_path: Path) -
     rendered = handoff(target)
 
     assert stale.ready is False
+    skip_event = json.loads(
+        (Path(work.work_dir) / "events.jsonl").read_text().splitlines()[-1]
+    )
+
     assert skip.check == "sync"
     assert skip.label == "agent-local-state"
+    assert skip_event["data"]["implicit_excluded_paths"] == [
+        f".ai/hk/{Path(work.work_dir).name}"
+    ]
     assert checked.synced is True
     assert "sync dangerously skipped: agent-local-state" in checked.message
     assert done.ready is True

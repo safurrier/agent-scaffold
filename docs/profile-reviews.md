@@ -26,6 +26,12 @@ Use profile reviews when a repo has repeatable review guidance such as:
 - a Codex or fresh-context review prompt for agent-facing CLI changes;
 - a back-pocket review skill the agent can invoke by name.
 
+Profiles should also tell agents when **not** to rerun a broad review. Run broad
+reviews near handoff after the implementation stabilizes. After small follow-up
+edits, prefer targeted path review coverage instead of rerunning the whole review
+stack unless the design, behavior, or risk changed. See
+[Profile Authoring](profile-authoring.md) for closeout-loop guardrails.
+
 ## Schema
 
 ```toml
@@ -33,7 +39,7 @@ Use profile reviews when a repo has repeatable review guidance such as:
 name = "architecture-polish-review"
 purpose = "Suggested final A/A+ architecture and reviewability pass for PR-sized work."
 backend = "subagent"
-dispatch_hint = "Run after validation before considering implementation complete. Use a fresh-context subagent. Do not self-review."
+dispatch_hint = "Run near handoff after focused validation. Use a fresh-context subagent; do not self-review. If it finds concrete fixes, implement the highest-leverage fixes and repeat at most one more time, then stop or ask the user."
 applies_when = ["src/**", "templates/**", "SPEC.md"]
 required_when = []
 
@@ -182,7 +188,7 @@ The profile stays simple:
 name = "architecture-polish-review"
 purpose = "Suggested final architecture/reviewability pass before PR."
 backend = "subagent"
-dispatch_hint = "Run after validation before considering implementation complete. Use a fresh-context subagent. Do not self-review."
+dispatch_hint = "Run near handoff after focused validation. Use a fresh-context subagent; do not self-review. If it finds concrete fixes, implement the highest-leverage fixes and repeat at most one more time, then stop or ask the user."
 applies_when = ["src/**", "templates/**", "SPEC.md"]
 required_when = []
 
@@ -217,3 +223,9 @@ hk review add --review architecture-polish-review \
   --reviewer reviewer-fresh-context \
   --summary "Targeted follow-up accepted."
 ```
+
+For advisory/polish reviews, encode a bound in `dispatch_hint`, for example:
+run once near handoff, repeat at most one more time for high-leverage fixes, then
+stop or ask the user. Required reviews should stay readiness-blocking when the
+risk path matches, but their instructions should still prefer targeted follow-up
+after small post-review fixes.

@@ -25,6 +25,7 @@ Agent routing index for MkDocs-managed documentation. Structure is owned by `mkd
 | `ci.md` | CI workflow design: mise entrypoints, sync contract, pre-commit parity |
 | `portable-workflow.md` | Attaching the planning workflow to existing repos without committed scaffold files |
 | `profile-reviews.md` | HK profile reviews, suggested/required review policies, and skill-backed review instructions |
+| `profile-authoring.md` | HK profile authoring guidance for focused iteration, final gates, targeted follow-up, and avoiding closeout loops |
 | `harness-kit-lifecycle-design.md` | lifecycle-first local assistant design backed by ledger state |
 | `script-contract-prototype.md` | Prototype for thin `scripts/*` adapter contract as a future scaffold task surface |
 
@@ -50,5 +51,6 @@ Agent routing index for MkDocs-managed documentation. Structure is owned by `mkd
 | `decisions/0009-harness-kit-lifecycle-first-cli.md` | Lifecycle-first CLI decision that preserves handoff-safety guarantees |
 | `decisions/0010-compact-hk-export-packages.md` | Compact `.ai/hk` export package shape and ledger/projection boundary |
 | `decisions/0011-path-aware-review-freshness.md` | Path/content-aware HK review freshness and targeted follow-up review coverage |
+| `decisions/0012-lifecycle-neutral-active-hk-exports.md` | Lifecycle-neutral active HK handoff exports and strict export integrity checks |
 
-<!-- generated-by: context-engineering@2.2.0 | last-updated: 2026-04-30 -->
+<!-- generated-by: context-engineering@2.2.0 | last-updated: 2026-05-15 -->

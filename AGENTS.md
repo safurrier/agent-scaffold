@@ -162,6 +162,13 @@ use it only in a copied scaffold or throwaway init target.
   should preserve shell-first evidence while still helping agents find the right
   repo-owned commands.
 
+- **DO** author profiles so agents can distinguish focused iteration, final
+  closeout gates, and targeted post-review follow-up. **NOT** make expensive broad
+  checks or advisory reviews readiness-blocking for every path by default.
+  **BECAUSE** over-broad `required_when` rules cause agents to rerun full gates
+  and broad review stacks after small fixes; use explicit risk paths, notes, and
+  targeted `hk review add --path ...` follow-up guidance.
+
 - **DO** make HK freshness deterministic enough to catch meaningful source-risk
   drift while still letting agents use judgment and targeted follow-up reviews.
   **NOT** make exact whole-diff hash matching the only product-level answer for

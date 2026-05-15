@@ -305,7 +305,7 @@ persistent sync ignore config are deferred.
 | `hk review add --path src/foo.py ...` | Record a targeted follow-up review for one or more currently changed repo-relative paths; HK uses path/content facts to avoid whole-diff review thrash |
 | `hk summary` | Render a concise human-readable readiness digest for PRs/review |
 | `hk handoff` | Render a longer transfer artifact from the work ledger; `--json` returns live markdown content without writing files |
-| `hk export --format handoff-dir` | Generate a compact committed handoff package such as `.ai/hk/2026-05-09-120000-demo/` from the HK ledger (`README.md`, `meta.json`, explicit-only `artifacts/`); use `--check --json` to validate freshness with structured fresh/missing/stale/invalid/no-active-work states while preserving nonzero exits for non-fresh exports |
+| `hk export --format handoff-dir` | Generate a compact committed handoff package such as `.ai/hk/2026-05-09-120000-demo/` from the HK ledger (`README.md`, `meta.json`, explicit-only `artifacts/`); active `.ai/hk/<work-id>/` exports are lifecycle-neutral for validation/review/sync freshness and readiness changed-path checks, and `--check --json` validates package freshness with structured fresh/missing/stale/invalid/no-active-work states while preserving nonzero exits for non-fresh exports |
 | `hk spec` | Manage optional local/external spec drafts |
 | `hk instructions` | Print the compact user-level `AGENTS.md` snippet; use `--scope repo` for a fuller profile-specific repo snippet |
 | `hk profile list` | List built-in/custom/user-config profile contracts and model-directed selection guidance |
@@ -322,14 +322,16 @@ HK-native repos that want durable review artifacts, generate compact committed
 packages with `hk export --format handoff-dir --output .ai/hk/2026-05-09-120000-demo`
 instead of hand-authoring `.ai/plans` files. The export is a projection, not a
 second ledger: `README.md` is the human handoff, `meta.json` is machine
-freshness/integrity data, and `artifacts/` is for explicit copied attachments only; `--no-copy` attachments remain referenced by metadata.
+freshness/integrity data, and `artifacts/` is for explicit copied attachments only; `--no-copy` attachments remain referenced by metadata. The active `.ai/hk/<work-id>/` package is generated/derived and does not by itself stale validation/review/sync freshness or readiness changed-path checks; validate export integrity with `hk export --format handoff-dir --check` or `mise run sync-check`.
 
 Profiles are small workflow contracts for agentic engineering checks and
 reviews. They describe what exists for an environment; they do **not** run those
-checks or reviews. Agents should run the suggested validation command directly so
-the raw output stays visible in the normal shell loop, then record the exact
-command/result with `hk validate --why` for Harness Kit lifecycle work. When a
-profile check is named, record it with `hk validate --check NAME --why ...`.
+checks or reviews. Well-authored profiles also separate focused iteration checks
+from final closeout gates so agents do not rerun broad validation and review
+stacks after every small edit. Agents should run the suggested validation command
+directly so the raw output stays visible in the normal shell loop, then record
+the exact command/result with `hk validate --why` for Harness Kit lifecycle work.
+When a profile check is named, record it with `hk validate --check NAME --why ...`.
 
 Initial built-in profiles:
 
@@ -349,9 +351,13 @@ hk checks --profile python --target /path/to/python-project --changed --json
 `profile list --target` does not score, rank, or implicitly choose a profile. It
 prints available profile contracts plus few-shot selection guidance for the
 agent. Agents inspect the target scope, choose the closest profile, tell the user
-once why they chose it, and then use that profile consistently. In monorepos,
-`--target` should usually be the module/package/crate directory that owns the
-work, not the repo root.
+once why they chose it, and then use that profile consistently. During
+implementation, use focused profile checks and targeted validation; save broad
+required gates and reviews for closeout once the implementation is stable. After
+small review fixes, prefer targeted follow-up validation/review for changed paths
+instead of rerunning the whole stack unless behavior or design changed. In
+monorepos, `--target` should usually be the module/package/crate directory that
+owns the work, not the repo root.
 
 The selection order is conceptual, not algorithmic:
 
@@ -382,6 +388,10 @@ sources override earlier profiles with the same name. This means a compact
 `harness.toml` can keep only target bindings while profile bodies live in
 separate files.
 
+See [Profile Authoring](profile-authoring.md) for guidance on choosing
+`applies_when` vs `required_when`, avoiding expensive `required_when = ["*"]`
+patterns, and bounding advisory reviews.
+
 Custom profiles can also be loaded ad hoc with `--profiles-dir`:
 
 ```bash
@@ -406,10 +416,10 @@ hk checks \
 repo, does not infer commands as facts, and refuses to overwrite an existing file
 unless `--force` is passed.
 
-Generated harness-scaffold repos include a `harness-kit-profile-authoring` skill
-that agents can load when no exact profile exists. It guides agents to mine CI,
-hooks, task runners, and repo docs, then propose TOML for user approval before
-writing a custom profile.
+This repo and generated harness-scaffold repos include a
+`harness-kit-profile-authoring` skill that agents can load when no exact profile
+exists. It guides agents to mine CI, hooks, task runners, and repo docs, then
+propose TOML for user approval before writing a custom profile.
 
 Harness Kit lifecycle commands accept:
 
@@ -437,7 +447,7 @@ This is intentionally an early implementation:
 
 - It does not install global mise tasks yet.
 - It does not render `slice-plan` prompts from portable state yet.
-- `sync-check` is local-only and does not replace committed-plan CI.
+- HK does not install global mise tasks yet; repos that adopt committed `.ai/hk` exports need a repo-owned sync-check task or CI hook to validate them.
 - External state is keyed by git remote URL when available, otherwise by target path.
 
 The spike proves that the workflow can be attached to an arbitrary repo without

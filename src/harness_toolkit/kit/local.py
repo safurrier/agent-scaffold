@@ -105,7 +105,7 @@ SYNC_IGNORED_EVENT_TYPES = frozenset(
     {"sync_checkpoint", "view_materialized", "handoff_generated"}
 )
 COMMON_AGENT_LOCAL_STATE_PATHS = (".pi", ".claude/worktrees")
-VALIDATION_FRESHNESS_EXCLUDES = (".ai/hk",)
+VALIDATION_FRESHNESS_EXCLUDES: tuple[str, ...] = ()
 StateMode = Literal["local", "external"]
 NoteKind = Literal[
     "context", "plan", "background", "learning", "decision", "gap", "spec-impact"
@@ -420,6 +420,21 @@ def git_diff_hash(path: Path, exclude_paths: tuple[str, ...] = ()) -> str:
     return git_snapshot.git_diff_hash(path, exclude_paths)
 
 
+def active_handoff_export_excludes(work_dir: Path | None) -> tuple[str, ...]:
+    if work_dir is None:
+        return ()
+    return (f".ai/hk/{work_dir.name}",)
+
+
+def work_freshness_excludes(
+    work_dir: Path | None, *exclude_groups: tuple[str, ...]
+) -> tuple[str, ...]:
+    values: list[str] = [*active_handoff_export_excludes(work_dir)]
+    for group in exclude_groups:
+        values.extend(group)
+    return tuple(dict.fromkeys(path for path in values if path))
+
+
 def git_work_diff_hash(
     path: Path, *, base_sha: str, exclude_paths: tuple[str, ...] = ()
 ) -> str:
@@ -696,7 +711,10 @@ def sync_checkpoint(
     for candidate in normalized_excludes:
         if error := sync_exclude_safety_error(state.target_root, candidate):
             raise LocalWorkflowError(error)
-    current_hash = git_diff_hash(state.target_root, normalized_excludes)
+    implicit_excludes = active_handoff_export_excludes(work_dir)
+    current_hash = git_diff_hash(
+        state.target_root, work_freshness_excludes(work_dir, normalized_excludes)
+    )
     if not current_hash:
         raise LocalWorkflowError("could not compute git diff hash for sync checkpoint")
     sync_events = [event for event in events if event.type == "sync_checkpoint"]
@@ -742,10 +760,18 @@ def sync_checkpoint(
                 guidance=guidance,
             )
         synced_hash = str(latest_sync.data.get("diff_hash", ""))
-        current_hash = git_diff_hash(state.target_root, checkpoint_excludes)
+        current_hash = git_diff_hash(
+            state.target_root, work_freshness_excludes(work_dir, checkpoint_excludes)
+        )
         if not current_hash:
             raise LocalWorkflowError("could not compute git diff hash for sync check")
-        synced = synced_seq >= latest_seq and synced_hash == current_hash
+        synced = synced_seq >= latest_seq and _sync_hash_matches(
+            state,
+            work_dir,
+            synced_hash,
+            checkpoint_excludes,
+            implicit_recorded="implicit_excluded_paths" in latest_sync.data,
+        )
         if not synced and skip is not None:
             return SyncResult(
                 work_id=work_dir.name,
@@ -767,6 +793,8 @@ def sync_checkpoint(
         "evidence_count": evidence_count,
         "note_count": note_count,
     }
+    if implicit_excludes:
+        data["implicit_excluded_paths"] = list(implicit_excludes)
     if normalized_excludes:
         data.update(
             {
@@ -907,7 +935,9 @@ def capture_command(
         why=why,
         check_name=clean_check_name,
         diff_hash=validation_diff_hash(
-            state.target_root, base_sha=work_start_git_sha(read_events(work_dir))
+            state.target_root,
+            base_sha=work_start_git_sha(read_events(work_dir)),
+            extra_excludes=active_handoff_export_excludes(work_dir),
         ),
         changed_paths=changed_paths_for_work(state.target_root, work_dir),
         timed_out=process_result.timed_out,
@@ -1078,6 +1108,25 @@ def find_specs(state: LocalState) -> list[str]:
     return find_specs_for_state(state)
 
 
+def _sync_hash_matches(
+    state: LocalState,
+    work_dir: Path | None,
+    recorded_hash: str,
+    checkpoint_excludes: tuple[str, ...] = (),
+    *,
+    implicit_recorded: bool = False,
+) -> bool:
+    current_hash = git_diff_hash(
+        state.target_root, work_freshness_excludes(work_dir, checkpoint_excludes)
+    )
+    if recorded_hash == current_hash:
+        return True
+    if implicit_recorded:
+        return False
+    legacy_hash = git_diff_hash(state.target_root, checkpoint_excludes)
+    return recorded_hash == legacy_hash
+
+
 def fresh_sync_skip(
     events: list[EventRecord], state: LocalState
 ) -> dict[str, object] | None:
@@ -1090,7 +1139,13 @@ def fresh_sync_skip(
     skipped_hash = str(latest.get("diff_hash", ""))
     if skipped_seq < latest_sync_relevant_seq(events):
         return None
-    if skipped_hash != git_diff_hash(state.target_root):
+    work_dir = active_work_dir(state)
+    if not _sync_hash_matches(
+        state,
+        work_dir,
+        skipped_hash,
+        implicit_recorded="implicit_excluded_paths" in latest,
+    ):
         return None
     return latest
 
@@ -1120,9 +1175,13 @@ def sync_status_for(state: LocalState) -> str:
             expected_paths=checkpoint_excludes,
         ):
             return "needs-sync"
-        if synced_seq >= latest_sync_relevant_seq(events) and str(
-            latest_sync.data.get("diff_hash", "")
-        ) == git_diff_hash(state.target_root, checkpoint_excludes):
+        if synced_seq >= latest_sync_relevant_seq(events) and _sync_hash_matches(
+            state,
+            work_dir,
+            str(latest_sync.data.get("diff_hash", "")),
+            checkpoint_excludes,
+            implicit_recorded="implicit_excluded_paths" in latest_sync.data,
+        ):
             return "synced"
     if sync_events and fresh_sync_skip(events, state) is not None:
         return "sync-dangerously-skipped"
@@ -1225,12 +1284,48 @@ def _handoff_export_status_result(
     )
 
 
+def _expected_export_files(
+    state: LocalState,
+    work_dir: Path,
+    *,
+    output_relative: str,
+    events: list[EventRecord],
+) -> dict[str, str]:
+    handoff_content = _sanitize_export_content(
+        _sanitize_export_artifact_paths(
+            render_handoff(
+                work_dir,
+                state,
+                format="markdown",
+                freshness_excludes=(output_relative,),
+            ),
+            events,
+        ),
+        state,
+    )
+    return {
+        "README.md": _export_readme(
+            work_dir.name,
+            handoff_content,
+            output_relative,
+            state,
+        ),
+        "artifacts/README.md": _artifacts_readme(),
+    }
+
+
+def _normalized_expected_export_content(relative: str, content: str) -> str:
+    return content
+
+
 def _status_from_export_check_details(
     state: LocalState,
     work_dir: Path,
     destination: Path,
     metadata: dict[str, object],
     artifact_files: list[tuple[Path, str, str]],
+    expected_file_hashes: dict[str, str] | None = None,
+    expected_file_contents: dict[str, str] | None = None,
 ) -> HandoffExportStatus:
     meta_path = destination / "meta.json"
     if not meta_path.exists():
@@ -1297,6 +1392,19 @@ def _status_from_export_check_details(
     expected_artifact_hashes = {
         relative: digest for _, relative, digest in artifact_files
     }
+    expected_generated_hashes = expected_file_hashes or {}
+    expected_hashes = {
+        **expected_generated_hashes,
+        **expected_artifact_hashes,
+    }
+    stale_generated_hashes = [
+        relative
+        for relative, digest in expected_generated_hashes.items()
+        if recorded_hashes.get(relative) != digest
+    ]
+    for relative in expected_file_contents or {}:
+        if relative not in recorded_hashes and relative not in stale_generated_hashes:
+            stale_generated_hashes.append(relative)
     stale_artifact_hashes = [
         relative
         for relative, digest in expected_artifact_hashes.items()
@@ -1310,6 +1418,13 @@ def _status_from_export_check_details(
         str(item) for item in expected_files if (destination / str(item)).is_symlink()
     ]
     expected_file_set = {str(item) for item in expected_files}
+    unexpected_files: list[str] = []
+    for path in destination.rglob("*") if destination.exists() else []:
+        if path.is_dir() and not path.is_symlink():
+            continue
+        relative = path.relative_to(destination).as_posix()
+        if relative not in expected_file_set:
+            unexpected_files.append(relative)
     for relative, expected_hash in recorded_hashes.items():
         safe_relative = _safe_export_relative(str(relative))
         if safe_relative is None:
@@ -1326,9 +1441,30 @@ def _status_from_export_check_details(
         if not hashed_path.exists():
             continue
         actual_hash = _file_hash(hashed_path)
+        if expected_file_contents and safe_relative in expected_file_contents:
+            if recorded_hashes.get(safe_relative) != actual_hash:
+                if safe_relative not in stale_generated_hashes:
+                    stale_generated_hashes.append(safe_relative)
+            expected_content = _normalized_expected_export_content(
+                safe_relative, expected_file_contents[safe_relative]
+            )
+            try:
+                actual_text = hashed_path.read_text()
+            except UnicodeDecodeError:
+                hash_mismatches.append(safe_relative)
+                continue
+            actual_content = _normalized_expected_export_content(
+                safe_relative, actual_text
+            )
+            if actual_content != expected_content:
+                hash_mismatches.append(safe_relative)
+            continue
         if safe_relative in expected_artifact_hashes:
             if actual_hash != expected_artifact_hashes[safe_relative]:
                 artifact_hash_mismatches.append(safe_relative)
+        elif safe_relative in expected_hashes:
+            if actual_hash != expected_hashes[safe_relative]:
+                hash_mismatches.append(safe_relative)
         elif actual_hash != expected_hash:
             hash_mismatches.append(safe_relative)
     mismatches = _compare_export_metadata(metadata, recorded)
@@ -1338,8 +1474,10 @@ def _status_from_export_check_details(
         or hash_mismatches
         or unsafe_hash_paths
         or unexpected_hash_paths
-        or stale_artifact_hashes
+        or unexpected_files
         or artifact_hash_mismatches
+        or stale_generated_hashes
+        or stale_artifact_hashes
         or symlink_files
     ):
         return _handoff_export_status_result(
@@ -1357,6 +1495,10 @@ def _status_from_export_check_details(
         details.append("stale metadata: " + ", ".join(mismatches))
     if hash_mismatches:
         details.append("modified generated files: " + ", ".join(hash_mismatches))
+    if artifact_hash_mismatches:
+        details.append(
+            "modified attached artifacts: " + ", ".join(artifact_hash_mismatches)
+        )
     if unsafe_hash_paths:
         invalid_details.append(
             "unsafe file_hashes paths: " + ", ".join(unsafe_hash_paths)
@@ -1365,13 +1507,15 @@ def _status_from_export_check_details(
         invalid_details.append(
             "unexpected file_hashes paths: " + ", ".join(unexpected_hash_paths)
         )
+    if unexpected_files:
+        invalid_details.append("unexpected files: " + ", ".join(unexpected_files))
+    if stale_generated_hashes:
+        details.append(
+            "stale generated file hashes: " + ", ".join(stale_generated_hashes)
+        )
     if stale_artifact_hashes:
         details.append(
             "stale attached artifact hashes: " + ", ".join(stale_artifact_hashes)
-        )
-    if artifact_hash_mismatches:
-        details.append(
-            "modified attached artifacts: " + ", ".join(artifact_hash_mismatches)
         )
     if symlink_files:
         invalid_details.append("symlinked files: " + ", ".join(symlink_files))
@@ -1457,6 +1601,17 @@ def _handoff_export_status_for_state(
     )
     try:
         artifact_files = _copied_artifacts_for_export(work_dir, events)
+        expected_files = _expected_export_files(
+            state,
+            work_dir,
+            output_relative=output_relative,
+            events=events,
+        )
+        expected_file_hashes = {
+            relative: _text_hash(content)
+            for relative, content in expected_files.items()
+            if relative != "README.md"
+        }
         metadata = _handoff_dir_metadata(
             state=state,
             work_dir=work_dir,
@@ -1475,7 +1630,13 @@ def _handoff_export_status_for_state(
             stale_reasons=[str(e)],
         )
     return _status_from_export_check_details(
-        state, work_dir, destination, metadata, artifact_files
+        state,
+        work_dir,
+        destination,
+        metadata,
+        artifact_files,
+        expected_file_hashes,
+        expected_files,
     )
 
 
@@ -1638,8 +1799,15 @@ def changed_paths(root: Path, *, base_sha: str = "") -> list[str]:
     return list(dict.fromkeys(path.replace("\\", "/") for path in paths if path))
 
 
-def changed_paths_for_work(root: Path, work_dir: Path) -> list[str]:
-    return changed_paths(root, base_sha=work_start_git_sha(read_events(work_dir)))
+def changed_paths_for_work(
+    root: Path, work_dir: Path, *, exclude_paths: tuple[str, ...] = ()
+) -> list[str]:
+    paths = changed_paths(root, base_sha=work_start_git_sha(read_events(work_dir)))
+    return list(
+        _filtered_changed_paths(
+            tuple(paths), work_freshness_excludes(work_dir, exclude_paths)
+        )
+    )
 
 
 def review_prompt(
@@ -1722,7 +1890,9 @@ def add_review(
         "summary": summary.strip(),
         "disposition": disposition.strip() or "accepted",
         "diff_hash": validation_diff_hash(
-            state.target_root, base_sha=work_start_git_sha(read_events(work_dir))
+            state.target_root,
+            base_sha=work_start_git_sha(read_events(work_dir)),
+            extra_excludes=active_handoff_export_excludes(work_dir),
         ),
         "changed_paths": list(covered_paths),
         "changed_path_hashes": changed_path_hashes(state.target_root, covered_paths),
@@ -1773,13 +1943,16 @@ def add_dangerous_skip(
             raise LocalWorkflowError(
                 "dangerously-skip sync requires a prior `hk sync` checkpoint"
             )
+        implicit_excludes = active_handoff_export_excludes(work_dir)
         data.update(
             {
                 "git_sha": git_sha(state.target_root),
-                "diff_hash": git_diff_hash(state.target_root),
+                "diff_hash": git_diff_hash(state.target_root, implicit_excludes),
                 "event_seq": max((event.seq for event in events), default=0) + 1,
             }
         )
+        if implicit_excludes:
+            data["implicit_excluded_paths"] = list(implicit_excludes)
     elif check in {"validation", "review"}:
         data.update(
             {
@@ -1787,6 +1960,7 @@ def add_dangerous_skip(
                 "diff_hash": validation_diff_hash(
                     state.target_root,
                     base_sha=work_start_git_sha(read_events(work_dir)),
+                    extra_excludes=active_handoff_export_excludes(work_dir),
                 ),
             }
         )
@@ -1865,8 +2039,10 @@ def ready_for_work(
 ) -> ReadyResult:
     events = read_events(work_dir)
     evidence = read_evidence(work_dir)
+    effective_freshness_excludes = work_freshness_excludes(work_dir, freshness_excludes)
     current_changed_paths = _filtered_changed_paths(
-        tuple(changed_paths_for_work(state.target_root, work_dir)), freshness_excludes
+        tuple(changed_paths_for_work(state.target_root, work_dir)),
+        effective_freshness_excludes,
     )
     required_checks, required_reviews = required_profile_items_for_work(
         state, work_dir, changed_paths=current_changed_paths
@@ -1877,12 +2053,15 @@ def ready_for_work(
             validation_diff_hash(
                 state.target_root,
                 base_sha=work_start_git_sha(events),
-                extra_excludes=(*COMMON_AGENT_LOCAL_STATE_PATHS, *freshness_excludes),
+                extra_excludes=(
+                    *COMMON_AGENT_LOCAL_STATE_PATHS,
+                    *effective_freshness_excludes,
+                ),
             ),
             validation_diff_hash(
                 state.target_root,
                 base_sha=work_start_git_sha(events),
-                extra_excludes=freshness_excludes,
+                extra_excludes=effective_freshness_excludes,
             ),
         )
         review_excludes = COMMON_AGENT_LOCAL_STATE_PATHS
@@ -1893,12 +2072,12 @@ def ready_for_work(
             validation_diff_hash(
                 state.target_root,
                 base_sha=work_start_git_sha(events),
-                extra_excludes=(*sync_excludes, *freshness_excludes),
+                extra_excludes=(*sync_excludes, *effective_freshness_excludes),
             ),
             validation_diff_hash(
                 state.target_root,
                 base_sha=work_start_git_sha(events),
-                extra_excludes=freshness_excludes,
+                extra_excludes=effective_freshness_excludes,
             ),
         )
     review_changed_paths = tuple(
@@ -2213,7 +2392,7 @@ def _handoff_dir_metadata(
         "diff_hash": git_work_diff_hash(
             state.target_root,
             base_sha=work_start_git_sha(events),
-            exclude_paths=(output_relative,),
+            exclude_paths=work_freshness_excludes(work_dir, (output_relative,)),
         ),
         "event_count": _event_count(events),
         "event_seq": _max_event_seq(events),
@@ -2231,10 +2410,27 @@ def _handoff_dir_metadata(
     }
 
 
+def _stable_export_handoff_body(handoff_content: str) -> str:
+    handoff_body = handoff_content.removeprefix("# Handoff\n\n")
+    lines: list[str] = []
+    section = ""
+    for line in handoff_body.splitlines():
+        if line.startswith("## "):
+            section = line.removeprefix("## ").strip()
+        if section == "Summary" and line.startswith(
+            ("- Git SHA:", "- Dirty:", "- Sync status:")
+        ):
+            continue
+        if section == "Readiness" and line.startswith(("- Status:", "- sync:")):
+            continue
+        lines.append(line)
+    return "\n".join(lines) + "\n"
+
+
 def _export_readme(
     work_id: str, handoff_content: str, output_relative: str, state: LocalState
 ) -> str:
-    handoff_body = handoff_content.removeprefix("# Handoff\n\n")
+    handoff_body = _stable_export_handoff_body(handoff_content)
     return (
         f"# HK export: `{work_id}`\n\n"
         "This directory is a generated review/handoff package from the Harness Kit "
@@ -2393,6 +2589,17 @@ def export_handoff_dir(
         freshness_excludes=export_freshness_excludes,
     )
     artifact_files = _copied_artifacts_for_export(work_dir, events)
+    expected_files = _expected_export_files(
+        state,
+        work_dir,
+        output_relative=output_relative,
+        events=events,
+    )
+    expected_file_hashes = {
+        relative: _text_hash(content)
+        for relative, content in expected_files.items()
+        if relative != "README.md"
+    }
     metadata = _handoff_dir_metadata(
         state=state,
         work_dir=work_dir,
@@ -2403,7 +2610,13 @@ def export_handoff_dir(
     )
     if check:
         status_result = _status_from_export_check_details(
-            state, work_dir, destination, metadata, artifact_files
+            state,
+            work_dir,
+            destination,
+            metadata,
+            artifact_files,
+            expected_file_hashes,
+            expected_files,
         )
         if status_result.state != "fresh":
             raise LocalWorkflowError(
@@ -2424,27 +2637,7 @@ def export_handoff_dir(
     prepare_generated_directory(destination)
     artifacts_dir = destination / "artifacts"
     prepare_generated_directory(artifacts_dir)
-    handoff_content = _sanitize_export_content(
-        _sanitize_export_artifact_paths(
-            render_handoff(
-                work_dir,
-                state,
-                format="markdown",
-                freshness_excludes=export_freshness_excludes,
-            ),
-            events,
-        ),
-        state,
-    )
-    files = {
-        "README.md": _export_readme(
-            work_dir.name,
-            handoff_content,
-            output_relative,
-            state,
-        ),
-        "artifacts/README.md": _artifacts_readme(),
-    }
+    files = dict(expected_files)
     file_hashes = {relative: _text_hash(content) for relative, content in files.items()}
     file_hashes.update({relative: digest for _, relative, digest in artifact_files})
     metadata = _handoff_dir_metadata(
@@ -2470,6 +2663,40 @@ def export_handoff_dir(
             safe_copy_generated_file(source, destination / relative)
         except HandoffExportError as e:
             raise LocalWorkflowError(str(e)) from e
+
+    refreshed_readiness = ready_for_work(
+        work_dir,
+        state,
+        check_handoff=False,
+        freshness_excludes=export_freshness_excludes,
+    )
+    refreshed_files = _expected_export_files(
+        state,
+        work_dir,
+        output_relative=output_relative,
+        events=events,
+    )
+    if refreshed_files != expected_files:
+        files = dict(refreshed_files)
+        file_hashes = {
+            relative: _text_hash(content) for relative, content in files.items()
+        }
+        file_hashes.update({relative: digest for _, relative, digest in artifact_files})
+        metadata = _handoff_dir_metadata(
+            state=state,
+            work_dir=work_dir,
+            output_path=destination,
+            events=events,
+            evidence=evidence,
+            readiness=refreshed_readiness,
+            file_hashes=file_hashes,
+        )
+        files["meta.json"] = json.dumps(metadata, indent=2, sort_keys=True) + "\n"
+        for relative, content in files.items():
+            try:
+                safe_write_generated_file(destination / relative, content)
+            except HandoffExportError as e:
+                raise LocalWorkflowError(str(e)) from e
     return ExportResult(
         work_id=work_dir.name,
         path=str(destination),
