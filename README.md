@@ -1,43 +1,30 @@
 # harness-toolkit
 
-**Harness Engineering Toolkit** for agent-ready repositories.
+Harness Toolkit is a monorepo for two related but separate tools:
 
-This package contains two related CLIs:
+- **`hk` / `harness-kit`** — a lifecycle and readiness CLI for existing
+  repositories. It records plan, context, validation evidence, review, sync
+  state, and handoff output without forcing scaffold files into the repo.
+- **`harness-scaffold`** — a project generator for new agent-ready repositories.
+  It creates a stable `mise` task contract, docs structure, CI wiring, and
+  slice-workflow defaults.
 
-- **`hk` / `harness-kit`** — portable planning, validation, local work-ledger,
-  command-evidence, sync-checkpoint, and handoff workflow for existing
-  repositories without committing scaffold files.
-- **`harness-scaffold`** — starter-template CLI for creating new agent-ready
-  repositories with a stable task contract, docs structure, CI wiring, and slice
-  workflow defaults.
+Use `hk` when the repository already exists and you want safer agent handoff.
+Use `harness-scaffold` when you are starting a new repository and want the
+workflow installed from day one. They share a release/package because they share
+the same philosophy, but they solve different jobs.
 
-## Prerequisites
+## Install
 
-Only one tool needs to be on your `PATH` before anything else — mise handles the rest.
-
-```bash
-# macOS / Linux (curl)
-curl https://mise.run | sh
-
-# macOS (Homebrew)
-brew install mise
-
-# Windows (PowerShell)
-winget install jdx.mise
-```
-
-Once mise is installed, `mise install` will pull down everything declared in `.mise.toml`
-(currently Python and uv for the scaffold itself; stack-specific tooling after `init`).
-
-## Install the CLIs
-
-To use `hk` / `harness-kit` from any repository, install Harness Toolkit as a uv tool:
+Harness Toolkit is currently distributed as a GitHub-sourced Python tool. PyPI is
+intentionally deferred until the CLI contracts settle; prefer explicit GitHub
+`main` or tag installs.
 
 ```bash
 uv tool install git+https://github.com/safurrier/harness-toolkit.git
 ```
 
-For a pinned GitHub release:
+For a pinned release:
 
 ```bash
 uv tool install git+https://github.com/safurrier/harness-toolkit.git@v0.2.0
@@ -49,7 +36,7 @@ For local development from a checkout:
 uv tool install --editable ~/git_repositories/harness-toolkit
 ```
 
-Verify:
+Verify both apps are installed:
 
 ```bash
 hk --version
@@ -57,217 +44,190 @@ harness-kit --version
 harness-scaffold --version
 ```
 
-See [Release and Installation](docs/release.md) for release tags, upgrade commands,
-and the current no-PyPI-yet policy. See [Harness Kit Design](docs/harness-kit-lifecycle-design.md)
-for the lifecycle-first local assistant direction backed by ledger state.
+See [Release and Installation](docs/release.md) for upgrade commands, release
+checklists, and the current no-PyPI-yet policy.
 
-To make Harness Kit the default workflow for your AI tools, add a compact
-instruction block to your user-level `AGENTS.md`. See
-[Agent Adoption](docs/agent-adoption.md) for the snippet and agent-facing first
-steps.
+## App 1: `hk` for existing repositories
 
-## Getting Started
-
-```bash
-# 1. Clone
-git clone https://github.com/safurrier/harness-toolkit.git my-project
-cd my-project
-
-# 2. Install tools (Python + uv via mise)
-mise install
-
-# 3. Initialize — interactive
-mise run init
-
-# 4. Or non-interactively
-mise run init -- --non-interactive --name my-project --shape single --stack python
-```
-
-## Harness Kit Agent Workflow
-
-To have agents use Harness Kit across repos, add the short directive from
-[Agent Adoption](docs/agent-adoption.md) to your user-level `AGENTS.md`.
-
-Harness Kit is a **readiness ledger for serious agent-driven changes**. It is
-primarily an agent-facing lifecycle, not a task runner or human task manager.
-The usual adoption story is that a human shapes the work in normal conversation,
-issues, or scratch docs, then asks an implementation agent to use `hk` so the
-agent leaves behind plan, evidence, review, and handoff state. The ceremony pays
-for itself when the work is risky, broad, multi-step, likely to span context
-compaction, or when skipped validation needs to be explicit rather than implied.
-
-The docs follow that journey: first explain what the tool is for, then give
-agents a small path that works, then let `hk status` reveal the deeper lifecycle
-only when needed.
-
-1. Add a small Harness Kit directive to repo or user `AGENTS.md`.
-2. Research and shape the idea in chat, issues, or scratch docs with normal
-   human/agent back-and-forth.
-3. Hand the agreed intent to an implementation agent and tell it to use `hk`.
-4. The agent records enough lifecycle evidence for handoff without committing
-   workflow ceremony.
-
-The happy-path agent loop is intentionally short:
+`hk` is for meaningful agent-driven changes: broad edits, risky work,
+multi-step changes, or anything that may need context compaction or human
+handoff. It is not a replacement task runner; keep running the repo's native
+commands and let `hk` record what happened.
 
 ```bash
-hk profile resolve --target . --json   # optional; uses explicit user config if present
-hk start demo-work --plan 'Adopted implementation intent'
-# work normally in the repo
-hk checks --target . --changed --json  # suggests configured checks/reviews, does not run them
-hk validate --why 'Fast gate passes' -- mise run check
-hk status
-hk ready
-hk summary
+cd existing-repo
+hk profile resolve --target . --json   # optional discovery
+hk start demo-work --plan "Adopted implementation intent" --target .
+# edit normally and run repo-native commands
+hk checks --target . --changed --json   # suggests checks/reviews, does not run them
+hk validate --why "Fast gate passes" --target . -- mise run check
+hk status --target .
+hk ready --target .
+hk summary --target .
 ```
 
-`hk status` is the coach. It tells the agent when to add optional context, record
-a decision/spec reflection, dispatch review, reconcile sync state, or use a
-scary explicit bypass. Agents should not memorize a long command checklist.
-User-level `harness.toml` can bind known repo/module paths to inline profiles or
-to standalone TOML profiles loaded from `profiles_dir`, so agents do not need
-validation/review conventions re-explained every session. If an agent works in a
-Git linked worktree, HK projects configured repo/module target bindings from the
-canonical worktree into the linked worktree before falling back to the default
-profile. Separate clones are not auto-matched by remote URL. Profiles can suggest
-checks/reviews for changed paths and mark specific path matches as required while
-still leaving execution and reviewer dispatch to the agent. Path rules accept
-both repo-root-relative changed paths and target-relative paths for scoped module
-targets.
+`hk status` is the coach. Agents should follow its next actions instead of
+memorizing a long checklist. It will ask for missing context, plan updates,
+decision/spec reflection, validation evidence, external-enough review, sync, or
+an explicit dangerous skip when a lifecycle guarantee cannot be met.
 
-### Agent command index
+To make this the default behavior for agents, add the compact directive from
+[Agent Adoption](docs/agent-adoption.md) to your user-level or repo-level
+`AGENTS.md`.
 
-Most agents should start with the short loop above and follow `hk status`. These
-are the common commands to reach for when the coach asks for something specific:
+### `hk` lifecycle model
 
-| Need | Command |
+`hk` preserves a simple handoff-safety spine:
+
+```text
+plan → decision/spec reflection → validation evidence → external-enough review → readiness gate → handoff artifact
+```
+
+The readiness ledger is local state first. `hk` can render summaries, handoffs,
+and exported packages, but it does not require existing repos to commit generated
+ceremony.
+
+Common `hk` actions:
+
+| When you need to... | Use... |
 |---|---|
-| Read repo shape without mutating state | `hk brief --target . --json` |
-| Start or inspect active work | `hk start demo-work --plan "..."`, `hk status`, `hk work status` |
-| Record useful framing | `hk context "..."` |
-| Record or refine the adopted plan | `hk plan "..."` / `hk plan --from-file FILE` |
-| Record decisions and spec impact | `hk decide "..." --spec-impact none\|updated\|not-needed` |
-| See configured guidance without running it | `hk profile resolve --target . --json`, `hk checks --target . --changed --json` |
-| Capture validation evidence | `hk validate --why "Fast gate passes" -- mise run check`, `hk validate --why "Env-specific test" -- env PYTHONPATH=src pytest -q`, `hk validate --timeout-seconds 120 --max-log-bytes 200000 --why "Bounded test" -- pytest -q` |
-| Record external-enough review | `hk review prompt core-review`, `hk review add --review core-review --backend subagent --reviewer fresh-context --summary "No blockers."`, `hk review add --review core-review --path src/foo.py ...` for targeted follow-up |
-| Attach/list real tool/harness files | `hk artifact attach --path FILE --kind KIND`, `hk artifact list --json` |
-| Reconcile local changes before handoff | `hk sync`, `hk sync --exclude PATH --reason "..."` |
-| Check readiness or explain it to humans | `hk ready`, `hk status`, `hk summary`, `hk handoff`, `hk export` |
-| Make an explicit exception | `hk dangerously-skip review\|validation\|sync --label LABEL --reason "..." --mitigation "..."` |
+| Start or inspect work | `hk start --plan ...`, `hk status`, `hk work status` |
+| Record context, plan, or decisions | `hk context`, `hk plan`, `hk decide` |
+| Capture command evidence | `hk validate --why "..." -- <native command>` |
+| Add independent review | `hk review prompt`, then `hk review add` |
+| Reconcile local state | `hk sync` or explicit `hk sync --exclude PATH --reason ...` |
+| Check or share readiness | `hk ready`, `hk summary`, `hk handoff`, `hk export` |
+| Make an explicit exception | `hk dangerously-skip review|validation|sync ...` |
 
-Lower-level commands such as `hk note`, `hk evidence`, `hk capture`, and `hk spec`
-are inspection/escape hatches, not the promoted path.
+Lower-level commands such as `hk note`, `hk evidence`, `hk capture`, and
+`hk spec` are escape hatches, not the promoted path. See
+[Harness Kit Design](docs/harness-kit-lifecycle-design.md),
+[Profile Authoring](docs/profile-authoring.md), and
+[Profile Reviews](docs/profile-reviews.md) for lifecycle and profile details.
 
-`hk` now exposes the Harness Kit lifecycle only: local agent memory, compact adopted
-plans, exact command evidence with rationale, review records, readiness checks,
-and generated handoffs without committed ceremony. Use `hk start --plan`,
-`hk validate`, `hk status`, and then follow the next actions. For meaningful
-Harness Toolkit repo work, export a compact committed handoff package with
-`hk export --format handoff-dir --output .ai/hk/2026-05-09-120000-demo`; the export
-contains a human `README.md`, machine `meta.json`, and explicit-only `artifacts/`.
-Do not hand-author new `.ai/plans` slices for this repo. Removed portable plan-artifact commands
-(`hk attach`, `hk legacy plan`, and `hk legacy sync-check`) are no longer part of
-`hk`. Scaffolded repos still use `mise run plan` and `mise run sync-check`
-through the separate slice-workflow CLI.
+## App 2: `harness-scaffold` for new repositories
 
-Planning can happen outside HK; agents translate the agreed intent into compact
-HK context/plan/decision records rather than asking HK to infer it. `hk start
---plan` seeds the first lifecycle plan when work starts; `hk start` can also be
-used without a plan followed by repeated `hk plan "..."` calls as a living plan
-when the implementation shape emerges progressively. `hk profile resolve`, `hk checks --changed`, and `hk status` explain the resolved profile, direct/default/worktree match
-kind, and the changed files/patterns that triggered suggested or required
-checks/reviews. Suggested profile reviews appear as non-blocking status guidance;
-required profile reviews remain readiness blockers. Profile reviews can include
-inline or file-backed instructions, which is the recommended way to wrap a skill
-or checklist for a fresh-context reviewer. See [Profile Reviews](docs/profile-reviews.md).
-`hk artifact attach` can attach real harness/tool files such as
-agent session transcripts or Codex review transcripts by copying or referencing
-the file, hashing it, and rendering the metadata in handoff/export; `hk artifact
-list --json` gives agents a read-only way to verify what is attached. Slugs should be short human-readable task names;
-HK-generated work IDs provide chronological ordering. Review is required by
-default: prefer an independent AI/tool reviewer (ideally different model,
-runtime, or context) and use a fresh-context subagent as the minimum fallback.
-Implementation-agent self-review does not satisfy readiness. If the harness has a
-fresh-context review mechanism, dispatch `hk review prompt` to it before handoff.
-Examples include Pi `subagent`, Claude Code `Agent`/legacy `Task`, and Codex via
-the Shell tool running `codex review --uncommitted`. Re-run `hk status` after
-review because review tools may create agent-local state. HK records path/content
-facts for reviewed changed paths, so later small fixes can be covered by targeted
-follow-up review records using `hk review add --path PATH ...` instead of always
-rerunning a full review. Generated `.ai/hk/<active-work-id>/` export refreshes are
-lifecycle-neutral for validation/review/sync freshness and readiness changed-path
-checks; validate their integrity with
-`hk export --format handoff-dir --check` / `mise run sync-check`.
-If review is impossible,
-record an explicit dangerous review skip with a label, reason, and mitigation.
-Use `hk brief --json` for read-only workspace cards: it reports repo/scope,
-branch/SHA/dirty state, Git worktree identity, active work, and handoff export
-status without writing files. Use `hk handoff --json` for a live deterministic
-handoff preview, and use `hk export --format handoff-dir --check --json` for a
-focused machine-readable export freshness check; JSON check failures still exit
-nonzero but return structured missing/stale/invalid/no-active-work states. Use
-`hk status` for the agent next-action loop, `hk summary` for a concise
-human-readable readiness digest, and `hk handoff` for the longer transfer
-artifact. Explicit untracked local-only state can
-be handled with recorded one-shot sync exclusions rather than silent ignores;
-`hk sync --exclude` is not limited to a hardcoded `.pi`/`.claude` allowlist, but
-it still rejects root, pathspec, tracked, staged, or missing paths. Validation
-capture can bound process runtime and transcript size with `--timeout-seconds`
-and `--max-log-bytes`; timeout/truncation are recorded in evidence, and non-raw
-live output uses the same built-in secret redaction guarantees as transcripts.
-Today, scaffolded plan artifacts represent that lifecycle as Markdown/YAML files.
-The current direction is to make the ledger canonical and export durable handoff
-views only when needed.
+`harness-scaffold` creates a new repo shape with the expected agent-facing task
+contract already present. It is a generator, not the normal way to use `hk` in an
+existing repository.
 
-## Task Contract
+Only [mise](https://mise.jdx.dev/) needs to be on your `PATH`; it installs the
+Python/uv tooling declared by the checkout and stack-specific tools after init.
 
-Every project initialized from harness-scaffold exposes these commands:
+```bash
+# macOS / Linux
+curl https://mise.run | sh
 
-| Command | Purpose |
-|---------|---------|
-| `mise run init` | Initialize scaffold into a project |
-| `mise run setup` | Install dependencies |
-| `mise run fmt` | Auto-format code |
-| `mise run lint` | Lint checks (non-modifying) |
-| `mise run typecheck` | Static type analysis |
-| `mise run test` | Unit tests |
-| `mise run build` | Build artifacts |
-| `mise run check` | Fast quality gate |
-| `mise run plan-check` | Validate the active plan and metadata |
-| `mise run spec-check` | Validate decision promotion and reflected docs |
-| `mise run evidence-check` | Validate declared evidence artifacts |
-| `mise run review-check` | Validate external review artifacts |
-| `mise run sync-check` | Aggregate handoff readiness checks |
-| `mise run slice-plan` | Render the planner prompt for the active slice |
-| `mise run slice-implement` | Render the implementer prompt for the active slice |
-| `mise run slice-review` | Render the reviewer prompt for the active slice |
-| `mise run slice-status` | Show active slice state; use `mise -q run slice-status -- --json` for automation |
-| `mise run dev` | Local development |
-| `mise run ci` | CI entrypoint (= check) |
-| `mise run docs` | Documentation server |
-| `mise run plan -- <slug>` | Create a plan directory on a feature branch |
-| `mise run verify` | Heavy validation |
+# or macOS with Homebrew
+brew install mise
+```
 
-## Supported Stacks
+Then initialize an empty project directory:
 
-| Stack | fmt | lint | typecheck | test |
-|-------|-----|------|-----------|------|
-| Python | ruff format | ruff check | ty | pytest |
-| Go | gofumpt | golangci-lint | go vet | go test |
-| Rust | cargo fmt | cargo clippy | cargo check | cargo test |
-| Web (TS) | prettier | eslint | tsc --noEmit | vitest |
+```bash
+mkdir my-project
+cd my-project
+harness-scaffold init
+```
 
-> Web is planned. Python, Go, and Rust ship with templates and task wiring.
+For non-interactive setup:
 
-## Repo Shapes
+```bash
+harness-scaffold init \
+  --non-interactive \
+  --name my-project \
+  --shape single \
+  --stack python
+```
 
-- **Single-project**: One language, conventional layout (`src/`, `tests/` or `cmd/`, `internal/`)
-- **Apps workspace**: Multiple apps under `apps/`, shared packages under `packages/`, with an explicit `workspace.toml` module registry
+A source checkout also exposes `mise run init` as a development wrapper around
+that same scaffold init path.
 
-## Design Principles
+After init, use the generated repo's stable task contract:
 
-1. **Stable task contract** — same commands regardless of stack or shape
-2. **Thin orchestration** — mise delegates to language-native tools
-3. **Fast `check`, explicit `verify`** — `check` is deterministic and fast; `verify` is heavier
-4. **Deterministic CI** — GitHub Actions calls `mise run ci` and nothing else
-5. **Deterministic slice handoff** — `sync-check` keeps plan/spec/evidence/review in lockstep
-6. **CI parity** — pre-commit hooks call the same tasks as CI
+```bash
+mise run setup
+mise run check
+mise run dev
+```
+
+See [Getting Started](docs/getting-started.md), [Task Contract](docs/task-contract.md),
+[Repo Shapes](docs/shapes.md), and [Stacks](docs/stacks/index.md) for the full
+scaffold reference.
+
+### Scaffolded task contract, stacks, and shapes
+
+Every project initialized from `harness-scaffold` gets the same task names, with
+thin `mise` orchestration delegating to language-native tools:
+
+| Workflow | Tasks |
+|---|---|
+| Setup and local loop | `setup`, `fmt`, `lint`, `typecheck`, `test`, `build`, `check`, `dev` |
+| CI and heavier validation | `ci` (= `check`), `verify` |
+| Slice handoff compatibility | `plan`, `plan-check`, `spec-check`, `evidence-check`, `review-check`, `sync-check`, `slice-plan`, `slice-implement`, `slice-review`, `slice-status` |
+
+Supported scaffold stacks:
+
+| Stack | Format | Lint | Typecheck | Test | Status |
+|---|---|---|---|---|---|
+| Python | `ruff format` | `ruff check` | `ty` | `pytest` | Available |
+| Go | `gofumpt` | `golangci-lint` | `go vet` | `go test` | Available |
+| Rust | `cargo fmt` | `cargo clippy` | `cargo check` | `cargo test` | Available |
+| Web / TypeScript | `prettier` | `eslint` | `tsc --noEmit` | `vitest` | Planned |
+
+Repo shapes are **single-project** and **apps workspace**. The full reference is
+in [Task Contract](docs/task-contract.md), [Stacks](docs/stacks/index.md), and
+[Repo Shapes](docs/shapes.md).
+
+## Develop this checkout
+
+This repository dogfoods `hk`, but normal development still starts with the
+repo's own commands:
+
+```bash
+mise install
+mise run setup
+uv run pytest -m "not slow"   # focused iteration
+mise run check                 # final fast gate
+```
+
+For meaningful Harness Toolkit changes, record the work with `hk`, validate with
+repo-owned commands, get an external-enough review, then export a compact handoff
+package when useful:
+
+```bash
+hk start demo-work --plan "Adopted implementation intent" --target .
+hk validate --why "Fast gate passes" --target . -- mise run check
+hk review prompt --target .
+hk status --target .
+hk ready --target .
+```
+
+Use `scripts/hk-dev ...` when you need to exercise this checkout's development
+version of `hk` before the installed tool is updated.
+
+## Design principles
+
+1. **Two apps, one package** — `hk` serves existing repositories;
+   `harness-scaffold` creates new ones. Do not make readers infer which surface
+   they need.
+2. **Stable command surface** — agents and humans can rely on the same names
+   across stacks and repo shapes.
+3. **Thin orchestration** — `mise` task wrappers delegate to native tools instead
+   of hiding the shell.
+4. **Fast local gate, explicit heavy gate** — `mise run check` is the default;
+   `mise run verify` is reserved for slower validation.
+5. **Readiness over ceremony** — `hk` records enough plan, evidence, review, and
+   sync state to make handoff honest without making existing repos adopt scaffold
+   files.
+6. **Explicit exceptions** — skipped validation, review, or sync must be recorded
+   with scary, intentional `dangerously-skip` commands and mitigations.
+
+## More docs
+
+- [Harness Kit Design](docs/harness-kit-lifecycle-design.md) — lifecycle and ledger model
+- [Agent Adoption](docs/agent-adoption.md) — small `AGENTS.md` directive for agents
+- [Getting Started](docs/getting-started.md) — scaffold walkthrough
+- [Task Contract](docs/task-contract.md) — full generated task reference
+- [Development Guide](docs/development.md) — working on this checkout
+- [Release and Installation](docs/release.md) — install, upgrade, and release policy

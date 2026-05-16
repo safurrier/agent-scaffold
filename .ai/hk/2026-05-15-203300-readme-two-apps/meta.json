@@ -1,0 +1,35 @@
+{
+  "attached_artifacts": [],
+  "branch": "readme-improver-20260515195109-harness-toolkit",
+  "diff_hash": "sha256:891d69bcaa6137f0d6682d9b7c4df96d3bdd8384a23c6563cb0b2c8f882fcd8f",
+  "dirty": true,
+  "event_count": 9,
+  "event_seq": 10,
+  "evidence_count": 4,
+  "evidence_ids": [
+    "ev_20260515_203301_155195",
+    "ev_20260515_203314_369649",
+    "ev_20260515_203515_360954",
+    "ev_20260515_204036_046774"
+  ],
+  "file_hashes": {
+    "README.md": "sha256:8d8a58eb21bcc8e4a76905d543420e366fb5b15dab9a4fd65f34e33a61d71042",
+    "artifacts/README.md": "sha256:c4bad9d4652f296a7e4dcf175fe1dd0c66a99ec0b74941cd45c499e84792436c"
+  },
+  "files": [
+    "README.md",
+    "meta.json",
+    "artifacts/README.md"
+  ],
+  "generated_at": "2026-05-16T03:48:49.324630+00:00",
+  "generated_by": "hk export --format handoff-dir",
+  "git_sha": "1bded6a",
+  "output_path": ".ai/hk/2026-05-15-203300-readme-two-apps",
+  "ready": true,
+  "ready_status": "ready",
+  "schema_version": 1,
+  "sync_status": "synced",
+  "target_root": ".",
+  "target_scope": ".",
+  "work_id": "2026-05-15-203300-readme-two-apps"
+}
