@@ -28,7 +28,7 @@ def _run_scaffold(*args: str) -> subprocess.CompletedProcess[str]:
 def test_version_flag() -> None:
     result = _run_scaffold("--version")
     assert result.returncode == 0
-    assert "0.1.0" in result.stdout
+    assert "0.2.0" in result.stdout
 
 
 # ── --help ────────────────────────────────────────────────────────────────────
