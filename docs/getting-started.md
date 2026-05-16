@@ -48,7 +48,7 @@ uv tool install git+https://github.com/safurrier/harness-toolkit.git
 For a pinned release tag:
 
 ```bash
-uv tool install git+https://github.com/safurrier/harness-toolkit.git@v0.1.0
+uv tool install git+https://github.com/safurrier/harness-toolkit.git@v0.2.0
 ```
 
 For local development from a checkout:

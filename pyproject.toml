@@ -1,6 +1,6 @@
 [project]
 name = "harness-toolkit"
-version = "0.1.0"
+version = "0.2.0"
 description = "Harness Engineering Toolkit for agent-ready repositories"
 readme = "README.md"
 authors = [{ name = "Alex Furrier" }]
