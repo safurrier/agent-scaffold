@@ -55,6 +55,45 @@ def review_paths_text(review: lifecycle_events.ReviewEvent) -> str:
     return f" paths: {preview}{suffix}."
 
 
+def invariant_supersession_lines(events: list[EventRecord]) -> list[str]:
+    supersessions = lifecycle_events.invariant_supersession_events(events)
+    if not supersessions:
+        return []
+    lines = [
+        "",
+        "## ⚠️ Invariant Supersessions",
+        "",
+        "This work intentionally supersedes previously documented system invariants.",
+    ]
+    for item in supersessions:
+        lines.extend(
+            [
+                "",
+                f"### `{item.invariant}`",
+                "",
+                f"**Previous invariant:** {item.previous}",
+                f"**Reason:** {item.reason}",
+            ]
+        )
+        if item.replacement:
+            lines.append(f"**Replacement invariant:** {item.replacement}")
+        if item.removal_rationale:
+            lines.append(f"**Removal rationale:** {item.removal_rationale}")
+        if item.docs:
+            lines.extend(["", "**Docs/system map to update:**"])
+            lines.extend(f"- `{doc}`" for doc in item.docs)
+        lines.extend(
+            [
+                "",
+                "**Commit message trailer:**",
+                f"`Supersedes-Invariant: {item.invariant}`",
+                "",
+                "**Reviewer attention:** confirm this supersession is intentional and the replacement behavior, docs, tests, and system map are updated.",
+            ]
+        )
+    return lines
+
+
 def render_handoff_pr_markdown(
     *,
     work_id: str,
@@ -79,6 +118,7 @@ def render_handoff_pr_markdown(
         [f"- {item}" for item in plan_items]
         or ["- See commit history for implementation details."]
     )
+    lines.extend(invariant_supersession_lines(events))
     if decision_items:
         lines.extend(["", "## Decisions", *[f"- {item}" for item in decision_items]])
     if learning_items or gap_items:
@@ -139,6 +179,7 @@ def render_summary_markdown(
     plan_items = notes_by_kind(events, "plan")
     if plan_items:
         lines.extend(["", "## Plan", *[f"- {item}" for item in plan_items]])
+    lines.extend(invariant_supersession_lines(events))
     lines.extend(["", "## Validation"])
     if evidence:
         for record in evidence:
@@ -207,9 +248,14 @@ def render_handoff_markdown(
         f"- Git SHA: `{git_sha}`",
         f"- Dirty: `{str(dirty).lower()}`",
         f"- Sync status: `{sync_status}`",
-        "",
-        "## Context",
     ]
+    lines.extend(invariant_supersession_lines(events))
+    lines.extend(
+        [
+            "",
+            "## Context",
+        ]
+    )
     lines.extend(
         [f"- {item}" for item in notes_by_kinds(events, ("context", "background"))]
         or ["- None recorded."]

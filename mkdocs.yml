@@ -37,6 +37,8 @@ nav:
   - Portable Workflow: portable-workflow.md
   - Profile Reviews: profile-reviews.md
   - Profile Authoring: profile-authoring.md
+  - System Map Mental Model: system-map-mental-model.md
+  - System Map Authoring: system-map-authoring.md
   - Harness Kit Design: harness-kit-lifecycle-design.md
   - Scripts Contract Prototype: script-contract-prototype.md
   - Release and Installation: release.md

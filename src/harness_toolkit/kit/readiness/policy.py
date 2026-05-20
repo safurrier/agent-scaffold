@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 from typing import cast
 
 from harness_toolkit.kit.ledger import lifecycle_events
@@ -157,6 +158,23 @@ def _paths_text(paths: tuple[str, ...]) -> str:
     return f"matched {preview}{suffix}"
 
 
+def _normalize_repo_path(path: str) -> str:
+    clean = path.strip().replace("\\", "/")
+    while clean.startswith("./"):
+        clean = clean[2:]
+    if Path(clean).is_absolute():
+        return clean.rstrip("/")
+    return clean.strip("/")
+
+
+def _repo_local_supersession_docs(docs: tuple[str, ...]) -> set[str]:
+    return {
+        normalized
+        for doc in docs
+        if not Path(normalized := _normalize_repo_path(doc)).is_absolute()
+    }
+
+
 def _changed_paths_text(paths: tuple[str, ...]) -> str:
     if not paths:
         return ""
@@ -244,6 +262,24 @@ def ready_for_events(
         has_decision and has_spec_reflection,
         "decision and spec reflection recorded",
     )
+    for supersession in lifecycle_events.invariant_supersession_events(events):
+        docs = _repo_local_supersession_docs(supersession.docs)
+        changed = {_normalize_repo_path(path) for path in changed_paths}
+        missing_docs = tuple(sorted(doc for doc in docs if doc not in changed))
+        if missing_docs:
+            add_check(
+                f"invariant-supersession:{supersession.invariant}",
+                False,
+                "invariant supersession recorded but listed docs/system map are not changed in current work: "
+                + ", ".join(missing_docs),
+            )
+        else:
+            add_check(
+                f"invariant-supersession:{supersession.invariant}",
+                True,
+                "invariant supersession paper trail recorded; commit message must include "
+                f"`Supersedes-Invariant: {supersession.invariant}` and PR description/handoff must call it out",
+            )
     validation_skips = _fresh_for_diff(
         dangerous_skip_events(events, "validation"),
         current_diff_hash,

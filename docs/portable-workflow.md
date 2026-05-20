@@ -198,6 +198,9 @@ profiles_dir = "profiles"
 name = "foreman"
 path = "~/git_repositories/foreman"
 profile = "foreman"
+# Optional personal/user-level system map for shared repos or dots-managed overlays.
+# Paths inside the map remain repo-root-relative.
+system_map = "system-maps/foreman.toml"
 
 [profiles.foreman]
 title = "Foreman"

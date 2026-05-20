@@ -1,0 +1,50 @@
+{
+  "attached_artifacts": [],
+  "branch": "feat/system-map-invariant-supersession",
+  "diff_hash": "sha256:d32a816e3752a4e62048510386accd911c7b3fd2180f729f88a3f9aa7ac07d93",
+  "dirty": false,
+  "event_count": 36,
+  "event_seq": 44,
+  "evidence_count": 19,
+  "evidence_ids": [
+    "ev_20260520_095028_680279",
+    "ev_20260520_100015_330696",
+    "ev_20260520_101621_361948",
+    "ev_20260520_102346_893621",
+    "ev_20260520_114517_334424",
+    "ev_20260520_115211_939968",
+    "ev_20260520_115238_491391",
+    "ev_20260520_121623_090851",
+    "ev_20260520_122323_623937",
+    "ev_20260520_122349_318871",
+    "ev_20260520_122938_529076",
+    "ev_20260520_124950_309564",
+    "ev_20260520_125620_408686",
+    "ev_20260520_125646_646455",
+    "ev_20260520_130234_805121",
+    "ev_20260520_131910_043158",
+    "ev_20260520_132537_012632",
+    "ev_20260520_133138_984463",
+    "ev_20260520_133208_164519"
+  ],
+  "file_hashes": {
+    "README.md": "sha256:93a64c2e8e0a085905a2f91ce20a9bcc02d1c36afa537401cfbfc5b60feba283",
+    "artifacts/README.md": "sha256:c4bad9d4652f296a7e4dcf175fe1dd0c66a99ec0b74941cd45c499e84792436c"
+  },
+  "files": [
+    "README.md",
+    "meta.json",
+    "artifacts/README.md"
+  ],
+  "generated_at": "2026-05-20T20:32:20.077766+00:00",
+  "generated_by": "hk export --format handoff-dir",
+  "git_sha": "a28d1a5",
+  "output_path": ".ai/hk/2026-05-20-094053-system-map-invariant-supersession",
+  "ready": true,
+  "ready_status": "ready",
+  "schema_version": 1,
+  "sync_status": "synced",
+  "target_root": ".",
+  "target_scope": ".",
+  "work_id": "2026-05-20-094053-system-map-invariant-supersession"
+}

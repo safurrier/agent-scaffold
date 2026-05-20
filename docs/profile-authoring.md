@@ -10,6 +10,8 @@ index:
     keywords: [profiles, checks, iteration, closeout, validation]
   - id: required-vs-suggested
     keywords: [required_when, applies_when, readiness]
+  - id: system-map-invariant-reviews
+    keywords: [system-map, invariants, reviews, required_when]
   - id: reviews
     keywords: [reviews, targeted, advisory, follow-up]
   - id: examples
@@ -97,6 +99,32 @@ run_from = "repo-root"
 applies_when = [".ai/hk/**", ".mise/tasks/sync-check", ".github/**"]
 required_when = [".ai/hk/**", ".mise/tasks/sync-check", ".github/**"]
 ```
+
+## System-map invariant reviews
+
+When a repo has `.harness/system.toml`, use profiles to decide when invariant
+context becomes blocking evidence. System maps explain components and invariants;
+profiles own required checks and reviews.
+
+For high-risk invariant-bearing paths, add a required review that checks whether
+surfaced invariants were preserved or explicitly superseded:
+
+```toml
+[[reviews]]
+name = "invariant-conflict-review"
+purpose = "Review changes touching invariant-bearing components for preserved or explicitly superseded invariants."
+backend = "codex"
+applies_when = ["src/app.py"]
+required_when = ["src/app.py"]
+
+[reviews.instructions]
+type = "inline"
+text = "Review whether changed files preserve surfaced .harness/system.toml invariants. If an invariant is superseded, verify an explicit `hk decide --kind invariant-supersession` record, commit/PR callout, and system map/docs update."
+```
+
+Do not duplicate invariant statements into the profile. Let `hk checks --changed`
+surface the invariant from the system map, and let the profile require the review
+or validation evidence.
 
 ## Review policies
 

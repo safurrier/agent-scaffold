@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import shlex
 
+from harness_toolkit.kit.ledger import lifecycle_events
 from harness_toolkit.kit.ledger.models import EventRecord, EvidenceRecord
 from harness_toolkit.kit.profiles.models import ReviewDefinition
 from harness_toolkit.kit.readiness.policy import notes_by_kind, notes_by_kinds
@@ -47,6 +48,33 @@ def render_review_prompt(
     )
     for item in notes_by_kind(events, "spec-impact"):
         lines.append(f"  - Spec: {item}")
+    supersessions = lifecycle_events.invariant_supersession_events(events)
+    if supersessions:
+        lines.extend(
+            [
+                "",
+                "Invariant supersessions requiring explicit reviewer attention:",
+            ]
+        )
+        for item in supersessions:
+            lines.extend(
+                [
+                    f"- Invariant: {item.invariant}",
+                    f"  Previous: {item.previous}",
+                    f"  Reason: {item.reason}",
+                ]
+            )
+            if item.replacement:
+                lines.append(f"  Replacement: {item.replacement}")
+            if item.removal_rationale:
+                lines.append(f"  Removal rationale: {item.removal_rationale}")
+            if item.docs:
+                lines.append(
+                    f"  Docs/system map claimed updated: {', '.join(item.docs)}"
+                )
+            lines.append(
+                f"  Required commit trailer: Supersedes-Invariant: {item.invariant}"
+            )
     lines.extend(["", "Validation evidence:"])
     if evidence:
         for record in evidence:
@@ -85,6 +113,7 @@ def render_review_prompt(
             "Review task:",
             "1. Inspect the changed files and relevant tests.",
             "2. Check correctness, missed edge cases, docs/spec impact, validation adequacy, and HK handoff quality.",
+            "   If invariant supersessions are listed, verify they are intentional, loudly documented, reflected in system map/docs/tests, and called out for commit/PR reviewers.",
             "3. Return blocking findings, non-blocking findings, and final disposition.",
             f"4. If accepted, the implementation agent must record you with `{review_add_hint}`.",
             "",

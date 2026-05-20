@@ -85,6 +85,23 @@ def _select_longest_match(matches: list[_TargetMatch]) -> _TargetMatch:
     )
 
 
+def resolve_target_system_map(
+    target: Path, *, config: HarnessConfig | None
+) -> str | None:
+    """Resolve a target-level system map without requiring profile validity."""
+
+    if config is None:
+        return None
+    resolved_target = target.resolve(strict=False)
+    direct_matches = _direct_target_matches(resolved_target, config)
+    if direct_matches:
+        return _select_longest_match(direct_matches).binding.system_map
+    worktree_matches = _worktree_target_matches(resolved_target, config)
+    if worktree_matches:
+        return _select_longest_match(worktree_matches).binding.system_map
+    return None
+
+
 def resolve_profile(
     target: Path,
     *,
@@ -104,6 +121,8 @@ def resolve_profile(
             reason="no harness config target matched; using generic fallback",
             target=str(resolved_target),
             match_kind="generic-fallback",
+            system_map=None,
+            system_map_source=None,
         )
 
     direct_matches = _direct_target_matches(resolved_target, config)
@@ -117,6 +136,8 @@ def resolve_profile(
         worktree_matched_target = None
         worktree_projected_target = None
         worktree_git_common_dir = None
+        system_map = selected.binding.system_map
+        system_map_source = "target-config" if system_map else None
         match_kind = "direct"
     else:
         worktree_matches = _worktree_target_matches(resolved_target, config)
@@ -134,6 +155,8 @@ def resolve_profile(
             worktree_git_common_dir = (
                 str(selected.git_common_dir) if selected.git_common_dir else None
             )
+            system_map = selected.binding.system_map
+            system_map_source = "target-config" if system_map else None
             match_kind = "worktree"
         else:
             profile = config.default_profile
@@ -144,6 +167,8 @@ def resolve_profile(
             worktree_matched_target = None
             worktree_projected_target = None
             worktree_git_common_dir = None
+            system_map = None
+            system_map_source = None
             match_kind = "config-default"
     if profile not in resolved_catalog:
         valid = ", ".join(resolved_catalog)
@@ -161,4 +186,6 @@ def resolve_profile(
         worktree_matched_target=worktree_matched_target,
         worktree_projected_target=worktree_projected_target,
         worktree_git_common_dir=worktree_git_common_dir,
+        system_map=system_map,
+        system_map_source=system_map_source,
     )

@@ -16,6 +16,7 @@ from harness_toolkit.kit.app.lifecycle import (
     DangerousSkipRequest,
     ExportRequest,
     HandoffRequest,
+    InvariantSupersessionRequest,
     LifecycleApp,
     NoteRequest,
     ReviewRequest,
@@ -718,6 +719,57 @@ def checks(
                     print(f"  record: {item.record_command}")
         else:
             print("- none")
+        if view.system_context is not None:
+            print()
+            print("System invariants for changed paths:")
+            print(
+                f"Source: {view.system_context.source_kind} {view.system_context.source}"
+            )
+            if view.system_context.overrides:
+                print(f"Overrides: {view.system_context.overrides}")
+            print(
+                "Policy: must preserve surfaced invariants unless the user explicitly supersedes them."
+            )
+            if view.system_context.matched_components:
+                for component in view.system_context.matched_components:
+                    labels = ", ".join(
+                        dict.fromkeys(
+                            [
+                                *(
+                                    label.name
+                                    for label in component.relevant_check_labels
+                                ),
+                                *(
+                                    label.name
+                                    for invariant in component.invariants
+                                    for label in invariant.relevant_check_labels
+                                ),
+                            ]
+                        )
+                    )
+                    print(
+                        f"- {component.id} matched {', '.join(component.matched_paths)}."
+                    )
+                    for invariant in component.invariants:
+                        print(
+                            f"  Must preserve {invariant.qualified_id}: {invariant.statement}"
+                        )
+                    if labels:
+                        print(f"  Relevant check labels: {labels}")
+                    if component.read_before_editing:
+                        print(
+                            f"  Read before editing: {', '.join(component.read_before_editing)}"
+                        )
+                print(
+                    "If the requested change contradicts an invariant, stop and resolve the conflict: "
+                    "confirm supersession with the user, record it with `hk decide --kind invariant-supersession ...`, "
+                    "and update the system map/docs or run the required invariant review."
+                )
+            else:
+                print("- none")
+            if view.system_context.warnings:
+                for warning in view.system_context.warnings:
+                    print(f"  {warning.severity}: {warning.message}")
     print()
     for check in view.checks:
         print(f"{check.name}: {check.purpose}")
@@ -1039,7 +1091,7 @@ def note(
     help_epilogue=examples(
         "hk decide 'Kept API behavior unchanged' --spec-impact none",
         "hk decide 'Updated CLI' --spec-impact updated --spec-ref SPEC.md",
-        "hk decide 'Internal refactor only' --spec-impact not-needed",
+        "hk decide 'Supersede message-writes.mentions-safe-by-default' --kind invariant-supersession --invariant message-writes.mentions-safe-by-default --previous 'Old invariant' --replacement 'New invariant' --reason 'Why' --doc .harness/system.toml --spec-impact updated",
     ),
 )
 def decide(
@@ -1048,6 +1100,13 @@ def decide(
     spec_impact: Literal["none", "updated", "not-needed"] | None = None,
     spec_ref: tuple[Path, ...] = (),
     no_spec_impact: bool = False,
+    kind: Literal["normal", "invariant-supersession"] = "normal",
+    invariant: str = "",
+    previous: str = "",
+    replacement: str = "",
+    removal_rationale: str = "",
+    reason: str = "",
+    doc: tuple[Path, ...] = (),
     target: Path = Path("."),
     no_local_files: bool = False,
     json: bool = False,
@@ -1060,6 +1119,27 @@ def decide(
             raise LocalWorkflowError(
                 "Use either --spec-impact or --no-spec-impact, not both."
             )
+        if kind == "invariant-supersession":
+            if not invariant.strip():
+                raise LocalWorkflowError(
+                    "invariant supersession requires --invariant INVARIANT_ID"
+                )
+            if not previous.strip():
+                raise LocalWorkflowError(
+                    "invariant supersession requires --previous TEXT"
+                )
+            if not reason.strip():
+                raise LocalWorkflowError(
+                    "invariant supersession requires --reason TEXT"
+                )
+            if bool(replacement.strip()) == bool(removal_rationale.strip()):
+                raise LocalWorkflowError(
+                    "invariant supersession requires exactly one of --replacement or --removal-rationale"
+                )
+            if not doc:
+                raise LocalWorkflowError(
+                    "invariant supersession requires at least one --doc PATH"
+                )
         if spec_impact is None and not no_spec_impact:
             raise LocalWorkflowError(
                 "decide requires --spec-impact none|updated|not-needed or --no-spec-impact"
@@ -1072,6 +1152,20 @@ def decide(
                 text=text,
             )
         )
+        supersession = None
+        if kind == "invariant-supersession":
+            supersession = lifecycle_app.invariant_supersession(
+                InvariantSupersessionRequest(
+                    target=target,
+                    no_local_files=no_local_files,
+                    invariant=invariant.strip(),
+                    previous=previous.strip(),
+                    reason=reason.strip(),
+                    replacement=replacement.strip(),
+                    removal_rationale=removal_rationale.strip(),
+                    docs=tuple(str(path) for path in doc),
+                )
+            )
         refs = [str(path) for path in spec_ref]
         if no_spec_impact:
             impact_mode = "none"
@@ -1098,10 +1192,16 @@ def decide(
         print_error(str(e))
         raise SystemExit(1) from e
     if json:
-        print(json_dump_dataclass(result))
+        payload = result.__dict__.copy()
+        if supersession is not None:
+            payload["invariant_supersession"] = supersession.__dict__
+        print(json_dump_object(payload))
         return
     print(f"decision: {result.text}")
     print(f"spec-impact: {impact_text}")
+    if supersession is not None:
+        print(f"invariant-supersession: {supersession.invariant}")
+        print(f"commit-trailer: {supersession.commit_trailer}")
 
 
 @app.command(
@@ -1851,6 +1951,21 @@ def status(
             print(f"- {check.id}: {check.status} — {check.message}")
     else:
         print("- none")
+    if result.invariant_supersessions:
+        print("⚠️ invariant supersessions:")
+        for item in result.invariant_supersessions:
+            invariant_id = item.get("invariant", "")
+            print(f"- {invariant_id}")
+            if item.get("reason"):
+                print(f"  reason: {item['reason']}")
+            if item.get("replacement"):
+                print(f"  replacement: {item['replacement']}")
+            if item.get("removal_rationale"):
+                print(f"  removal rationale: {item['removal_rationale']}")
+            docs = item.get("docs")
+            if isinstance(docs, list) and docs:
+                print(f"  docs/system map: {', '.join(str(doc) for doc in docs)}")
+            print(f"  commit trailer: Supersedes-Invariant: {invariant_id}")
     if result.suggested_checks or result.suggested_reviews:
         print("optional profile suggestions:")
         if result.suggested_checks:
