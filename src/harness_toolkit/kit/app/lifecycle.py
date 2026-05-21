@@ -36,6 +36,16 @@ class NoteRequest(TargetRequest):
 
 
 @dataclass(frozen=True)
+class InvariantSupersessionRequest(TargetRequest):
+    invariant: str = ""
+    previous: str = ""
+    reason: str = ""
+    replacement: str = ""
+    removal_rationale: str = ""
+    docs: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class SyncRequest(TargetRequest):
     check: bool = False
     exclude_paths: tuple[Path, ...] = ()
@@ -188,6 +198,20 @@ class LifecycleApp:
             request.target,
             kind=request.kind,
             text=request.text,
+            no_local_files=request.no_local_files,
+        )
+
+    def invariant_supersession(
+        self, request: InvariantSupersessionRequest
+    ) -> local.InvariantSupersessionResult:
+        return local.add_invariant_supersession(
+            request.target,
+            invariant=request.invariant,
+            previous=request.previous,
+            reason=request.reason,
+            replacement=request.replacement,
+            removal_rationale=request.removal_rationale,
+            docs=request.docs,
             no_local_files=request.no_local_files,
         )
 

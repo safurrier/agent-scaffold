@@ -14,6 +14,12 @@ from harness_toolkit.kit.profiles.models import (
     ProfileSuggestion,
     WorkflowProfile,
 )
+from harness_toolkit.kit.system_map import (
+    LabelResolution,
+    SystemContextView,
+    load_system_map,
+    system_context_for_changed_paths,
+)
 
 
 def _normalize_changed_path(path: str) -> str:
@@ -231,11 +237,75 @@ def checks_view(
     catalog: dict[str, LoadedProfile] | None = None,
     changed_paths: tuple[str, ...] = (),
     enforce_required: bool = True,
+    system_map_path: str | None = None,
 ) -> ProfileCheckView:
     profile = get_profile(profile_name, catalog)
     normalized_changed_paths = tuple(
         dict.fromkeys(_normalize_changed_path(path) for path in changed_paths if path)
     )
+    suggested_checks = _check_suggestions(
+        profile,
+        normalized_changed_paths,
+        enforce_required=enforce_required,
+        target=target,
+        repo_root=repo_root,
+    )
+    suggested_reviews = _review_suggestions(
+        profile,
+        normalized_changed_paths,
+        enforce_required=enforce_required,
+        target=target,
+        repo_root=repo_root,
+    )
+    system_context = None
+    if normalized_changed_paths:
+        system_map_result = load_system_map(repo_root, configured_path=system_map_path)
+        if system_map_result is not None:
+            try:
+                source = str(
+                    Path(system_map_result.path)
+                    .resolve()
+                    .relative_to(repo_root.resolve())
+                )
+            except ValueError:
+                source = system_map_result.path
+            if system_map_result.map is not None and system_map_result.ok:
+                required_labels = {
+                    item.name for item in suggested_checks if item.required
+                }
+                matched_context = system_context_for_changed_paths(
+                    system_map_result.map,
+                    source=source,
+                    changed_paths=normalized_changed_paths,
+                    target=target,
+                    repo_root=repo_root,
+                    profile_name=profile.name,
+                    known_check_labels={check.name for check in profile.checks},
+                    required_check_labels=required_labels,
+                )
+                system_context = SystemContextView(
+                    advisory=matched_context.advisory,
+                    source=matched_context.source,
+                    label_resolution=matched_context.label_resolution,
+                    matched_components=matched_context.matched_components,
+                    source_kind=system_map_result.source,
+                    path_base=system_map_result.path_base,
+                    overrides=system_map_result.overrides,
+                    invariant_policy=matched_context.invariant_policy,
+                    conflict_protocol=matched_context.conflict_protocol,
+                    warnings=matched_context.warnings,
+                )
+            elif system_map_result.findings:
+                system_context = SystemContextView(
+                    advisory=True,
+                    source=source,
+                    label_resolution=LabelResolution(status="skipped"),
+                    matched_components=(),
+                    source_kind=system_map_result.source,
+                    path_base=system_map_result.path_base,
+                    overrides=system_map_result.overrides,
+                    warnings=system_map_result.findings,
+                )
     return ProfileCheckView(
         profile=profile.name,
         target=str(target),
@@ -251,18 +321,7 @@ def checks_view(
             "`hk validate --check NAME` or `hk review add --review NAME` form."
         ),
         changed_paths=normalized_changed_paths,
-        suggested_checks=_check_suggestions(
-            profile,
-            normalized_changed_paths,
-            enforce_required=enforce_required,
-            target=target,
-            repo_root=repo_root,
-        ),
-        suggested_reviews=_review_suggestions(
-            profile,
-            normalized_changed_paths,
-            enforce_required=enforce_required,
-            target=target,
-            repo_root=repo_root,
-        ),
+        suggested_checks=suggested_checks,
+        suggested_reviews=suggested_reviews,
+        system_context=system_context,
     )

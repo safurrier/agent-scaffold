@@ -69,6 +69,26 @@ class DangerousSkipEvent:
 
 
 @dataclass(frozen=True)
+class InvariantSupersessionEvent:
+    invariant: str
+    previous: str
+    reason: str
+    replacement: str = ""
+    removal_rationale: str = ""
+    docs: tuple[str, ...] = ()
+
+    def as_payload(self) -> dict[str, object]:
+        return {
+            "invariant": self.invariant,
+            "previous": self.previous,
+            "reason": self.reason,
+            "replacement": self.replacement,
+            "removal_rationale": self.removal_rationale,
+            "docs": list(self.docs),
+        }
+
+
+@dataclass(frozen=True)
 class ArtifactEvent:
     kind: str
     label: str
@@ -180,6 +200,29 @@ def dangerous_skip_events(events: list[EventRecord]) -> list[DangerousSkipEvent]
 
 def dangerous_skip_payloads(events: list[EventRecord]) -> list[dict[str, object]]:
     return [skip.as_payload() for skip in dangerous_skip_events(events)]
+
+
+def invariant_supersession_events(
+    events: list[EventRecord],
+) -> list[InvariantSupersessionEvent]:
+    return [
+        InvariantSupersessionEvent(
+            invariant=_str(event.data.get("invariant")),
+            previous=_str(event.data.get("previous")),
+            reason=_str(event.data.get("reason")),
+            replacement=_str(event.data.get("replacement")),
+            removal_rationale=_str(event.data.get("removal_rationale")),
+            docs=_str_tuple(event.data.get("docs")),
+        )
+        for event in events
+        if event.type == "invariant_superseded"
+    ]
+
+
+def invariant_supersession_payloads(
+    events: list[EventRecord],
+) -> list[dict[str, object]]:
+    return [item.as_payload() for item in invariant_supersession_events(events)]
 
 
 def artifact_events(events: list[EventRecord]) -> list[ArtifactEvent]:

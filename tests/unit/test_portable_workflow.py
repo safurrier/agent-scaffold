@@ -1428,3 +1428,95 @@ def test_workflow_status_reports_file_target_without_traceback(tmp_path: Path) -
     assert result.returncode == 1
     assert "target is not a directory" in result.stderr
     assert "Traceback" not in result.stderr
+
+
+def test_decide_records_invariant_supersession_payload(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+    monkeypatch.setenv("HARNESS_KIT_CONFIG", str(_write_profile_config(tmp_path, repo)))
+
+    start = _run_workflow(
+        "start",
+        "supersede-invariant",
+        "--plan",
+        "Supersede an invariant.",
+        "--target",
+        str(repo),
+    )
+    assert start.returncode == 0, start.stderr
+
+    result = _run_workflow(
+        "decide",
+        "Supersede safe mention default.",
+        "--target",
+        str(repo),
+        "--spec-impact",
+        "updated",
+        "--kind",
+        "invariant-supersession",
+        "--invariant",
+        "message-writes.mentions-safe-by-default",
+        "--previous",
+        "Messages suppress mentions by default.",
+        "--replacement",
+        "Messages use Discord default parsing unless explicit allow-list flags are passed.",
+        "--reason",
+        "Product request.",
+        "--doc",
+        ".harness/system.toml",
+        "--json",
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    supersession = payload["invariant_supersession"]
+    assert supersession["invariant"] == "message-writes.mentions-safe-by-default"
+    assert (
+        supersession["commit_trailer"]
+        == "Supersedes-Invariant: message-writes.mentions-safe-by-default"
+    )
+
+    status_result = _run_workflow("status", "--target", str(repo), "--json")
+    status_payload = json.loads(status_result.stdout)
+    assert status_payload["invariant_supersessions"][0]["reason"] == "Product request."
+
+
+def test_target_config_system_map_path_resolves_relative_to_config(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+    maps_dir = tmp_path / "system-maps"
+    maps_dir.mkdir()
+    system_map = maps_dir / "repo.toml"
+    system_map.write_text("version = 1\n[system]\nname = 'demo'\nsummary = 'Demo.'\n")
+    config = tmp_path / "harness.toml"
+    config.write_text(
+        f'''
+version = 1
+default_profile = "generic"
+
+[[targets]]
+name = "repo"
+path = "{repo}"
+profile = "generic"
+system_map = "system-maps/repo.toml"
+'''.lstrip()
+    )
+    monkeypatch.setenv("HARNESS_KIT_CONFIG", str(config))
+
+    resolved = _run_workflow("profile", "resolve", "--target", str(repo), "--json")
+    brief_result = _run_workflow("brief", "--target", str(repo), "--json")
+
+    assert resolved.returncode == 0, resolved.stderr
+    resolution = json.loads(resolved.stdout)
+    assert resolution["system_map"] == str(system_map)
+    assert resolution["system_map_source"] == "target-config"
+    assert brief_result.returncode == 0, brief_result.stderr
+    summary = json.loads(brief_result.stdout)["system_map"]
+    assert summary["source"] == "target-config"
+    assert summary["path"] == str(system_map)

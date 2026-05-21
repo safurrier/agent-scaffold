@@ -13,6 +13,7 @@ import harness_toolkit.kit.local as local_module
 from harness_toolkit.kit.local import (
     LocalWorkflowError,
     add_dangerous_skip,
+    add_invariant_supersession,
     add_note,
     add_review,
     artifact_records,
@@ -3248,3 +3249,89 @@ def test_cli_capture_preserves_wrapped_exit_code(tmp_path: Path) -> None:
     assert work_result.returncode == 0, work_result.stderr
     assert result.returncode == 5
     assert "status=fail" in result.stdout
+
+
+def test_invariant_supersession_is_loud_in_status_ready_and_handoff(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repo"
+    _git_init(target)
+    init_state(target)
+    create_work(target, "supersede-invariant")
+    add_note(target, kind="plan", text="Supersede a documented invariant.")
+    add_note(target, kind="decision", text="Supersede old invariant.")
+    add_note(target, kind="spec-impact", text="updated: docs updated")
+
+    external_map = tmp_path / "system-maps" / "repo.toml"
+    add_invariant_supersession(
+        target,
+        invariant="message-writes.mentions-safe-by-default",
+        previous="Messages suppress mention parsing by default.",
+        reason="Product now wants Discord default mention parsing.",
+        replacement="Messages use Discord default parsing unless explicit allow-list flags are passed.",
+        docs=(
+            str(target / ".harness" / "system.toml"),
+            "./README.md",
+            str(external_map),
+        ),
+    )
+
+    initial = ready(target)
+    invariant_check = {check.id: check for check in initial.checks}[
+        "invariant-supersession:message-writes.mentions-safe-by-default"
+    ]
+    assert invariant_check.status == "fail"
+    assert ".harness/system.toml" in invariant_check.message
+
+    (target / ".harness").mkdir()
+    (target / ".harness" / "system.toml").write_text("version = 1\n")
+    (target / "README.md").write_text("# demo\n\nSupersedes invariant.\n")
+
+    current = status(target)
+    assert current.invariant_supersessions
+    assert (
+        current.invariant_supersessions[0]["invariant"]
+        == "message-writes.mentions-safe-by-default"
+    )
+    assert current.invariant_supersessions[0]["docs"] == [
+        ".harness/system.toml",
+        "README.md",
+        str(external_map),
+    ]
+    assert any(
+        "Supersedes-Invariant: message-writes.mentions-safe-by-default" in action
+        for action in current.next_actions
+    )
+
+    after_docs = ready(target)
+    invariant_check = {check.id: check for check in after_docs.checks}[
+        "invariant-supersession:message-writes.mentions-safe-by-default"
+    ]
+    assert invariant_check.status == "pass"
+    assert (
+        "Supersedes-Invariant: message-writes.mentions-safe-by-default"
+        in invariant_check.message
+    )
+
+    capture_command(
+        target,
+        ("python3", "-c", "print('ok')"),
+        kind="test",
+        why="Synthetic validation for invariant supersession handoff readiness.",
+    )
+    add_review(
+        target, backend="subagent", reviewer="fresh-context", summary="No blockers."
+    )
+    sync_checkpoint(target)
+    ready_status = status(target)
+    assert "handoff: hk handoff" in ready_status.next_actions
+    assert any(
+        "Supersedes-Invariant: message-writes.mentions-safe-by-default" in action
+        for action in ready_status.next_actions
+    )
+
+    rendered = handoff(target).content
+    assert "## ⚠️ Invariant Supersessions" in rendered
+    assert "message-writes.mentions-safe-by-default" in rendered
+    assert "Product now wants Discord default mention parsing." in rendered
+    assert "Supersedes-Invariant: message-writes.mentions-safe-by-default" in rendered

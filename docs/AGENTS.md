@@ -26,6 +26,8 @@ Agent routing index for MkDocs-managed documentation. Structure is owned by `mkd
 | `portable-workflow.md` | Attaching the planning workflow to existing repos without committed scaffold files |
 | `profile-reviews.md` | HK profile reviews, suggested/required review policies, and skill-backed review instructions |
 | `profile-authoring.md` | HK profile authoring guidance for focused iteration, final gates, targeted follow-up, and avoiding closeout loops |
+| `system-map-mental-model.md` | Succinct explanation of how system maps complement profiles by adding component and invariant context to changed paths |
+| `system-map-authoring.md` | `.harness/system.toml` authoring guidance for components, must-preserve invariants, and profile check-label integration |
 | `harness-kit-lifecycle-design.md` | lifecycle-first local assistant design backed by ledger state |
 | `script-contract-prototype.md` | Prototype for thin `scripts/*` adapter contract as a future scaffold task surface |
 

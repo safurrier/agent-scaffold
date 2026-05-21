@@ -48,7 +48,10 @@ from harness_toolkit.kit.profiles.parser import (
     normalize_config_path,
     parse_profile_data,
 )
-from harness_toolkit.kit.profiles.resolution import resolve_profile
+from harness_toolkit.kit.profiles.resolution import (
+    resolve_profile,
+    resolve_target_system_map,
+)
 from harness_toolkit.kit.profiles.serialization import (
     checks_to_json,
     profile_to_json,
@@ -102,6 +105,7 @@ __all__ = [
     "profiles_to_json",
     "resolution_to_json",
     "resolve_profile",
+    "resolve_target_system_map",
     "validate_item_name",
     "validate_profile_name",
 ]

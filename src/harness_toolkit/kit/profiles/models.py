@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
+from harness_toolkit.kit.system_map.models import SystemContextView
+
 ProfileName = str
 ProfileSource = Literal["built-in", "file", "user-config"]
 RunFrom = Literal["target", "repo-root", "current-directory", "external-ui"]
@@ -85,6 +87,7 @@ class TargetBinding:
     name: str
     path: str
     profile: ProfileName
+    system_map: str | None = None
 
 
 @dataclass(frozen=True)
@@ -109,6 +112,8 @@ class ProfileResolution:
     worktree_matched_target: str | None = None
     worktree_projected_target: str | None = None
     worktree_git_common_dir: str | None = None
+    system_map: str | None = None
+    system_map_source: str | None = None
 
 
 @dataclass(frozen=True)
@@ -122,6 +127,7 @@ class ProfileCheckView:
     changed_paths: tuple[str, ...] = ()
     suggested_checks: tuple[ProfileSuggestion, ...] = ()
     suggested_reviews: tuple[ProfileSuggestion, ...] = ()
+    system_context: SystemContextView | None = None
 
 
 class ProfileError(ValueError):

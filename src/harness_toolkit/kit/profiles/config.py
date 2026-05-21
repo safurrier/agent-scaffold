@@ -98,12 +98,21 @@ def load_harness_config(path: Path) -> HarnessConfig | None:
         name = _required_str(target, "name", source=f"{path} target #{index}")
         raw_path = _required_str(target, "path", source=f"{path} target #{index}")
         profile = _required_str(target, "profile", source=f"{path} target #{index}")
+        raw_system_map = target.get("system_map")
+        system_map: str | None = None
+        if raw_system_map is not None:
+            if not isinstance(raw_system_map, str) or not raw_system_map.strip():
+                raise ProfileError(
+                    f"harness config {path} target #{index} system_map must be a non-empty string"
+                )
+            system_map = str(normalize_config_path(raw_system_map, base_dir=base_dir))
         validate_profile_name(profile)
         targets.append(
             TargetBinding(
                 name=name,
                 path=str(normalize_config_path(raw_path, base_dir=base_dir)),
                 profile=profile,
+                system_map=system_map,
             )
         )
     return HarnessConfig(

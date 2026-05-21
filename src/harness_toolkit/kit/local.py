@@ -30,6 +30,7 @@ from harness_toolkit.kit.handoff.export import (
     safe_copy_generated_file,
     safe_write_generated_file,
 )
+from harness_toolkit.kit.ledger import lifecycle_events
 from harness_toolkit.kit.ledger.events import append_lifecycle_event
 from harness_toolkit.kit.ledger.models import EventRecord, EvidenceRecord
 from harness_toolkit.kit.ledger.store import (
@@ -44,7 +45,14 @@ from harness_toolkit.kit.ledger.store import (
 from harness_toolkit.kit.ledger.store import (
     read_evidence as ledger_read_evidence,
 )
-from harness_toolkit.kit.profiles import ProfileError, ProfileSuggestion, profile_names
+from harness_toolkit.kit.profiles import (
+    ProfileError,
+    ProfileSuggestion,
+    load_profile_catalog,
+    profile_names,
+    resolve_profile,
+    resolve_target_system_map,
+)
 from harness_toolkit.kit.profiles.context import ProfileContext
 from harness_toolkit.kit.readiness.diagnostics import ReadyCheck, ReadyResult
 from harness_toolkit.kit.readiness.policy import (
@@ -86,6 +94,11 @@ from harness_toolkit.kit.state.repo import (
     scope_key as repo_scope_key,
 )
 from harness_toolkit.kit.sync import freshness as sync_freshness
+from harness_toolkit.kit.system_map import (
+    SystemMapSummary,
+    load_system_map,
+    summary_from_load_result,
+)
 
 LOCAL_STATE_DIR = ".harness-local"
 KIT_STATE_DIR = "harness-kit"
@@ -170,6 +183,7 @@ class Brief:
     spec_sources: list[str]
     repo_surfaces: list[str]
     profiles: list[str]
+    system_map: SystemMapSummary | None
     git: GitInfo
     handoff_export: HandoffExportStatus
 
@@ -197,6 +211,19 @@ class NoteResult:
     seq: int
     kind: str
     text: str
+
+
+@dataclass(frozen=True)
+class InvariantSupersessionResult:
+    work_id: str
+    seq: int
+    invariant: str
+    previous: str
+    reason: str
+    replacement: str = ""
+    removal_rationale: str = ""
+    docs: list[str] | None = None
+    commit_trailer: str = ""
 
 
 @dataclass(frozen=True)
@@ -256,6 +283,7 @@ class StatusResult:
     next_actions: list[str]
     suggested_checks: list[ProfileSuggestion] | None = None
     suggested_reviews: list[ProfileSuggestion] | None = None
+    invariant_supersessions: list[dict[str, object]] | None = None
 
 
 @dataclass(frozen=True)
@@ -619,6 +647,61 @@ def add_note(
     work_dir = require_work(state)
     record = append_event(work_dir, "note_added", {"kind": kind, "text": text})
     return NoteResult(work_id=work_dir.name, seq=record.seq, kind=kind, text=text)
+
+
+def _repo_relative_string(path: str, repo_root: Path) -> str:
+    candidate = Path(path)
+    if candidate.is_absolute():
+        try:
+            return (
+                candidate.resolve(strict=False)
+                .relative_to(repo_root.resolve(strict=False))
+                .as_posix()
+            )
+        except ValueError:
+            return candidate.as_posix()
+    clean = path.strip().replace("\\", "/")
+    while clean.startswith("./"):
+        clean = clean[2:]
+    return clean.strip("/")
+
+
+def add_invariant_supersession(
+    target: Path,
+    *,
+    invariant: str,
+    previous: str,
+    reason: str,
+    replacement: str = "",
+    removal_rationale: str = "",
+    docs: tuple[str, ...] = (),
+    no_local_files: bool = False,
+) -> InvariantSupersessionResult:
+    state = ensure_state(target, no_local_files=no_local_files)
+    work_dir = require_work(state)
+    normalized_docs = tuple(
+        dict.fromkeys(_repo_relative_string(doc, state.target_root) for doc in docs)
+    )
+    payload: dict[str, object] = {
+        "invariant": invariant,
+        "previous": previous,
+        "reason": reason,
+        "replacement": replacement,
+        "removal_rationale": removal_rationale,
+        "docs": list(normalized_docs),
+    }
+    record = append_event(work_dir, "invariant_superseded", payload)
+    return InvariantSupersessionResult(
+        work_id=work_dir.name,
+        seq=record.seq,
+        invariant=invariant,
+        previous=previous,
+        reason=reason,
+        replacement=replacement,
+        removal_rationale=removal_rationale,
+        docs=list(normalized_docs),
+        commit_trailer=f"Supersedes-Invariant: {invariant}",
+    )
 
 
 def read_events(work_dir: Path) -> list[EventRecord]:
@@ -1659,15 +1742,36 @@ def brief(target: Path, *, no_local_files: bool = False) -> Brief:
     state = resolve_local_state(target, no_local_files=no_local_files)
     active = active_work_dir(state) if state.state_dir.exists() else None
     try:
-        profiles = list(profile_names())
+        profile_catalog, harness_config = load_profile_catalog()
+        profiles = list(profile_names(profile_catalog))
     except ProfileError as e:
         raise LocalWorkflowError(str(e)) from e
+    try:
+        profile_resolution = resolve_profile(
+            state.target_scope, catalog=profile_catalog, config=harness_config
+        )
+        configured_system_map = profile_resolution.system_map
+    except KeyError:
+        # `hk brief` should stay a resilient repo-shape probe. A misconfigured
+        # target profile can make `hk checks` fail, but it should not prevent a
+        # user or agent from reading the basic repo brief or target-level map.
+        configured_system_map = resolve_target_system_map(
+            state.target_scope, config=harness_config
+        )
     spec_sources = (
         find_specs(state)
         if state.state_dir.exists()
         else unique_paths(
             [state.target_scope / "SPEC.md", state.target_root / "SPEC.md"]
         )
+    )
+    system_map_result = load_system_map(
+        state.target_root, configured_path=configured_system_map
+    )
+    system_map_summary = (
+        summary_from_load_result(system_map_result, repo_root=state.target_root)
+        if system_map_result is not None
+        else None
     )
     return Brief(
         target_root=str(state.target_root),
@@ -1685,6 +1789,7 @@ def brief(target: Path, *, no_local_files: bool = False) -> Brief:
         spec_sources=spec_sources,
         repo_surfaces=repo_surfaces(state.target_root),
         profiles=profiles,
+        system_map=system_map_summary,
         git=git_info(state.target_scope),
         handoff_export=_handoff_export_status_for_state(state, active, exact=False),
     )
@@ -1741,6 +1846,18 @@ def brief_markdown(value: Brief) -> str:
         ]
     )
     lines.extend([f"- `{profile}`" for profile in value.profiles])
+    lines.extend(["", "## System map"])
+    if value.system_map is None:
+        lines.append("- none found")
+    else:
+        lines.append(
+            f"- `{value.system_map.path}` ({value.system_map.source}): "
+            f"{value.system_map.status}, {value.system_map.components} components, "
+            f"{value.system_map.invariants} invariants, {value.system_map.errors_count} errors, "
+            f"{value.system_map.warnings_count} warnings"
+        )
+        if value.system_map.overrides:
+            lines.append(f"  - overrides `{value.system_map.overrides}`")
     return "\n".join(lines) + "\n"
 
 
@@ -2126,6 +2243,7 @@ def status(target: Path, *, no_local_files: bool = False) -> StatusResult:
             ],
             suggested_checks=[],
             suggested_reviews=[],
+            invariant_supersessions=[],
         )
 
     events = read_events(work_dir)
@@ -2188,8 +2306,17 @@ def status(target: Path, *, no_local_files: bool = False) -> StatusResult:
         if warning:
             sync_action += warning
         actions.append(sync_action)
-    if not actions and readiness.ready:
+    invariant_supersessions = [
+        item.as_payload()
+        for item in lifecycle_events.invariant_supersession_events(events)
+    ]
+    if readiness.ready:
         actions.append("handoff: hk handoff")
+    for item in lifecycle_events.invariant_supersession_events(events):
+        actions.append(
+            "invariant supersession: ensure commit message includes "
+            f"`Supersedes-Invariant: {item.invariant}` and PR description/handoff calls out the supersession"
+        )
     return StatusResult(
         active_work=work_dir.name,
         target_root=str(state.target_root),
@@ -2202,6 +2329,7 @@ def status(target: Path, *, no_local_files: bool = False) -> StatusResult:
         next_actions=actions,
         suggested_checks=suggested_checks,
         suggested_reviews=suggested_reviews,
+        invariant_supersessions=invariant_supersessions,
     )
 
 

@@ -18,7 +18,10 @@ from harness_toolkit.kit.profiles.models import (
     ProfileResolution,
     WorkflowProfile,
 )
-from harness_toolkit.kit.profiles.resolution import resolve_profile
+from harness_toolkit.kit.profiles.resolution import (
+    resolve_profile,
+    resolve_target_system_map,
+)
 from harness_toolkit.kit.profiles.serialization import profile_to_json, profiles_to_json
 from harness_toolkit.kit.profiles.templates import profile_template
 
@@ -62,6 +65,7 @@ class ProfileCatalog:
         changed_paths: tuple[str, ...] = (),
         enforce_required: bool = True,
     ) -> ProfileCheckView:
+        system_map_path = resolve_target_system_map(target, config=self.config)
         return checks_view(
             name,
             target,
@@ -69,6 +73,7 @@ class ProfileCatalog:
             catalog=self.profiles,
             changed_paths=changed_paths,
             enforce_required=enforce_required,
+            system_map_path=system_map_path,
         )
 
     def resolve(self, target: Path) -> ProfileResolution:
