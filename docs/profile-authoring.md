@@ -24,6 +24,13 @@ Profiles are small workflow contracts. They tell agents which native commands an
 independent reviews are relevant for a repo or module. They do **not** run those
 commands, choose commands heuristically, or turn HK into a task runner.
 
+Use `hk config inspect`, `hk config validate`, `hk config explain`, and
+`hk config audit` to check deterministic profile/config joins while authoring or
+maintaining profiles. These commands are read-only diagnostics. They can catch
+missing target bindings, broken prompt files, unresolved system-map labels, and
+path-rule explanations, but they do not infer the correct validation contract or
+write profile TOML for you.
+
 A good profile helps an agent avoid two failures:
 
 1. under-validating a risky change; and

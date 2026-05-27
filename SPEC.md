@@ -100,6 +100,10 @@ slice-workflow CLI instead.
 ```
 hk profile list --target <repo-or-module> --json
 hk profile resolve --target <repo-or-module> --json
+hk config inspect --target <repo-or-module> --json
+hk config validate --target <repo-or-module> [--strict-labels] --json
+hk config explain --target <repo-or-module> (--changed | --path <repo-relative-path>) --json
+hk config audit --target <repo-or-module> --json
 hk checks --target <repo-or-module> [--profile <profile>] [--changed] --json
 ```
 
@@ -169,14 +173,17 @@ rather than limited to a hardcoded `.pi`/`.claude` allowlist, while root,
 pathspec, tracked, staged, and missing paths remain invalid. Whole-sync dangerous
 skips remain an explicit fallback.
 
-`hk profile resolve`, `hk checks --changed`, and `hk status` MUST explain profile/check/review
-selection without changing readiness semantics. JSON diagnostics may grow only
-additively and should include the profile match kind plus changed files/patterns
-that triggered suggested or required profile items. Suggested profile reviews are
-non-blocking status guidance; required profile reviews remain readiness checks.
-Profile reviews are named review policies with optional inline or file-backed
-`instructions`; HK renders those instructions but does not run reviewers or load
-skills/plugins itself.
+`hk profile resolve`, `hk config inspect`, `hk config validate`, `hk config explain`,
+`hk config audit`, `hk checks --changed`, and `hk status` MUST explain profile/check/review
+selection without changing readiness semantics. Config diagnostics are read-only:
+they MUST NOT generate authoritative profiles/system maps, execute profile
+commands, run reviewers, or become hidden readiness gates. JSON diagnostics may
+grow only additively and should include the profile match kind plus changed
+files/patterns that triggered suggested or required profile items. Suggested
+profile reviews are non-blocking status guidance; required profile reviews remain
+readiness checks. Profile reviews are named review policies with optional inline
+or file-backed `instructions`; HK renders those instructions but does not run
+reviewers or load skills/plugins itself.
 
 `hk artifact attach` records harness/tool-produced files such as agent session
 transcripts, Codex review transcripts, HAR files, or raw validation artifacts by

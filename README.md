@@ -101,13 +101,17 @@ default profile. Separate clones are not auto-matched by remote URL. Profiles ca
 suggest checks/reviews for changed paths and mark specific path matches as
 required while still leaving execution and reviewer dispatch to the agent. Path
 rules accept both repo-root-relative changed paths and target-relative paths for
-scoped module targets.
+scoped module targets. `hk config inspect|validate|explain|audit` provides
+read-only diagnostics for those bindings, profiles, and system maps; it explains
+and validates deterministic config joins without generating config or running
+profile commands.
 
 Common `hk` actions:
 
 | When you need to... | Use... |
 |---|---|
 | Start or inspect work | `hk start --plan ...`, `hk status`, `hk work status` |
+| Inspect config/profile/system-map joins | `hk config inspect`, `hk config validate`, `hk config explain`, `hk config audit` |
 | Record context, plan, or decisions | `hk context`, `hk plan`, `hk decide` |
 | Capture command evidence | `hk validate --why "..." -- <native command>` |
 | Add independent review | `hk review prompt`, then `hk review add` |

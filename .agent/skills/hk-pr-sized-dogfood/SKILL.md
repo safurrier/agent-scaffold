@@ -11,6 +11,10 @@ source repos. The goal is not primarily code quality; it is to observe the
 agent's actual path through HK: where it used HK, skipped it, guessed wrong, or
 hit unclear readiness/sync behavior.
 
+## References
+
+- `references/config-diagnostics-scenarios.md` — seeded profile/system-map drift cases for testing whether agents naturally discover and use `hk config` diagnostics and config-authoring skills.
+
 ## Principles
 
 - **Use temp snapshots only.** Never run replay workers in the original repo.

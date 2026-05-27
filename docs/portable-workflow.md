@@ -315,6 +315,10 @@ persistent sync ignore config are deferred.
 | `hk profile resolve` | Resolve the configured profile for a target using explicit user config bindings, including Git linked-worktree projection |
 | `hk profile show <name>` | Show one profile's instructions, checks, and review guidance |
 | `hk profile create <name>` | Create an editable custom profile TOML template |
+| `hk config inspect` | Read-only snapshot of resolved `harness.toml`, target binding, profile, and active system-map source/status |
+| `hk config validate` | Deterministically validate config/profile/system-map references; does not run profile commands or change readiness semantics |
+| `hk config explain --changed\|--path PATH` | Explain why profile checks/reviews and system-map invariants surface for changed or explicit paths |
+| `hk config audit` | Advisory read-only drift/surprise report for config joins; exits zero by default |
 | `hk checks [--profile <name>] [--changed]` | Show named verification loops and review guidance without executing them; `--changed` adds path-rule suggestions, required items, matched files, and triggering patterns |
 | `hk plan <text>` | Record or refine the lifecycle implementation plan for active Harness Kit work |
 | `hk dangerously-skip review\|validation\|sync --label <name> --reason <text> --mitigation <text>` | Explicitly record an auditable dangerous skip when a lifecycle guarantee cannot be satisfied; skips render in summary, handoff, and PR handoff |
@@ -326,6 +330,13 @@ packages with `hk export --format handoff-dir --output .ai/hk/2026-05-09-120000-
 instead of hand-authoring `.ai/plans` files. The export is a projection, not a
 second ledger: `README.md` is the human handoff, `meta.json` is machine
 freshness/integrity data, and `artifacts/` is for explicit copied attachments only; `--no-copy` attachments remain referenced by metadata. The active `.ai/hk/<work-id>/` package is generated/derived and does not by itself stale validation/review/sync freshness or readiness changed-path checks; validate export integrity with `hk export --format handoff-dir --check` or `mise run sync-check`.
+
+Config diagnostics are intentionally narrower than authoring. They can inspect,
+validate, audit, and explain deterministic joins between target bindings,
+profiles, review prompt files, and system-map labels. They do **not** infer
+architecture, draft authoritative profiles/system maps, execute validation, or
+create readiness blockers. Use the profile/system-map authoring skills for
+judgment-heavy create or audit/update proposals.
 
 Profiles are small workflow contracts for agentic engineering checks and
 reviews. They describe what exists for an environment; they do **not** run those
