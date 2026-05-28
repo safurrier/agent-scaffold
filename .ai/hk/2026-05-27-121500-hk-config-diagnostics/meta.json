@@ -1,0 +1,80 @@
+{
+  "attached_artifacts": [
+    {
+      "copied": true,
+      "export_path": "artifacts/artifact_37_agent-dogfood-report_artifact_20260527_164954_053950_agent-dogfood-report_worker-report.md",
+      "kind": "agent-dogfood-report",
+      "label": "hk-config-diagnostics-seeded-agent",
+      "redaction": "none",
+      "seq": 37,
+      "sha256": "sha256:0e8e0ed0ce10f3620b93b5f8440d414d8ffacc305cfdf6b0990df6f3ec0c36c0",
+      "size_bytes": 5093
+    },
+    {
+      "copied": true,
+      "export_path": "artifacts/artifact_38_agent-dogfood-log_artifact_20260527_164954_705021_agent-dogfood-log_hk-commands.jsonl",
+      "kind": "agent-dogfood-log",
+      "label": "hk-config-diagnostics-hk-commands",
+      "redaction": "none",
+      "seq": 38,
+      "sha256": "sha256:2b94a93e217292fe26eff147e3376c7a6e12849d18e5c090fa0f4168fac5e2fe",
+      "size_bytes": 9482
+    }
+  ],
+  "branch": "feat/hk-config-diagnostics",
+  "diff_hash": "sha256:7e59217e7775adc0a5e3bd650b051eab90c2b01fd4e539587762266fd4f914c5",
+  "dirty": false,
+  "event_count": 39,
+  "event_seq": 46,
+  "evidence_count": 24,
+  "evidence_ids": [
+    "ev_20260527_122046_563682",
+    "ev_20260527_122117_751890",
+    "ev_20260527_123154_747930",
+    "ev_20260527_123159_869237",
+    "ev_20260527_123305_423308",
+    "ev_20260527_130703_263581",
+    "ev_20260527_132426_950879",
+    "ev_20260527_133931_448464",
+    "ev_20260527_134637_613309",
+    "ev_20260527_134710_480098",
+    "ev_20260527_134724_210867",
+    "ev_20260527_134741_560303",
+    "ev_20260527_134818_929711",
+    "ev_20260527_134927_064645",
+    "ev_20260527_135032_848708",
+    "ev_20260527_141047_948012",
+    "ev_20260527_141055_046887",
+    "ev_20260527_141058_674843",
+    "ev_20260527_141133_675364",
+    "ev_20260527_165039_182972",
+    "ev_20260527_165056_818904",
+    "ev_20260527_165123_904910",
+    "ev_20260527_165131_914678",
+    "ev_20260527_165502_480027"
+  ],
+  "file_hashes": {
+    "README.md": "sha256:db2abb7effda2bb5915bd301b1ad92120619ee69c262118793d3ce78f97948fa",
+    "artifacts/README.md": "sha256:c4bad9d4652f296a7e4dcf175fe1dd0c66a99ec0b74941cd45c499e84792436c",
+    "artifacts/artifact_37_agent-dogfood-report_artifact_20260527_164954_053950_agent-dogfood-report_worker-report.md": "sha256:0e8e0ed0ce10f3620b93b5f8440d414d8ffacc305cfdf6b0990df6f3ec0c36c0",
+    "artifacts/artifact_38_agent-dogfood-log_artifact_20260527_164954_705021_agent-dogfood-log_hk-commands.jsonl": "sha256:2b94a93e217292fe26eff147e3376c7a6e12849d18e5c090fa0f4168fac5e2fe"
+  },
+  "files": [
+    "README.md",
+    "meta.json",
+    "artifacts/README.md",
+    "artifacts/artifact_37_agent-dogfood-report_artifact_20260527_164954_053950_agent-dogfood-report_worker-report.md",
+    "artifacts/artifact_38_agent-dogfood-log_artifact_20260527_164954_705021_agent-dogfood-log_hk-commands.jsonl"
+  ],
+  "generated_at": "2026-05-28T00:05:50.391573+00:00",
+  "generated_by": "hk export --format handoff-dir",
+  "git_sha": "402d61b",
+  "output_path": ".ai/hk/2026-05-27-121500-hk-config-diagnostics",
+  "ready": true,
+  "ready_status": "ready",
+  "schema_version": 1,
+  "sync_status": "synced",
+  "target_root": ".",
+  "target_scope": ".",
+  "work_id": "2026-05-27-121500-hk-config-diagnostics"
+}

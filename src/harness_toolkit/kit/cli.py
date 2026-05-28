@@ -5,8 +5,9 @@ from __future__ import annotations
 import json as json_lib
 import shlex
 import sys
+from dataclasses import asdict
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal, cast
 
 from cyclopts import App, Group
 
@@ -23,6 +24,14 @@ from harness_toolkit.kit.app.lifecycle import (
     StartRequest,
     SyncRequest,
     TargetRequest,
+)
+from harness_toolkit.kit.config_diagnostics import (
+    audit_config,
+    explain_config,
+    inspect_config,
+)
+from harness_toolkit.kit.config_diagnostics import (
+    validate_config as validate_config_diagnostics,
 )
 from harness_toolkit.kit.local import (
     LocalWorkflowError,
@@ -85,6 +94,18 @@ profile_app = App(
     help="List, show, and create workflow profiles.",
     group=GUIDANCE_GROUP,
 )
+config_app = App(
+    name="config",
+    help="Inspect, validate, explain, and audit HK config without mutating it.",
+    group=GUIDANCE_GROUP,
+    group_commands=GUIDANCE_GROUP,
+    help_epilogue=examples(
+        "hk config inspect --target . --json",
+        "hk config validate --target . --json",
+        "hk config explain --target . --changed --json",
+        "hk config audit --target . --json",
+    ),
+)
 work_app = App(
     name="work",
     help="Advanced: manage ledger-backed local work units.",
@@ -105,6 +126,7 @@ artifact_app = App(
     group=EVIDENCE_GROUP,
 )
 app.command(profile_app, name="profile")
+app.command(config_app, name="config")
 app.command(work_app, name="work")
 app.command(evidence_app, name="evidence")
 app.command(spec_app, name="spec")
@@ -199,8 +221,33 @@ def print_error(message: str) -> None:
     print(f"Error: {message}", file=sys.stderr)
 
 
+def json_dump_any_dataclass(value: Any) -> str:
+    return json_lib.dumps(asdict(value), indent=2, sort_keys=True)
+
+
+def json_dump_config_error(message: str, *, code: str = "config-error") -> str:
+    return json_lib.dumps(
+        {
+            "ok": False,
+            "findings": [
+                {
+                    "code": code,
+                    "severity": "error",
+                    "message": message,
+                    "path": None,
+                    "field_path": None,
+                    "related_path": None,
+                    "check_label": None,
+                }
+            ],
+        },
+        indent=2,
+        sort_keys=True,
+    )
+
+
 _PROFILE_ONLY_OPTIONS = {"--profile", "--profiles-dir"}
-_PROFILE_OPTION_COMMANDS = {"checks", "instructions", "profile"}
+_PROFILE_OPTION_COMMANDS = {"checks", "config", "instructions", "profile"}
 _PROFILE_FORBIDDEN_COMMANDS = {
     "artifact",
     "brief",
@@ -617,6 +664,328 @@ def profile_create(
     print(
         f"     hk checks --target {target} --profile {name} --profiles-dir {destination.parent} --json"
     )
+
+
+@config_app.command(
+    name="inspect",
+    help_epilogue=examples(
+        "hk config inspect --target . --json",
+        "HARNESS_KIT_CONFIG=/tmp/harness.toml hk config inspect --target /repo --json",
+        "hk config inspect --target . --profiles-dir /tmp/ad-hoc-profiles",
+    ),
+)
+def config_inspect(
+    *,
+    target: Path = Path("."),
+    profiles_dir: Path | None = None,
+    json: bool = False,
+) -> None:
+    """Inspect the resolved HK config/profile/system-map state without mutating it.
+
+    Parameters
+    ----------
+    target
+        Target repository or scoped path whose HK config should be resolved.
+    profiles_dir
+        Optional ad hoc directory of custom profile TOML files. Directories
+        declared in harness.toml load automatically.
+    json
+        Print machine-readable JSON for agents and scripts.
+    """
+    try:
+        result = inspect_config(target, profiles_dir=profiles_dir)
+    except RepoStateError as e:
+        if json:
+            print(json_dump_config_error(str(e), code="repo-state-error"))
+        else:
+            print_error(str(e))
+        raise SystemExit(1) from e
+    if json:
+        print(json_dump_any_dataclass(result))
+        if any(finding.severity == "error" for finding in result.findings):
+            raise SystemExit(1)
+        return
+    print(f"Target: {result.target}")
+    print(f"Repo root: {result.repo_root}")
+    print(
+        f"Config: {result.config_path} ({'exists' if result.config_exists else 'absent'})"
+    )
+    print(f"Profiles loaded: {result.profile_count}")
+    if result.resolution is not None:
+        print(f"Profile: {result.resolution.profile} [{result.resolution.source}]")
+        print(f"Match kind: {result.resolution.match_kind}")
+        if result.resolution.matched_target:
+            print(f"Matched target: {result.resolution.matched_target}")
+    if result.system_map is None:
+        print("System map: none")
+    else:
+        print(
+            f"System map: {result.system_map['path']} "
+            f"[{result.system_map['source']}, {result.system_map['status']}]"
+        )
+        if result.system_map.get("overrides"):
+            print(f"Overrides: {result.system_map['overrides']}")
+    for finding in result.findings:
+        print(f"{finding.severity}: {finding.message}")
+
+
+@config_app.command(
+    name="validate",
+    help_epilogue=examples(
+        "hk config validate --target . --json",
+        "hk config validate --target . --strict-labels --json",
+        "hk config validate --target . --profile harness-toolkit-root --json",
+        note="Validates config references only; it does not run profile check commands or change readiness state.",
+    ),
+)
+def config_validate(
+    *,
+    target: Path = Path("."),
+    profile: ProfileName | None = None,
+    profiles_dir: Path | None = None,
+    strict_labels: bool = False,
+    json: bool = False,
+) -> None:
+    """Validate deterministic HK config/profile/system-map references.
+
+    This is read-only. It validates explicit config/profile/system-map joins and
+    does not run profile check commands or change readiness state.
+
+    Parameters
+    ----------
+    target
+        Target repository or scoped path whose HK config should be validated.
+    profile
+        Override the resolved workflow profile for diagnostics only.
+    profiles_dir
+        Optional ad hoc directory of custom profile TOML files. Directories
+        declared in harness.toml load automatically.
+    strict_labels
+        Treat unresolved system-map validation/review check labels as errors
+        instead of advisory warnings.
+    json
+        Print machine-readable JSON for agents and scripts.
+    """
+    try:
+        result = validate_config_diagnostics(
+            target,
+            profile=profile,
+            profiles_dir=profiles_dir,
+            strict_labels=strict_labels,
+        )
+    except RepoStateError as e:
+        if json:
+            print(json_dump_config_error(str(e), code="repo-state-error"))
+        else:
+            print_error(str(e))
+        raise SystemExit(1) from e
+    if json:
+        print(json_dump_any_dataclass(result))
+    else:
+        print(f"Target: {result.target}")
+        print(f"Status: {'ok' if result.ok else 'invalid'}")
+        if result.findings:
+            for finding in result.findings:
+                location = f" [{finding.field_path}]" if finding.field_path else ""
+                print(
+                    f"- {finding.severity} {finding.code}{location}: {finding.message}"
+                )
+                if finding.code in {
+                    "unknown-profile",
+                    "missing-default-profile",
+                    "missing-target-profile",
+                }:
+                    print("  try: hk profile list --target . --json")
+                if finding.code == "unresolved-check-label":
+                    print("  try: hk profile show PROFILE --json")
+        else:
+            print("- no findings")
+    if not result.ok:
+        raise SystemExit(1)
+
+
+@config_app.command(
+    name="explain",
+    help_epilogue=examples(
+        "hk config explain --target . --changed --json",
+        "hk config explain --target . --path src/foo.py --path tests/test_foo.py --json",
+        note="Pass exactly one path source: --changed or one or more --path values. The command explains suggestions; it does not execute checks.",
+    ),
+)
+def config_explain(
+    *,
+    target: Path = Path("."),
+    profile: ProfileName | None = None,
+    profiles_dir: Path | None = None,
+    changed: bool = False,
+    path: list[str] | None = None,
+    json: bool = False,
+) -> None:
+    """Explain why profile checks/reviews and system context surface for paths.
+
+    This is read-only and does not execute checks. Pass exactly one path source:
+    --changed to inspect the current Git diff, or one or more --path values for
+    explicit repo-root-relative paths.
+
+    Parameters
+    ----------
+    target
+        Target repository or scoped path whose profile/system-map context should
+        explain the paths.
+    profile
+        Override the resolved workflow profile for diagnostics only.
+    profiles_dir
+        Optional ad hoc directory of custom profile TOML files. Directories
+        declared in harness.toml load automatically.
+    changed
+        Explain checks/reviews/system context for paths changed in the current
+        Git diff.
+    path
+        Explicit repo-root-relative path to explain. May be repeated. Cannot be
+        combined with --changed.
+    json
+        Print machine-readable JSON for agents and scripts.
+    """
+    try:
+        if not changed and not path:
+            message = (
+                "hk config explain requires --changed or at least one --path\n"
+                "Try: hk config explain --target . --changed --json\n"
+                "Try: hk config explain --target . --path src/foo.py --json"
+            )
+            if json:
+                print(json_dump_config_error(message, code="missing-path-source"))
+            else:
+                print_error(message)
+            raise SystemExit(1)
+        if changed and path:
+            message = (
+                "hk config explain accepts either --changed or --path, not both\n"
+                "Try: hk config explain --target . --changed --json\n"
+                "Try: hk config explain --target . --path src/foo.py --json"
+            )
+            if json:
+                print(json_dump_config_error(message, code="conflicting-path-source"))
+            else:
+                print_error(message)
+            raise SystemExit(1)
+        resolved_target = target.resolve(strict=False)
+        paths = tuple(path or ())
+        if changed:
+            paths = changed_paths_for_target(resolved_target)
+        result = explain_config(
+            resolved_target,
+            profile=profile,
+            profiles_dir=profiles_dir,
+            changed_paths=paths,
+        )
+    except (KeyError, ProfileError, RepoStateError) as e:
+        if json:
+            print(json_dump_config_error(str(e), code="config-explain-error"))
+        else:
+            print_error(str(e))
+        raise SystemExit(1) from e
+    if json:
+        print(json_dump_any_dataclass(result))
+        return
+    print(f"Profile: {result.profile}")
+    print(f"Target: {result.target}")
+    print("Paths:")
+    for item in result.paths or ("none",):
+        print(f"- {item}")
+    print("Checks:")
+    for item in result.checks:
+        required = "required" if item.get("required") else "suggested"
+        matched_paths = cast("list[str]", item.get("matched_paths", []))
+        print(f"- {item['name']} ({required}): {item['purpose']}")
+        print(f"  reason: {item['matched_by']} matched {', '.join(matched_paths)}")
+        patterns = cast("list[str]", item.get("matched_patterns", []))
+        if patterns:
+            print(f"  patterns: {', '.join(patterns)}")
+        if item.get("record_command"):
+            print(f"  record: {item['record_command']}")
+    if not result.checks:
+        print("- none")
+    print("Reviews:")
+    for item in result.reviews:
+        required = "required" if item.get("required") else "suggested"
+        matched_paths = cast("list[str]", item.get("matched_paths", []))
+        print(f"- {item['name']} ({required}): {item['purpose']}")
+        print(f"  reason: {item['matched_by']} matched {', '.join(matched_paths)}")
+        patterns = cast("list[str]", item.get("matched_patterns", []))
+        if patterns:
+            print(f"  patterns: {', '.join(patterns)}")
+        if item.get("record_command"):
+            print(f"  record: {item['record_command']}")
+        if item.get("prompt_command"):
+            print(f"  prompt: {item['prompt_command']}")
+        if item.get("dispatch_hint"):
+            print(f"  hint: {item['dispatch_hint']}")
+    if not result.reviews:
+        print("- none")
+    if result.system_context:
+        print("System context:")
+        components = cast(
+            "list[dict[str, object]]",
+            result.system_context.get("matched_components", []),
+        )
+        for component in components:
+            matched_paths = cast("list[str]", component.get("matched_paths", []))
+            print(f"- {component['id']}: {', '.join(matched_paths)}")
+
+
+@config_app.command(
+    name="audit",
+    help_epilogue=examples(
+        "hk config audit --target . --json",
+        "hk config audit --target .",
+        note="Advisory by default: exits 0 for config findings; inspect JSON `ok`/`findings` for machine decisions. It does not fail readiness gates.",
+    ),
+)
+def config_audit(
+    *,
+    target: Path = Path("."),
+    profile: ProfileName | None = None,
+    profiles_dir: Path | None = None,
+    json: bool = False,
+) -> None:
+    """Report conservative config drift/surprises without failing by default.
+
+    This advisory command is read-only. It surfaces deterministic surprises a
+    maintainer should review; it does not run checks or change readiness state.
+    Advisory findings exit 0 by default; inspect JSON `ok`/`findings` when a
+    script needs to gate on audit results.
+
+    Parameters
+    ----------
+    target
+        Target repository or scoped path whose HK config should be audited.
+    profile
+        Override the resolved workflow profile for diagnostics only.
+    profiles_dir
+        Optional ad hoc directory of custom profile TOML files. Directories
+        declared in harness.toml load automatically.
+    json
+        Print machine-readable JSON for agents and scripts.
+    """
+    try:
+        result = audit_config(target, profile=profile, profiles_dir=profiles_dir)
+    except RepoStateError as e:
+        if json:
+            print(json_dump_config_error(str(e), code="repo-state-error"))
+        else:
+            print_error(str(e))
+        raise SystemExit(1) from e
+    if json:
+        print(json_dump_any_dataclass(result))
+        return
+    print(f"Target: {result.target}")
+    print(f"Status: {'ok' if result.ok else 'findings'}")
+    if result.findings:
+        for finding in result.findings:
+            print(f"- {finding.severity}: {finding.message}")
+    else:
+        print("- no findings")
 
 
 @app.command(

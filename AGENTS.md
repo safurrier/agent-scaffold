@@ -169,6 +169,13 @@ use it only in a copied scaffold or throwaway init target.
   and broad review stacks after small fixes; use explicit risk paths, notes, and
   targeted `hk review add --path ...` follow-up guidance.
 
+- **DO** keep profile/system-map creation and drift repair under config-oriented
+  or skill-led authoring/audit flows. **NOT** promote generative draft commands as
+  new top-level lifecycle verbs. **BECAUSE** top-level HK should stay centered on
+  work handoff (`start`, `checks`, `validate`, `review`, `sync`, `ready`,
+  `handoff`), while config inference is judgment-heavy and should remain
+  reviewable rather than silently deterministic.
+
 - **DO** make HK freshness deterministic enough to catch meaningful source-risk
   drift while still letting agents use judgment and targeted follow-up reviews.
   **NOT** make exact whole-diff hash matching the only product-level answer for

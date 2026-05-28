@@ -51,7 +51,12 @@ Resolution order is intentionally simple:
 HK does not merge maps in v1. If both a target-level map and repo-local map exist, the target-level map wins and `hk brief` reports that it overrides `.harness/system.toml`.
 
 A system map is not an architecture essay. It is a queryable contract that powers
-`hk brief` and `hk checks --changed`.
+`hk brief` and `hk checks --changed`. Use `hk config inspect` to see which map is
+active, `hk config validate` to catch parse/reference/label problems,
+`hk config explain --path PATH` to understand why a path matched components and
+labels, and `hk config audit` for conservative drift/surprise diagnostics. These
+commands are read-only; they do not infer architecture or make system-map labels
+readiness-blocking.
 
 ## Purpose
 
