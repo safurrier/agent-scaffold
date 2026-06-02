@@ -47,6 +47,8 @@ Historical hand-authored slice plans live under `.ai/plans/`; new Harness Toolki
 - `mise run sync-check`: pass (exit 0) — validates: Regenerated HK handoff export validates after recording sync-check evidence. — `<local HK state not exported>`
 - `uv run pytest -m contract`: pass (exit 0) — validates: Docs contract still passes after highlighting the main thesis. — `<local HK state not exported>`
 - `uv run mkdocs build --strict`: pass (exit 0) — validates: MkDocs still builds after highlighting the main thesis. — `<local HK state not exported>`
+- `uv run pytest -m contract`: pass (exit 0) — validates: Docs contract passes after adding sync to the smallest useful loop. — `<local HK state not exported>`
+- `uv run mkdocs build --strict`: pass (exit 0) — validates: MkDocs builds after adding sync to the smallest useful loop. — `<local HK state not exported>`
 
 ## Readiness
 - context: info — no context recorded; okay for trivial work, add hk context if it prevents rediscovery
@@ -61,3 +63,4 @@ Historical hand-authored slice plans live under `.ai/plans/`; new Harness Toolki
 ## Review
 - subagent / reviewer-fresh-context [codex-review]: Fresh-context docs review found no blockers. It suggested qualifying profile/system-map examples as illustrative user-level dogfood config and using an unlabelled validate command in the smallest-loop example; both were applied and revalidated. paths: README.md, docs/AGENTS.md, docs/index.md, +2 more. [accepted]
 - subagent / parent-agent [codex-review]: Targeted follow-up: highlighted the main thesis as a bold blockquote; no semantic changes. paths: docs/harness-kit-what-and-why.md. [accepted]
+- subagent / parent-agent [codex-review]: Targeted follow-up: accepted Codex feedback and added hk sync before hk ready in the smallest useful loop; also updated the explanatory sentence. paths: docs/harness-kit-what-and-why.md. [accepted]

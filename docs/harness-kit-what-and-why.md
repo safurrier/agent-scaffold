@@ -62,11 +62,12 @@ hk validate --why "Fast gate passes" --target . -- mise run check
 hk review prompt relevant-review --target .
 hk review add --review relevant-review --backend fresh-context-subagent --reviewer reviewer-name --summary "No blockers." --target .
 hk status --target .
+hk sync --target .
 hk ready --target .
 hk summary --target .
 ```
 
-The exact order matters less than the loop. `hk start` records the plan. `hk checks --changed` asks what matters for this diff. `hk validate` records exact native command evidence. `hk review prompt` and `hk review add` handle external-enough review. `hk status` coaches whatever is still missing, then `hk ready` and `hk summary` make the handoff auditable.
+The exact order matters less than the loop. `hk start` records the plan. `hk checks --changed` asks what matters for this diff. `hk validate` records exact native command evidence. `hk review prompt` and `hk review add` handle external-enough review. `hk status` coaches whatever is still missing, `hk sync` records the final checkpoint, then `hk ready` and `hk summary` make the handoff auditable.
 
 The agent is not supposed to memorize a giant checklist. **`hk status` is the coach.** It tells the agent what is missing: context, plan updates, decision/spec reflection, validation evidence, independent review, sync freshness, or an explicit dangerous skip when a lifecycle guarantee cannot be met.
 
