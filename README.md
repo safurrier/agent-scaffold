@@ -245,6 +245,7 @@ version of `hk` before the installed tool is updated.
 
 ## More docs
 
+- [Harness Kit: Dumb Tasks, Smart Agents](docs/harness-kit-what-and-why.md) — what and why behind HK's lifecycle, config, and readiness model
 - [Harness Kit Design](docs/harness-kit-lifecycle-design.md) — lifecycle and ledger model
 - [Agent Adoption](docs/agent-adoption.md) — small `AGENTS.md` directive for agents
 - [Getting Started](docs/getting-started.md) — scaffold walkthrough

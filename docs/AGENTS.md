@@ -24,6 +24,7 @@ Agent routing index for MkDocs-managed documentation. Structure is owned by `mkd
 | `init-system.md` | How init transforms the scaffold: sequence, templates, cleanup |
 | `ci.md` | CI workflow design: mise entrypoints, sync contract, pre-commit parity |
 | `portable-workflow.md` | Attaching the planning workflow to existing repos without committed scaffold files |
+| `harness-kit-what-and-why.md` | Product philosophy for HK: deterministic checks and explicit context make tasks dumb so agents can be smart |
 | `profile-reviews.md` | HK profile reviews, suggested/required review policies, and skill-backed review instructions |
 | `profile-authoring.md` | HK profile authoring guidance for focused iteration, final gates, targeted follow-up, and avoiding closeout loops |
 | `system-map-mental-model.md` | Succinct explanation of how system maps complement profiles by adding component and invariant context to changed paths |

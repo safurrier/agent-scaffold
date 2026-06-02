@@ -21,6 +21,8 @@ index:
 
 Use **`hk` / `harness-kit`** for portable planning, validation, and handoff workflow in existing repos. Use **`harness-scaffold`** to start a new repo with the workflow, docs, CI, and stack defaults already wired in.
 
+For the product philosophy behind HK's lifecycle, config, and readiness model, see [Harness Kit: Dumb Tasks, Smart Agents](harness-kit-what-and-why.md).
+
 ## What it is
 
 harness-scaffold is a **clone-and-init** template. You clone it, run `mise run init`, and it transforms itself into your project — removing scaffold scaffolding, applying your project name, and verifying the golden path passes before handing control over.
