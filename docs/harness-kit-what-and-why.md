@@ -20,7 +20,7 @@ index:
 
 # Harness Kit: Dumb Tasks, Smart Agents
 
-Harness Kit uses deterministic checks and explicit context to make the task dumb, so the agent can be smart.
+> **Harness Kit uses deterministic checks and explicit context to make the task dumb, so the agent can be smart.**
 
 `hk` / `harness-kit` is the existing-repo side of Harness Toolkit. It is a lifecycle and readiness CLI for meaningful agent-driven changes. `harness-scaffold` is the new-repo side: it generates projects with a stable task contract, docs, CI, and stack defaults wired in from day one.
 
