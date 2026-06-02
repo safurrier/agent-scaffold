@@ -1,11 +1,11 @@
 {
   "attached_artifacts": [],
   "branch": "docs/dumb-tasks-smart-agents",
-  "diff_hash": "sha256:96880483055394a865790a0880db52addc0e3b450e5c262787eb5572e715205a",
+  "diff_hash": "sha256:d3d263b2ba29f9413d9d18ec32d2c9b26a4dec01141c1efee7c676c22c7a223a",
   "dirty": true,
-  "event_count": 22,
-  "event_seq": 26,
-  "evidence_count": 15,
+  "event_count": 38,
+  "event_seq": 43,
+  "evidence_count": 27,
   "evidence_ids": [
     "ev_20260602_114852_255249",
     "ev_20260602_115213_227309",
@@ -21,10 +21,22 @@
     "ev_20260602_122905_946241",
     "ev_20260602_122913_984307",
     "ev_20260602_123052_585416",
-    "ev_20260602_123101_212442"
+    "ev_20260602_123101_212442",
+    "ev_20260602_140656_376298",
+    "ev_20260602_140712_871583",
+    "ev_20260602_140717_744926",
+    "ev_20260602_140728_621520",
+    "ev_20260602_140745_237577",
+    "ev_20260602_141611_119234",
+    "ev_20260602_142419_019797",
+    "ev_20260602_143700_522662",
+    "ev_20260602_143711_621174",
+    "ev_20260602_143725_245565",
+    "ev_20260602_144523_824729",
+    "ev_20260602_145324_280113"
   ],
   "file_hashes": {
-    "README.md": "sha256:ce14704b0d7ea274f6d0899c4849147fd3d9abde81565cb3dd586d9b27b7529c",
+    "README.md": "sha256:4b861a2c3fce46ae15c8bf1a85d7d4e3e690f8ee407b4d7fd1a7ffcb90eb7ef3",
     "artifacts/README.md": "sha256:c4bad9d4652f296a7e4dcf175fe1dd0c66a99ec0b74941cd45c499e84792436c"
   },
   "files": [
@@ -32,12 +44,12 @@
     "meta.json",
     "artifacts/README.md"
   ],
-  "generated_at": "2026-06-02T19:31:19.747447+00:00",
+  "generated_at": "2026-06-02T21:53:46.925202+00:00",
   "generated_by": "hk export --format handoff-dir",
-  "git_sha": "78b8737",
+  "git_sha": "32de6d9",
   "output_path": ".ai/hk/2026-06-02-114723-dumb-tasks-smart-agents",
-  "ready": false,
-  "ready_status": "not-ready",
+  "ready": true,
+  "ready_status": "ready",
   "schema_version": 1,
   "sync_status": "synced",
   "target_root": ".",

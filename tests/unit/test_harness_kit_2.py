@@ -3038,7 +3038,7 @@ def test_cli_decide_records_structured_spec_impact_refs(tmp_path: Path) -> None:
         "--spec-ref",
         "SPEC.md",
         "--spec-ref",
-        "docs/harness-kit-lifecycle-design.md",
+        "docs/explanation/harness-kit-lifecycle-design.md",
         "--target",
         str(target),
         "--json",
@@ -3048,7 +3048,7 @@ def test_cli_decide_records_structured_spec_impact_refs(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stderr
     assert "updated: Spec/docs updated or verified." in handoff_result.stdout
     assert "SPEC.md" in handoff_result.stdout
-    assert "docs/harness-kit-lifecycle-design.md" in handoff_result.stdout
+    assert "docs/explanation/harness-kit-lifecycle-design.md" in handoff_result.stdout
 
 
 @pytest.mark.cli

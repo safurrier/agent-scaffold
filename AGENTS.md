@@ -23,7 +23,7 @@ meaningful PR-sized work, set `WORK_ID` from `hk status --json` and export a
 committed generated handoff under `.ai/hk/$WORK_ID/` with `hk export --format
 handoff-dir --output ".ai/hk/$WORK_ID"`. Exports are compact packages (`README.md`,
 `meta.json`, explicit-only `artifacts/`), not hand-authored plan directories. Treat
-`SPEC.md` as the correctness envelope and `docs/task-contract.md` as the
+`SPEC.md` as the correctness envelope and `docs/reference/task-contract.md` as the
 scaffolded/generated-repo task-surface reference.
 
 ## Commands
@@ -206,13 +206,13 @@ use it only in a copied scaffold or throwaway init target.
 | Path | What's there |
 |---|---|
 | `SPEC.md` | Requirements, interfaces, invariants, acceptance |
-| `docs/task-contract.md` | Stable mise task contract and slice workflow tasks |
+| `docs/reference/task-contract.md` | Stable mise task contract and slice workflow tasks |
 | `src/harness_toolkit/scaffold/` | Starter-template implementation for `harness-scaffold init` |
 | `src/harness_toolkit/kit/` | Portable workflow implementation for `hk` / `harness-kit` |
-| `docs/development.md` | Test layers, fixtures, and stack development |
-| `docs/init-system.md` | How `mise run init` transforms the scaffold |
+| `docs/how-to/development.md` | Test layers, fixtures, and stack development |
+| `docs/explanation/init-system.md` | How `mise run init` transforms the scaffold |
 | `docs/AGENTS.md` | Docs routing index, including stack and ADR docs |
-| `docs/decisions/` | ADRs for scaffold workflow and contract choices |
+| `docs/reference/decisions/` | ADRs for scaffold workflow and contract choices |
 | `.agent/skills/hk-pr-sized-dogfood/` | Repo-local skill for PR-sized HK dogfood replay studies |
 | `templates/.agent/skills/slice-workflow/` | Skill shipped to generated repos |
 | `templates/.ai/plans/AGENTS.md` | Plan artifact contract shipped to generated repos |

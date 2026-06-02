@@ -147,7 +147,7 @@ name = "lifecycle-review"
 purpose = "Focused independent review for lifecycle/readiness behavior."
 backend = "subagent"
 dispatch_hint = "Run near handoff after implementation stabilizes. For small later fixes, prefer targeted follow-up review for changed paths instead of rerunning the full broad review."
-applies_when = ["src/harness_toolkit/kit/**", "docs/portable-workflow.md"]
+applies_when = ["src/harness_toolkit/kit/**", "docs/explanation/portable-workflow.md"]
 required_when = ["src/harness_toolkit/kit/**"]
 
 [reviews.instructions]
@@ -197,5 +197,5 @@ Before installing or committing a profile, check:
 - Do instructions tell agents not to chase final readiness after every edit?
 
 See [Profile Reviews](profile-reviews.md) for the review schema and
-[Portable Workflow](portable-workflow.md) for profile discovery and target
+[Portable Workflow](../explanation/portable-workflow.md) for profile discovery and target
 resolution.

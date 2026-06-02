@@ -64,7 +64,7 @@ mise run init                                      # interactive
 mise run init -- --non-interactive --name myapp    # scripted
 ```
 
-See [Getting Started](getting-started.md) and [Init System](init-system.md).
+See [Getting Started](../how-to/getting-started.md) and [Init System](../explanation/init-system.md).
 
 ---
 
@@ -260,7 +260,7 @@ Uses the active plan's `decision_record`:
 - `adr` -> create or update a generated ADR under docs/explanation/decisions/
 
 On the scaffold repo itself, the validator also accepts the legacy ADR location
-under `docs/decisions/`.
+under `docs/reference/decisions/`.
 
 ---
 

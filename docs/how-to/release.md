@@ -29,7 +29,7 @@ uv tool install git+https://github.com/safurrier/harness-toolkit.git
 Install a pinned release tag:
 
 ```bash
-uv tool install git+https://github.com/safurrier/harness-toolkit.git@v0.2.0
+uv tool install git+https://github.com/safurrier/harness-toolkit.git@v0.3.0
 ```
 
 Install from a local checkout for development:
@@ -66,7 +66,7 @@ uv tool upgrade harness-toolkit
 Reinstall from a specific tag when you want to force the source:
 
 ```bash
-uv tool install --reinstall git+https://github.com/safurrier/harness-toolkit.git@v0.2.0
+uv tool install --reinstall git+https://github.com/safurrier/harness-toolkit.git@v0.3.0
 ```
 
 For editable local installs, pull the checkout and reinstall when entry points or
@@ -99,23 +99,23 @@ uv build
 Then create release notes, tag, and publish:
 
 ```bash
-cat > /tmp/harness-toolkit-v0.2.0-notes.md <<'NOTES'
+cat > /tmp/harness-toolkit-v0.3.0-notes.md <<'NOTES'
 ## Summary
-- See CHANGELOG.md for the v0.2.0 changes.
+- See CHANGELOG.md for the v0.3.0 changes.
 
 ## Install
-uv tool install git+https://github.com/safurrier/harness-toolkit.git@v0.2.0
+uv tool install git+https://github.com/safurrier/harness-toolkit.git@v0.3.0
 NOTES
 
-git tag v0.2.0
-git push origin v0.2.0
-gh release create v0.2.0 --title "v0.2.0" --notes-file /tmp/harness-toolkit-v0.2.0-notes.md
+git tag v0.3.0
+git push origin v0.3.0
+gh release create v0.3.0 --title "v0.3.0" --notes-file /tmp/harness-toolkit-v0.3.0-notes.md
 ```
 
 After publishing, verify from a clean environment when possible:
 
 ```bash
-uv tool install --reinstall git+https://github.com/safurrier/harness-toolkit.git@v0.2.0
+uv tool install --reinstall git+https://github.com/safurrier/harness-toolkit.git@v0.3.0
 hk --version
 harness-scaffold --version
 ```

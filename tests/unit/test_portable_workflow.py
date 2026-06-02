@@ -281,10 +281,10 @@ def test_profile_applicability_uses_gitignore_style_patterns() -> None:
     from harness_toolkit.kit.profiles import _matches_pattern
 
     assert _matches_pattern("README.md", "*.md") is True
-    assert _matches_pattern("docs/portable-workflow.md", "*.md") is True
+    assert _matches_pattern("docs/explanation/portable-workflow.md", "*.md") is True
     assert _matches_pattern("README.md", "/*.md") is True
-    assert _matches_pattern("docs/portable-workflow.md", "/*.md") is False
-    assert _matches_pattern("docs/portable-workflow.md", "docs/**") is True
+    assert _matches_pattern("docs/explanation/portable-workflow.md", "/*.md") is False
+    assert _matches_pattern("docs/explanation/portable-workflow.md", "docs/**") is True
     assert _matches_pattern(".github/workflows/ci.yml", "github/**") is False
     assert _matches_pattern(".github/workflows/ci.yml", ".github/**") is True
 
