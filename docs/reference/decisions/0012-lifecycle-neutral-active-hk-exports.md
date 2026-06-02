@@ -19,7 +19,7 @@ index:
 **Deciders**: Alex Furrier  
 **Generated from**: pr  
 **Origin**: Foreman/HK export-status dogfood  
-**Amends**: `docs/decisions/0010-compact-hk-export-packages.md`, `docs/decisions/0011-path-aware-review-freshness.md`
+**Amends**: `docs/reference/decisions/0010-compact-hk-export-packages.md`, `docs/reference/decisions/0011-path-aware-review-freshness.md`
 
 ---
 

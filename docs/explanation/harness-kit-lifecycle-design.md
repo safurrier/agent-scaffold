@@ -18,7 +18,7 @@ index:
 ## Status
 
 Draft implementation design, amended by
-`docs/decisions/0009-harness-kit-lifecycle-first-cli.md` after product review. This is
+`docs/reference/decisions/0009-harness-kit-lifecycle-first-cli.md` after product review. This is
 the repo-local companion to the vault note `Harness Kit SPEC.md`.
 
 The current implementation is a useful ledger/capture foundation, but it should
@@ -449,9 +449,9 @@ follow-up records with `hk review add --path PATH ...`; generated active HK expo
 refreshes are lifecycle-neutral for validation/review/sync freshness and readiness
 changed-path checks, and should be
 validated with export/sync checks, not another broad review or sync loop. See
-[ADR 0011](decisions/0011-path-aware-review-freshness.md) for why review
+[ADR 0011](../reference/decisions/0011-path-aware-review-freshness.md) for why review
 freshness is path/content-aware rather than exact whole-diff matching, and
-[ADR 0012](decisions/0012-lifecycle-neutral-active-hk-exports.md) for the active
+[ADR 0012](../reference/decisions/0012-lifecycle-neutral-active-hk-exports.md) for the active
 export projection boundary. If review
 is impossible, the agent must record `hk dangerously-skip review --label NAME --reason TEXT --mitigation TEXT`,
 which is auditable and renders in summary and handoff. Future review-source config is

@@ -30,41 +30,44 @@ theme:
 
 nav:
   - Home: index.md
-  - Getting Started: getting-started.md
-  - Agent Adoption: agent-adoption.md
-  - Task Contract: task-contract.md
-  - Repo Shapes: shapes.md
-  - Portable Workflow: portable-workflow.md
-  - "Harness Kit: Dumb Tasks, Smart Agents": harness-kit-what-and-why.md
-  - Profile Reviews: profile-reviews.md
-  - Profile Authoring: profile-authoring.md
-  - System Map Mental Model: system-map-mental-model.md
-  - System Map Authoring: system-map-authoring.md
-  - Harness Kit Design: harness-kit-lifecycle-design.md
-  - Scripts Contract Prototype: script-contract-prototype.md
-  - Release and Installation: release.md
-  - Stacks:
-      - Overview: stacks/index.md
-      - Acceptance Rubric: stacks/acceptance-rubric.md
-      - Python: stacks/python.md
-      - Go: stacks/go.md
-      - Rust: stacks/rust.md
-  - Init System: init-system.md
-  - CI & Hooks: ci.md
-  - Development: development.md
-  - Decisions:
-      - ADR 0001 — Spec-Driven Decision Loop: decisions/0001-spec-driven-decision-loop.md
-      - ADR 0002 — Plan Workflow: decisions/0002-plan-workflow.md
-      - ADR 0003 — Deterministic Slice Contract: decisions/0003-deterministic-slice-contract.md
-      - ADR 0004 — Skill-First Slice Workflow: decisions/0004-skill-first-slice-workflow.md
-      - ADR 0005 — Harden Sync Contract CI: decisions/0005-harden-sync-contract-ci.md
-      - ADR 0006 — Plan Contract Modules and Stack Rubric: decisions/0006-followup-contract-stack-rubric.md
-      - ADR 0007 — Harness Engineering Toolkit Naming: decisions/0007-harness-toolkit-naming.md
-      - ADR 0008 — Harness Kit Ledger-First Local Assistant: decisions/0008-harness-kit-ledger-first-local-assistant.md
-      - ADR 0009 — Harness Kit Lifecycle-First CLI: decisions/0009-harness-kit-lifecycle-first-cli.md
-      - ADR 0010 — Compact HK Export Packages: decisions/0010-compact-hk-export-packages.md
-      - ADR 0011 — Path-Aware Review Freshness: decisions/0011-path-aware-review-freshness.md
-      - ADR 0012 — Lifecycle-Neutral Active HK Exports: decisions/0012-lifecycle-neutral-active-hk-exports.md
+  - Explanation:
+      - "Harness Kit: Dumb Tasks, Smart Agents": explanation/harness-kit-what-and-why.md
+      - Portable Workflow: explanation/portable-workflow.md
+      - Harness Kit Design: explanation/harness-kit-lifecycle-design.md
+      - System Map Mental Model: explanation/system-map-mental-model.md
+      - Repo Shapes: explanation/shapes.md
+      - Init System: explanation/init-system.md
+      - CI & Hooks: explanation/ci.md
+      - Scripts Contract Prototype: explanation/script-contract-prototype.md
+  - How-to:
+      - Getting Started: how-to/getting-started.md
+      - Agent Adoption: how-to/agent-adoption.md
+      - Profile Reviews: how-to/profile-reviews.md
+      - Profile Authoring: how-to/profile-authoring.md
+      - System Map Authoring: how-to/system-map-authoring.md
+      - Development: how-to/development.md
+      - Release and Installation: how-to/release.md
+  - Reference:
+      - Task Contract: reference/task-contract.md
+      - Stacks:
+          - Overview: reference/stacks/index.md
+          - Acceptance Rubric: reference/stacks/acceptance-rubric.md
+          - Python: reference/stacks/python.md
+          - Go: reference/stacks/go.md
+          - Rust: reference/stacks/rust.md
+      - Decisions:
+          - ADR 0001 — Spec-Driven Decision Loop: reference/decisions/0001-spec-driven-decision-loop.md
+          - ADR 0002 — Plan Workflow: reference/decisions/0002-plan-workflow.md
+          - ADR 0003 — Deterministic Slice Contract: reference/decisions/0003-deterministic-slice-contract.md
+          - ADR 0004 — Skill-First Slice Workflow: reference/decisions/0004-skill-first-slice-workflow.md
+          - ADR 0005 — Harden Sync Contract CI: reference/decisions/0005-harden-sync-contract-ci.md
+          - ADR 0006 — Plan Contract Modules and Stack Rubric: reference/decisions/0006-followup-contract-stack-rubric.md
+          - ADR 0007 — Harness Engineering Toolkit Naming: reference/decisions/0007-harness-toolkit-naming.md
+          - ADR 0008 — Harness Kit Ledger-First Local Assistant: reference/decisions/0008-harness-kit-ledger-first-local-assistant.md
+          - ADR 0009 — Harness Kit Lifecycle-First CLI: reference/decisions/0009-harness-kit-lifecycle-first-cli.md
+          - ADR 0010 — Compact HK Export Packages: reference/decisions/0010-compact-hk-export-packages.md
+          - ADR 0011 — Path-Aware Review Freshness: reference/decisions/0011-path-aware-review-freshness.md
+          - ADR 0012 — Lifecycle-Neutral Active HK Exports: reference/decisions/0012-lifecycle-neutral-active-hk-exports.md
 
 markdown_extensions:
   - admonition

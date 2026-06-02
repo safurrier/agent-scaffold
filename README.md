@@ -1,6 +1,6 @@
 # harness-toolkit
 
-Harness Toolkit is a monorepo for two related but separate tools:
+Harness Toolkit is a monorepo for two related but separate tools built around one idea: **dumb tasks, smart agents**. Deterministic checks and explicit context make the task surface boring so the agent can spend its judgment on the actual work.
 
 - **`hk` / `harness-kit`** — a lifecycle and readiness CLI for existing
   repositories. It records plan, context, validation evidence, review, sync
@@ -27,7 +27,7 @@ uv tool install git+https://github.com/safurrier/harness-toolkit.git
 For a pinned release:
 
 ```bash
-uv tool install git+https://github.com/safurrier/harness-toolkit.git@v0.2.0
+uv tool install git+https://github.com/safurrier/harness-toolkit.git@v0.3.0
 ```
 
 For local development from a checkout:
@@ -44,8 +44,9 @@ harness-kit --version
 harness-scaffold --version
 ```
 
-See [Release and Installation](docs/release.md) for upgrade commands, release
-checklists, and the current no-PyPI-yet policy.
+See [Release and Installation](docs/how-to/release.md) for upgrade commands, release
+checklists, and the current no-PyPI-yet policy. The published docs site lives at
+<https://safurrier.github.io/harness-toolkit/>.
 
 ## App 1: `hk` for existing repositories
 
@@ -72,7 +73,7 @@ decision/spec reflection, validation evidence, external-enough review, sync, or
 an explicit dangerous skip when a lifecycle guarantee cannot be met.
 
 To make this the default behavior for agents, add the compact directive from
-[Agent Adoption](docs/agent-adoption.md) to your user-level or repo-level
+[Agent Adoption](docs/how-to/agent-adoption.md) to your user-level or repo-level
 `AGENTS.md`.
 
 ### `hk` lifecycle model
@@ -121,9 +122,9 @@ Common `hk` actions:
 
 Lower-level commands such as `hk note`, `hk evidence`, `hk capture`, and
 `hk spec` are escape hatches, not the promoted path. See
-[Harness Kit Design](docs/harness-kit-lifecycle-design.md),
-[Profile Authoring](docs/profile-authoring.md), and
-[Profile Reviews](docs/profile-reviews.md) for lifecycle and profile details.
+[Harness Kit Design](docs/explanation/harness-kit-lifecycle-design.md),
+[Profile Authoring](docs/how-to/profile-authoring.md), and
+[Profile Reviews](docs/how-to/profile-reviews.md) for lifecycle and profile details.
 
 ## App 2: `harness-scaffold` for new repositories
 
@@ -171,8 +172,8 @@ mise run check
 mise run dev
 ```
 
-See [Getting Started](docs/getting-started.md), [Task Contract](docs/task-contract.md),
-[Repo Shapes](docs/shapes.md), and [Stacks](docs/stacks/index.md) for the full
+See [Getting Started](docs/how-to/getting-started.md), [Task Contract](docs/reference/task-contract.md),
+[Repo Shapes](docs/explanation/shapes.md), and [Stacks](docs/reference/stacks/index.md) for the full
 scaffold reference.
 
 ### Scaffolded task contract, stacks, and shapes
@@ -196,8 +197,8 @@ Supported scaffold stacks:
 | Web / TypeScript | `prettier` | `eslint` | `tsc --noEmit` | `vitest` | Planned |
 
 Repo shapes are **single-project** and **apps workspace**. The full reference is
-in [Task Contract](docs/task-contract.md), [Stacks](docs/stacks/index.md), and
-[Repo Shapes](docs/shapes.md).
+in [Task Contract](docs/reference/task-contract.md), [Stacks](docs/reference/stacks/index.md), and
+[Repo Shapes](docs/explanation/shapes.md).
 
 ## Develop this checkout
 
@@ -245,10 +246,10 @@ version of `hk` before the installed tool is updated.
 
 ## More docs
 
-- [Harness Kit: Dumb Tasks, Smart Agents](docs/harness-kit-what-and-why.md) — what and why behind HK's lifecycle, config, and readiness model
-- [Harness Kit Design](docs/harness-kit-lifecycle-design.md) — lifecycle and ledger model
-- [Agent Adoption](docs/agent-adoption.md) — small `AGENTS.md` directive for agents
-- [Getting Started](docs/getting-started.md) — scaffold walkthrough
-- [Task Contract](docs/task-contract.md) — full generated task reference
-- [Development Guide](docs/development.md) — working on this checkout
-- [Release and Installation](docs/release.md) — install, upgrade, and release policy
+- [Harness Kit: Dumb Tasks, Smart Agents](docs/explanation/harness-kit-what-and-why.md) — what and why behind HK's lifecycle, config, and readiness model
+- [Harness Kit Design](docs/explanation/harness-kit-lifecycle-design.md) — lifecycle and ledger model
+- [Agent Adoption](docs/how-to/agent-adoption.md) — small `AGENTS.md` directive for agents
+- [Getting Started](docs/how-to/getting-started.md) — scaffold walkthrough
+- [Task Contract](docs/reference/task-contract.md) — full generated task reference
+- [Development Guide](docs/how-to/development.md) — working on this checkout
+- [Release and Installation](docs/how-to/release.md) — install, upgrade, and release policy

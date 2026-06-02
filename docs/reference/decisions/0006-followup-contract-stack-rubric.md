@@ -49,7 +49,7 @@ The CLI uses a tiny uv project and the `slice_workflow_cli` package:
 - `checks.py` runs the plan/spec/evidence/review/sync contract checks.
 - The contract package contains plan, git, markdown, artifact, and docs helpers.
 
-The project now also has `docs/stacks/acceptance-rubric.md`, which defines the
+The project now also has `docs/reference/stacks/acceptance-rubric.md`, which defines the
 required future-stack bar and reviewer checklist.
 
 ## Consequences

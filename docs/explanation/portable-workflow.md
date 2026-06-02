@@ -43,7 +43,7 @@ uv tool install git+https://github.com/safurrier/harness-toolkit.git
 For a pinned release:
 
 ```bash
-uv tool install git+https://github.com/safurrier/harness-toolkit.git@v0.2.0
+uv tool install git+https://github.com/safurrier/harness-toolkit.git@v0.3.0
 ```
 
 For local development from a checkout:
@@ -108,7 +108,7 @@ when needed.
 
 The intended adoption path is a tiny durable instruction in a user's global or
 repo-level `AGENTS.md`, not a pile of committed scaffold files in every shared
-repo. See [Agent Adoption](agent-adoption.md) for the user-level snippet and
+repo. See [Agent Adoption](../how-to/agent-adoption.md) for the user-level snippet and
 agent-facing first steps.
 
 Print the user-level snippet with:
@@ -245,7 +245,7 @@ follow-up review for specific changed paths. If the required item is genuinely
 impossible, record an auditable skip whose `--label` matches the check or review
 name. `hk checks --changed --json` and `hk status --json` include matched repo-root paths and the
 triggering path patterns so agents can explain why a check/review is required
-without reverse-engineering the profile TOML. See [Profile Reviews](profile-reviews.md)
+without reverse-engineering the profile TOML. See [Profile Reviews](../how-to/profile-reviews.md)
 for skill-backed review prompts and suggested vs required review patterns.
 
 Path rules use gitignore-style patterns. Patterns are evaluated against the
@@ -402,7 +402,7 @@ sources override earlier profiles with the same name. This means a compact
 `harness.toml` can keep only target bindings while profile bodies live in
 separate files.
 
-See [Profile Authoring](profile-authoring.md) for guidance on choosing
+See [Profile Authoring](../how-to/profile-authoring.md) for guidance on choosing
 `applies_when` vs `required_when`, avoiding expensive `required_when = ["*"]`
 patterns, and bounding advisory reviews.
 

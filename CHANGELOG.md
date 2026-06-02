@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.3.0 - 2026-06-02
+
+### Added
+
+- Added the "Harness Kit: Dumb Tasks, Smart Agents" docs page explaining HK's what/why thesis, lifecycle spine, config layers, skills boundary, and dogfood workflow.
+- Added a GitHub Pages documentation workflow that builds docs on PRs and deploys MkDocs from `main`.
+
+### Changed
+
+- Reorganized MkDocs navigation and docs files into intent-based `explanation/`, `how-to/`, and `reference/` sections.
+- Refreshed README positioning around the "dumb tasks, smart agents" thesis and linked the published docs site.
+- Updated documentation links and docs routing index for the new folder layout.
+
 ## v0.2.0 - 2026-05-15
 
 ### Added

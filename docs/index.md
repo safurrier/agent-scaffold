@@ -21,7 +21,7 @@ index:
 
 Use **`hk` / `harness-kit`** for portable planning, validation, and handoff workflow in existing repos. Use **`harness-scaffold`** to start a new repo with the workflow, docs, CI, and stack defaults already wired in.
 
-For the product philosophy behind HK's lifecycle, config, and readiness model, see [Harness Kit: Dumb Tasks, Smart Agents](harness-kit-what-and-why.md).
+For the product philosophy behind HK's lifecycle, config, and readiness model, see [Harness Kit: Dumb Tasks, Smart Agents](explanation/harness-kit-what-and-why.md).
 
 ## What it is
 
@@ -76,8 +76,8 @@ mise install
 mise run init
 ```
 
-See [Getting Started](getting-started.md) for the full walkthrough and
-[Release and Installation](release.md) for uv tool installs and tag releases.
+See [Getting Started](how-to/getting-started.md) for the full walkthrough and
+[Release and Installation](how-to/release.md) for uv tool installs and tag releases.
 
 ## Supported stacks
 
