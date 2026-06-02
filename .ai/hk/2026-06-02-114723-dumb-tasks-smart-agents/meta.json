@@ -1,0 +1,46 @@
+{
+  "attached_artifacts": [],
+  "branch": "docs/dumb-tasks-smart-agents",
+  "diff_hash": "sha256:96880483055394a865790a0880db52addc0e3b450e5c262787eb5572e715205a",
+  "dirty": true,
+  "event_count": 22,
+  "event_seq": 26,
+  "evidence_count": 15,
+  "evidence_ids": [
+    "ev_20260602_114852_255249",
+    "ev_20260602_115213_227309",
+    "ev_20260602_115837_242259",
+    "ev_20260602_115857_855821",
+    "ev_20260602_115905_706116",
+    "ev_20260602_115944_947400",
+    "ev_20260602_121031_437063",
+    "ev_20260602_121103_220162",
+    "ev_20260602_121113_363107",
+    "ev_20260602_121918_304939",
+    "ev_20260602_121934_379304",
+    "ev_20260602_122905_946241",
+    "ev_20260602_122913_984307",
+    "ev_20260602_123052_585416",
+    "ev_20260602_123101_212442"
+  ],
+  "file_hashes": {
+    "README.md": "sha256:ce14704b0d7ea274f6d0899c4849147fd3d9abde81565cb3dd586d9b27b7529c",
+    "artifacts/README.md": "sha256:c4bad9d4652f296a7e4dcf175fe1dd0c66a99ec0b74941cd45c499e84792436c"
+  },
+  "files": [
+    "README.md",
+    "meta.json",
+    "artifacts/README.md"
+  ],
+  "generated_at": "2026-06-02T19:31:19.747447+00:00",
+  "generated_by": "hk export --format handoff-dir",
+  "git_sha": "78b8737",
+  "output_path": ".ai/hk/2026-06-02-114723-dumb-tasks-smart-agents",
+  "ready": false,
+  "ready_status": "not-ready",
+  "schema_version": 1,
+  "sync_status": "synced",
+  "target_root": ".",
+  "target_scope": ".",
+  "work_id": "2026-06-02-114723-dumb-tasks-smart-agents"
+}

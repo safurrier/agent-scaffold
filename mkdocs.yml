@@ -35,6 +35,7 @@ nav:
   - Task Contract: task-contract.md
   - Repo Shapes: shapes.md
   - Portable Workflow: portable-workflow.md
+  - "Harness Kit: Dumb Tasks, Smart Agents": harness-kit-what-and-why.md
   - Profile Reviews: profile-reviews.md
   - Profile Authoring: profile-authoring.md
   - System Map Mental Model: system-map-mental-model.md
