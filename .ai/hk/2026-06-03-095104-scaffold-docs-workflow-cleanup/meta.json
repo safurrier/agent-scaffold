@@ -1,0 +1,36 @@
+{
+  "attached_artifacts": [],
+  "branch": "fix/scaffold-docs-workflow-cleanup",
+  "diff_hash": "sha256:869ee0329d25016cda373176f384bcff035610ffd1a1a59a6bf119934f1eb662",
+  "dirty": true,
+  "event_count": 11,
+  "event_seq": 11,
+  "evidence_count": 5,
+  "evidence_ids": [
+    "ev_20260603_095300_229030",
+    "ev_20260603_095342_455165",
+    "ev_20260603_095346_551795",
+    "ev_20260603_095654_681265",
+    "ev_20260603_100602_166174"
+  ],
+  "file_hashes": {
+    "README.md": "sha256:11039dec71d5b9632a1573859088490623e743fca9e47155281b5db26577a7e5",
+    "artifacts/README.md": "sha256:c4bad9d4652f296a7e4dcf175fe1dd0c66a99ec0b74941cd45c499e84792436c"
+  },
+  "files": [
+    "README.md",
+    "meta.json",
+    "artifacts/README.md"
+  ],
+  "generated_at": "2026-06-03T17:07:09.127280+00:00",
+  "generated_by": "hk export --format handoff-dir",
+  "git_sha": "73e6847",
+  "output_path": ".ai/hk/2026-06-03-095104-scaffold-docs-workflow-cleanup",
+  "ready": true,
+  "ready_status": "ready",
+  "schema_version": 1,
+  "sync_status": "synced",
+  "target_root": ".",
+  "target_scope": ".",
+  "work_id": "2026-06-03-095104-scaffold-docs-workflow-cleanup"
+}

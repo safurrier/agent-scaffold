@@ -110,6 +110,18 @@ def test_python_apps_tasks_survive_init(py_apps_init: Path, task: str) -> None:
     )
 
 
+@pytest.mark.parametrize("repo_fixture", ["py_single_init", "py_apps_init"])
+def test_scaffolded_python_projects_do_not_inherit_pages_workflow(
+    request: pytest.FixtureRequest,
+    repo_fixture: str,
+) -> None:
+    repo = request.getfixturevalue(repo_fixture)
+
+    assert not (repo / "mkdocs.yml").exists()
+    assert not (repo / ".github" / "workflows" / "docs.yml").exists()
+    assert (repo / ".github" / "workflows" / "ci.yml").exists()
+
+
 # ── Go combos (slow — require Go toolchain for init) ────────────────────
 
 
