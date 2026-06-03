@@ -188,11 +188,14 @@ def test_resolve_plan_artifact_path_rejects_parent_escape(tmp_path: Path) -> Non
 
 
 def test_resolve_repo_path_accepts_repo_local_paths(tmp_path: Path) -> None:
-    target = tmp_path / "docs" / "task-contract.md"
-    target.parent.mkdir()
+    target = tmp_path / "docs" / "reference" / "task-contract.md"
+    target.parent.mkdir(parents=True)
     target.write_text("ok\n")
 
-    assert resolve_repo_path(tmp_path, "docs/task-contract.md") == target.resolve()
+    assert (
+        resolve_repo_path(tmp_path, "docs/reference/task-contract.md")
+        == target.resolve()
+    )
 
 
 def test_resolve_repo_path_rejects_parent_escape(tmp_path: Path) -> None:

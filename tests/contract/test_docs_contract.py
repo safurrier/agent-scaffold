@@ -29,7 +29,7 @@ pytestmark = pytest.mark.contract
 
 DOCS_DIR = SCAFFOLD_ROOT / "docs"
 TEMPLATES_DIR = SCAFFOLD_ROOT / "templates"
-STACK_RUBRIC = DOCS_DIR / "stacks" / "acceptance-rubric.md"
+STACK_RUBRIC = DOCS_DIR / "reference" / "stacks" / "acceptance-rubric.md"
 
 # All docs/*.md files that MUST have frontmatter (excludes docs/AGENTS.md)
 DOCS_WITH_FRONTMATTER = find_doc_files(DOCS_DIR)
@@ -147,7 +147,9 @@ def test_mkdocs_nav_entries_exist() -> None:
 
 
 def test_stack_acceptance_rubric_exists() -> None:
-    assert STACK_RUBRIC.exists(), "docs/stacks/acceptance-rubric.md is missing"
+    assert STACK_RUBRIC.exists(), (
+        "docs/reference/stacks/acceptance-rubric.md is missing"
+    )
 
 
 def test_stack_acceptance_rubric_covers_required_contract() -> None:
@@ -172,12 +174,12 @@ def test_stack_acceptance_rubric_covers_required_contract() -> None:
 
 
 def test_development_guide_links_stack_rubric() -> None:
-    content = (DOCS_DIR / "development.md").read_text()
-    assert "stacks/acceptance-rubric.md" in content
+    content = (DOCS_DIR / "how-to" / "development.md").read_text()
+    assert "../reference/stacks/acceptance-rubric.md" in content
 
 
 def test_task_contract_docs_plan_contract_modules() -> None:
-    content = (DOCS_DIR / "task-contract.md").read_text()
+    content = (DOCS_DIR / "reference" / "task-contract.md").read_text()
     for module in [
         "templates/.agent/skills/slice-workflow/cli",
         ".agent/skills/slice-workflow/cli",

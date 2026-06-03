@@ -166,5 +166,5 @@ hk profile resolve --target . --json
 hk instructions --scope repo --profile python
 ```
 
-See [Portable Workflow](portable-workflow.md) for profiles, checks, and the
+See [Portable Workflow](../explanation/portable-workflow.md) for profiles, checks, and the
 longer command reference.

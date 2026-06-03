@@ -18,7 +18,7 @@ index:
 **Deciders**: Alex Furrier
 **Generated from**: Harness Kit product-direction review
 **Plan**: lifecycle recenter planning artifacts
-**Amends**: `docs/decisions/0008-harness-kit-ledger-first-local-assistant.md`
+**Amends**: `docs/reference/decisions/0008-harness-kit-ledger-first-local-assistant.md`
 
 ---
 

@@ -48,7 +48,7 @@ uv tool install git+https://github.com/safurrier/harness-toolkit.git
 For a pinned release tag:
 
 ```bash
-uv tool install git+https://github.com/safurrier/harness-toolkit.git@v0.2.0
+uv tool install git+https://github.com/safurrier/harness-toolkit.git@v0.3.0
 ```
 
 For local development from a checkout:
@@ -122,4 +122,4 @@ mise run dev     # start developing
 ```
 
 !!! tip "What init does"
-    See [Init System](init-system.md) for a detailed walkthrough of everything `mise run init` does to transform the scaffold into your project.
+    See [Init System](../explanation/init-system.md) for a detailed walkthrough of everything `mise run init` does to transform the scaffold into your project.

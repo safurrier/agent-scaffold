@@ -18,7 +18,7 @@ index:
 **Deciders**: Alex Furrier  
 **Generated from**: pr  
 **Origin**: PR #14 follow-up design discussion  
-**Amends**: `docs/decisions/0009-harness-kit-lifecycle-first-cli.md`
+**Amends**: `docs/reference/decisions/0009-harness-kit-lifecycle-first-cli.md`
 
 ---
 
@@ -145,6 +145,6 @@ handoff. The package shape matters more than renaming the format in this change.
 
 - PR #14: Make Harness Toolkit workflow HK-native
 - `SPEC.md` HK export view invariant
-- `docs/portable-workflow.md` HK export command reference
-- `docs/decisions/0008-harness-kit-ledger-first-local-assistant.md`
-- `docs/decisions/0009-harness-kit-lifecycle-first-cli.md`
+- `docs/explanation/portable-workflow.md` HK export command reference
+- `docs/reference/decisions/0008-harness-kit-ledger-first-local-assistant.md`
+- `docs/reference/decisions/0009-harness-kit-lifecycle-first-cli.md`
