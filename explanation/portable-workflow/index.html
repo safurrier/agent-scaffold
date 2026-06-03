@@ -1,0 +1,2419 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Harness Kit CLI for attaching portable planning workflow state to an existing repository without committing scaffold files.
+">
+      
+      
+      
+        <link rel="canonical" href="https://safurrier.github.io/harness-toolkit/explanation/portable-workflow/">
+      
+      
+        <link rel="prev" href="../harness-kit-what-and-why/">
+      
+      
+        <link rel="next" href="../harness-kit-lifecycle-design/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
+    
+    
+      
+        <title>Portable Workflow - harness-toolkit</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#portable-workflow" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="harness-toolkit" class="md-header__button md-logo" aria-label="harness-toolkit" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            harness-toolkit
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Portable Workflow
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/safurrier/harness-toolkit" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    safurrier/harness-toolkit
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../harness-kit-what-and-why/" class="md-tabs__link">
+          
+  
+  
+  Explanation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../how-to/getting-started/" class="md-tabs__link">
+          
+  
+  
+  How-to
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/task-contract/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="harness-toolkit" class="md-nav__button md-logo" aria-label="harness-toolkit" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    harness-toolkit
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/safurrier/harness-toolkit" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    safurrier/harness-toolkit
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Explanation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Explanation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../harness-kit-what-and-why/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Harness Kit: Dumb Tasks, Smart Agents
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Portable Workflow
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Portable Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#install" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#which-workflow-should-i-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Which workflow should I use?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#harness-instruction-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Harness instruction model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#local-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local state
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#agent-journey" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent journey
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#user-config-and-profiles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        User config and profiles
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commands
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#current-limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current limitations
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../harness-kit-lifecycle-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Harness Kit Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../system-map-mental-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    System Map Mental Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../shapes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Repo Shapes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../init-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Init System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ci/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI & Hooks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../script-contract-prototype/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scripts Contract Prototype
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/agent-adoption/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Adoption
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/profile-reviews/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Profile Reviews
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/profile-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Profile Authoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/system-map-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    System Map Authoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/release/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release and Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/task-contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Task Contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stacks
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Stacks
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/stacks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/stacks/acceptance-rubric/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Acceptance Rubric
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/stacks/python/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Python
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/stacks/go/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Go
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/stacks/rust/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rust
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisions
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Decisions
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/decisions/0001-spec-driven-decision-loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR 0001 — Spec-Driven Decision Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/decisions/0002-plan-workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR 0002 — Plan Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/decisions/0003-deterministic-slice-contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR 0003 — Deterministic Slice Contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/decisions/0004-skill-first-slice-workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR 0004 — Skill-First Slice Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/decisions/0005-harden-sync-contract-ci/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR 0005 — Harden Sync Contract CI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/decisions/0006-followup-contract-stack-rubric/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR 0006 — Plan Contract Modules and Stack Rubric
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/decisions/0007-harness-toolkit-naming/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR 0007 — Harness Engineering Toolkit Naming
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/decisions/0008-harness-kit-ledger-first-local-assistant/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR 0008 — Harness Kit Ledger-First Local Assistant
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/decisions/0009-harness-kit-lifecycle-first-cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR 0009 — Harness Kit Lifecycle-First CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/decisions/0010-compact-hk-export-packages/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR 0010 — Compact HK Export Packages
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/decisions/0011-path-aware-review-freshness/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR 0011 — Path-Aware Review Freshness
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/decisions/0012-lifecycle-neutral-active-hk-exports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR 0012 — Lifecycle-Neutral Active HK Exports
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#install" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#which-workflow-should-i-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Which workflow should I use?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#harness-instruction-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Harness instruction model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#local-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local state
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#agent-journey" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent journey
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#user-config-and-profiles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        User config and profiles
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commands
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#current-limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current limitations
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="portable-workflow">Portable Workflow<a class="headerlink" href="#portable-workflow" title="Permanent link">&para;</a></h1>
+<p><code>hk</code> is the Harness Kit CLI for using portable planning and local-assistant
+workflow state in a repository that was not initialized from harness-scaffold. It
+is meant for shared codebases where committing <code>.ai/</code>, <code>.agent/</code>, <code>.mise/</code>,
+<code>.harness/</code>, or <code>.gitignore</code> changes is not appropriate. The readable command is
+<code>harness-kit</code>; the daily short command is <code>hk</code>.</p>
+<p>Harness Kit is a lifecycle-first local assistant backed by ledger state:
+read-only repo briefs, ignored/external work ledgers, typed learning/decision/gap
+notes, sync checkpoints, captured command evidence, generated handoffs, and
+optional local specs. See <a href="../harness-kit-lifecycle-design/">Harness Kit Design</a>.</p>
+<p>The CLI uses Cyclopts so command signatures carry Python type information (for
+example <code>Literal["external", "overlay"]</code> for mode choices) while still producing
+focused help for agents.</p>
+<h2 id="install">Install<a class="headerlink" href="#install" title="Permanent link">&para;</a></h2>
+<p>Install <code>hk</code> from GitHub as a uv tool:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>uv<span class="w"> </span>tool<span class="w"> </span>install<span class="w"> </span>git+https://github.com/safurrier/harness-toolkit.git
+</code></pre></div>
+<p>For a pinned release:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>uv<span class="w"> </span>tool<span class="w"> </span>install<span class="w"> </span>git+https://github.com/safurrier/harness-toolkit.git@v0.3.0
+</code></pre></div>
+<p>For local development from a checkout:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>uv<span class="w"> </span>tool<span class="w"> </span>install<span class="w"> </span>--editable<span class="w"> </span>~/git_repositories/harness-toolkit
+</code></pre></div>
+<p>Verify:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>hk<span class="w"> </span>--version
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>harness-kit<span class="w"> </span>--version
+</code></pre></div>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<p>Harness Kit keeps workflow state separate from target repository ownership:
+<code>--target</code> identifies the repo or module that owns the work, while <code>--profile</code>
+identifies the workflow/check contract to follow.</p>
+<h2 id="which-workflow-should-i-use">Which workflow should I use?<a class="headerlink" href="#which-workflow-should-i-use" title="Permanent link">&para;</a></h2>
+<p>Harness Kit exposes a lifecycle for agent work that needs local memory, exact
+command evidence, review records, readiness checks, and a generated handoff
+without committing ceremony:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>hk<span class="w"> </span>brief<span class="w"> </span>--target<span class="w"> </span>.<span class="w"> </span>--json
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>hk<span class="w"> </span>start<span class="w"> </span>demo-work<span class="w"> </span>--plan<span class="w"> </span><span class="s1">&#39;Adopted implementation intent&#39;</span><span class="w"> </span>--target<span class="w"> </span>.<span class="w"> </span>--json
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>hk<span class="w"> </span>validate<span class="w"> </span>--why<span class="w"> </span><span class="s1">&#39;Fast gate passes&#39;</span><span class="w"> </span>--target<span class="w"> </span>.<span class="w"> </span>--<span class="w"> </span>mise<span class="w"> </span>run<span class="w"> </span>check
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>hk<span class="w"> </span>status<span class="w"> </span>--target<span class="w"> </span>.<span class="w"> </span>--json
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>hk<span class="w"> </span>ready<span class="w"> </span>--target<span class="w"> </span>.<span class="w"> </span>--json
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>hk<span class="w"> </span>handoff<span class="w"> </span>--target<span class="w"> </span>.<span class="w"> </span>--format<span class="w"> </span>markdown
+</code></pre></div>
+<p>Portable plan-artifact commands were removed from <code>hk</code>: there is no <code>hk
+attach</code>, <code>hk legacy plan</code>, or <code>hk legacy sync-check</code>. Scaffolded repos still keep
+the durable plan-package workflow through <code>mise run plan</code> and <code>mise run
+sync-check</code>, backed by the separate slice-workflow CLI.</p>
+<p>Conceptually, the intended agent/human lifecycle is:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>research → plan → implement → validate → review → handoff
+</code></pre></div>
+<p>Planning can happen outside HK in chat, issues, or scratch docs. Once the plan is
+stable enough to implement, agents should translate the agreed intent into a
+compact HK plan note, for example:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>hk<span class="w"> </span>plan<span class="w"> </span>--from-file<span class="w"> </span>/tmp/adopted-plan.md<span class="w"> </span>--target<span class="w"> </span>.
+</code></pre></div>
+<p>HK records the explicit plan; it does not parse conversations or infer plans.
+Today, plan artifacts represent that lifecycle as Markdown/YAML files. Harness Kit's
+target is to represent it as ledger events and generate the Markdown/YAML views
+when needed.</p>
+<h2 id="harness-instruction-model">Harness instruction model<a class="headerlink" href="#harness-instruction-model" title="Permanent link">&para;</a></h2>
+<p>The intended adoption path is a tiny durable instruction in a user's global or
+repo-level <code>AGENTS.md</code>, not a pile of committed scaffold files in every shared
+repo. See <a href="../../how-to/agent-adoption/">Agent Adoption</a> for the user-level snippet and
+agent-facing first steps.</p>
+<p>Print the user-level snippet with:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>hk<span class="w"> </span>instructions
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>hk<span class="w"> </span>instructions<span class="w"> </span>--scope<span class="w"> </span>user<span class="w"> </span>--json
+</code></pre></div>
+<p>For repo-local adoption, <code>hk instructions --scope repo</code> prints a fuller
+profile-specific snippet:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="gu">## Portable agent workflow</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>Use <span class="sb">`hk`</span> for meaningful work in this repo or scoped path unless stronger repo-specific instructions supersede it. Treat Harness Kit and agent-generated local state as uncommitted unless the repo instructions or user explicitly say it should be committed.
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>Standard loop:
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="sb">```bash</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>hk<span class="w"> </span>brief<span class="w"> </span>--target<span class="w"> </span>.<span class="w"> </span>--json
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>hk<span class="w"> </span>start<span class="w"> </span>demo-work<span class="w"> </span>--plan<span class="w"> </span><span class="s1">&#39;Adopted implementation intent&#39;</span><span class="w"> </span>--target<span class="w"> </span>.<span class="w"> </span>--json
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>hk<span class="w"> </span>checks<span class="w"> </span>--target<span class="w"> </span>.<span class="w"> </span>--json
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>hk<span class="w"> </span>validate<span class="w"> </span>--why<span class="w"> </span><span class="s1">&#39;Fast gate passes&#39;</span><span class="w"> </span>--target<span class="w"> </span>.<span class="w"> </span>--<span class="w"> </span>mise<span class="w"> </span>run<span class="w"> </span>check
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>hk<span class="w"> </span>status<span class="w"> </span>--target<span class="w"> </span>.<span class="w"> </span>--json
+<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>hk<span class="w"> </span>ready<span class="w"> </span>--target<span class="w"> </span>.<span class="w"> </span>--json
+<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>hk<span class="w"> </span>handoff<span class="w"> </span>--target<span class="w"> </span>.
+<a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="sb">```</span>
+<a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a>
+<a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a>For monorepos, pass <span class="sb">`--target`</span> as the subdirectory that owns the lifecycle state.
+<a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a>HK stores local state under <span class="sb">`.harness-local/`</span>, ignored via <span class="sb">`.git/info/exclude`</span>.
+</code></pre></div>
+<h2 id="local-state">Local state<a class="headerlink" href="#local-state" title="Permanent link">&para;</a></h2>
+<p>Harness Kit state is local to the target checkout by default. It lives under
+<code>.harness-local/</code> and HK adds a local-only ignore rule to <code>.git/info/exclude</code>.
+There is no external/overlay plan-artifact mode in <code>hk</code> anymore.</p>
+<h2 id="agent-journey">Agent journey<a class="headerlink" href="#agent-journey" title="Permanent link">&para;</a></h2>
+<p><code>hk</code> is a readiness ledger for serious agent-driven changes. It is not trying
+to be a human task manager or a native task runner. Humans usually add a small
+<code>AGENTS.md</code> directive, shape the work in chat/issues/scratch docs, then hand the
+agreed intent to an implementation agent and tell it to use <code>hk</code>. HK is most
+useful when the change is broad, risky, multi-step, likely to span context
+compaction, or when skipped validation needs to be explicit.</p>
+<p>The minimal path is:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>hk<span class="w"> </span>start<span class="w"> </span>demo-work<span class="w"> </span>--plan<span class="w"> </span><span class="s1">&#39;Adopted implementation intent&#39;</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>hk<span class="w"> </span>validate<span class="w"> </span>--why<span class="w"> </span><span class="s1">&#39;Fast gate passes&#39;</span><span class="w"> </span>--<span class="w"> </span>mise<span class="w"> </span>run<span class="w"> </span>check
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>hk<span class="w"> </span>status
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>hk<span class="w"> </span>ready
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>hk<span class="w"> </span>summary
+</code></pre></div>
+<p>If an agent retries <code>hk start</code> with the same slug while that work item is still
+active, HK resumes the active work item instead of creating duplicate retry
+state. Use a new slug only when you intentionally want a separate work item.
+<code>hk start --plan</code> is a convenient seed, not a requirement to predict every step
+up front; agents can use repeated <code>hk plan "..."</code> notes as a living plan when
+the implementation shape emerges progressively.</p>
+<p><code>hk status</code> is the journey guide. It tells the agent when to record context,
+decisions/spec impact, review, sync, or explicit dangerous skips.</p>
+<h2 id="user-config-and-profiles">User config and profiles<a class="headerlink" href="#user-config-and-profiles" title="Permanent link">&para;</a></h2>
+<p>For cross-repo use, HK can load a user-level config from:</p>
+<ol>
+<li><code>$HARNESS_KIT_CONFIG</code></li>
+<li><code>$XDG_CONFIG_HOME/harness-toolkit/harness.toml</code></li>
+<li><code>~/.config/harness-toolkit/harness.toml</code></li>
+</ol>
+<p>The config is explicit routing plus inline or directory-backed profile guidance.
+It does not auto-run checks and does not silently ignore sync paths.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="n">default_profile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;generic&quot;</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="c1"># Optional: load standalone profile TOML files relative to this config file.</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="n">profiles_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;profiles&quot;</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="k">[[targets]]</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;foreman&quot;</span>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;~/git_repositories/foreman&quot;</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="n">profile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;foreman&quot;</span>
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="c1"># Optional personal/user-level system map for shared repos or dots-managed overlays.</span>
+<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a><span class="c1"># Paths inside the map remain repo-root-relative.</span>
+<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a><span class="n">system_map</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;system-maps/foreman.toml&quot;</span>
+<a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>
+<a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a><span class="k">[profiles.foreman]</span>
+<a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a><span class="n">title</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Foreman&quot;</span>
+<a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a><span class="n">summary</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Rust CLI/TUI project.&quot;</span>
+<a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a><span class="n">target_hint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;~/git_repositories/foreman&quot;</span>
+<a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a><span class="n">instructions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;&quot;</span>
+<a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a><span class="s2">Use focused cargo tests while iterating.</span>
+<a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a><span class="s2">Use `cargo fmt --check` before handoff.</span>
+<a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a><span class="s2">For review, use Codex via `codex review --uncommitted` when available.</span>
+<a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a><span class="s2">&quot;&quot;&quot;</span>
+<a id="__codelineno-10-23" name="__codelineno-10-23" href="#__codelineno-10-23"></a>
+<a id="__codelineno-10-24" name="__codelineno-10-24" href="#__codelineno-10-24"></a><span class="k">[[profiles.foreman.checks]]</span>
+<a id="__codelineno-10-25" name="__codelineno-10-25" href="#__codelineno-10-25"></a><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;cli-config-tests&quot;</span>
+<a id="__codelineno-10-26" name="__codelineno-10-26" href="#__codelineno-10-26"></a><span class="n">purpose</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Run CLI config tests.&quot;</span>
+<a id="__codelineno-10-27" name="__codelineno-10-27" href="#__codelineno-10-27"></a><span class="n">command_template</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;cargo test --test cli_config&quot;</span>
+<a id="__codelineno-10-28" name="__codelineno-10-28" href="#__codelineno-10-28"></a><span class="n">run_from</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;repo-root&quot;</span>
+<a id="__codelineno-10-29" name="__codelineno-10-29" href="#__codelineno-10-29"></a><span class="n">applies_when</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;src/cli/**&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;tests/cli/**&quot;</span><span class="p">]</span>
+<a id="__codelineno-10-30" name="__codelineno-10-30" href="#__codelineno-10-30"></a><span class="n">required_when</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;src/cli/**&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;!src/cli/generated/**&quot;</span><span class="p">]</span>
+<a id="__codelineno-10-31" name="__codelineno-10-31" href="#__codelineno-10-31"></a>
+<a id="__codelineno-10-32" name="__codelineno-10-32" href="#__codelineno-10-32"></a><span class="k">[[profiles.foreman.reviews]]</span>
+<a id="__codelineno-10-33" name="__codelineno-10-33" href="#__codelineno-10-33"></a><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;agent-friendly-cli-review&quot;</span>
+<a id="__codelineno-10-34" name="__codelineno-10-34" href="#__codelineno-10-34"></a><span class="n">purpose</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Review CLI changes against agent-facing CLI design principles.&quot;</span>
+<a id="__codelineno-10-35" name="__codelineno-10-35" href="#__codelineno-10-35"></a><span class="n">backend</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;fresh-context-subagent&quot;</span>
+<a id="__codelineno-10-36" name="__codelineno-10-36" href="#__codelineno-10-36"></a><span class="n">dispatch_hint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Use a fresh-context reviewer.&quot;</span>
+<a id="__codelineno-10-37" name="__codelineno-10-37" href="#__codelineno-10-37"></a><span class="n">applies_when</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;src/cli/**&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;docs/**&quot;</span><span class="p">]</span>
+<a id="__codelineno-10-38" name="__codelineno-10-38" href="#__codelineno-10-38"></a><span class="n">required_when</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;src/cli/**&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;!src/cli/generated/**&quot;</span><span class="p">]</span>
+<a id="__codelineno-10-39" name="__codelineno-10-39" href="#__codelineno-10-39"></a>
+<a id="__codelineno-10-40" name="__codelineno-10-40" href="#__codelineno-10-40"></a><span class="k">[profiles.foreman.reviews.instructions]</span>
+<a id="__codelineno-10-41" name="__codelineno-10-41" href="#__codelineno-10-41"></a><span class="n">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;file&quot;</span>
+<a id="__codelineno-10-42" name="__codelineno-10-42" href="#__codelineno-10-42"></a><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;prompts/agent-friendly-cli-review.md&quot;</span>
+</code></pre></div>
+<p><code>applies_when</code> makes <code>hk checks --changed</code> and <code>hk status</code> suggest an item for matching changed
+paths. <code>required_when</code> makes readiness expect that named check/review when the
+path rule matches <strong>when that profile is the target's resolved user-config
+profile</strong>. Profiles inspected with <code>--profile</code> / <code>--profiles-dir</code> are discovery
+only unless they are also bound through user config. Agents satisfy required
+checks with <code>hk validate --check fast-gate --why "Fast gate passes" -- mise run check</code> using the matching native command, and required
+reviews with <code>hk review add --review NAME ...</code>. Later small deltas can use
+<code>hk review add --review NAME --path REPO_RELATIVE_PATH ...</code> to record targeted
+follow-up review for specific changed paths. If the required item is genuinely
+impossible, record an auditable skip whose <code>--label</code> matches the check or review
+name. <code>hk checks --changed --json</code> and <code>hk status --json</code> include matched repo-root paths and the
+triggering path patterns so agents can explain why a check/review is required
+without reverse-engineering the profile TOML. See <a href="../../how-to/profile-reviews/">Profile Reviews</a>
+for skill-backed review prompts and suggested vs required review patterns.</p>
+<p>Path rules use gitignore-style patterns. Patterns are evaluated against the
+repo-root-relative changed path and, when <code>--target</code> points at a subdirectory,
+against the changed path relative to that target. This lets a module profile use
+natural target-relative rules such as <code>cap/**</code> while still accepting explicit
+repo-root rules such as <code>discord_cap/cap/**</code>. Matched paths in output remain
+repo-root-relative so evidence and review prompts line up with Git.</p>
+<p>Important examples:</p>
+<ul>
+<li><code>*.md</code> matches Markdown files at any depth, including <code>docs/guide.md</code>.</li>
+<li><code>/*.md</code> matches Markdown files only at the repo root.</li>
+<li><code>docs/**</code> matches everything under <code>docs/</code>.</li>
+<li><code>.github/**</code> is required for dot-directories; <code>github/**</code> does not match <code>.github/</code>.</li>
+<li>Later negated patterns can remove matches, e.g. <code>required_when = ["src/**", "!src/generated/**"]</code>.</li>
+</ul>
+<p>Use:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>hk<span class="w"> </span>profile<span class="w"> </span>resolve<span class="w"> </span>--target<span class="w"> </span>.<span class="w"> </span>--json<span class="w">   </span><span class="c1"># includes direct/default/worktree match kind</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>hk<span class="w"> </span>checks<span class="w"> </span>--target<span class="w"> </span>.<span class="w"> </span>--changed<span class="w"> </span>--json<span class="w">  </span><span class="c1"># includes matched files and triggering patterns</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>hk<span class="w"> </span>review<span class="w"> </span>prompt<span class="w"> </span>agent-friendly-cli-review<span class="w"> </span>--target<span class="w"> </span>.
+</code></pre></div>
+<p>Profile flags are discovery inputs, not lifecycle state. Use <code>--profile</code> and
+<code>--profiles-dir</code> with commands that explicitly document them, such as
+<code>hk checks</code>, <code>hk profile</code>, and repo-scope <code>hk instructions</code>; do not pass those
+flags to lifecycle commands such as <code>hk start</code>, <code>hk validate</code>, <code>hk status</code>,
+<code>hk ready</code>, or <code>hk handoff</code>.</p>
+<p>Resolution uses explicit longest path-prefix matching first. If no configured
+path matches and the target is in a Git linked worktree, HK compares Git common
+directories and projects configured repo/module target bindings into the linked
+worktree before applying the same longest-prefix rule. This lets ephemeral agent
+worktrees inherit canonical repo profiles without adding temporary target entries.
+Separate clones are not auto-matched by remote URL. If a profile has multiple
+review entries, the agent should dispatch the applicable ones independently/in
+parallel when the harness supports it, then record accepted reviews with
+<code>hk review add --review NAME ...</code>.</p>
+<p>Repo-level <code>.harness/harness.toml</code>, structured review backend adapters, and
+persistent sync ignore config are deferred.</p>
+<h2 id="commands">Commands<a class="headerlink" href="#commands" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hk brief</code></td>
+<td>Print a read-only repo brief without choosing validation commands; JSON includes Git worktree facts and handoff export status for dashboard/card integrations</td>
+</tr>
+<tr>
+<td><code>hk init</code></td>
+<td>Initialize ignored local Harness Kit state</td>
+</tr>
+<tr>
+<td><code>hk start demo-work --plan &lt;text&gt;</code></td>
+<td>Start a lifecycle work item and optionally seed context/plan records; same-slug retries resume the active work item</td>
+</tr>
+<tr>
+<td><code>hk work start</code></td>
+<td>Advanced compatibility surface for ledger-backed local work units</td>
+</tr>
+<tr>
+<td><code>hk note</code></td>
+<td>Advanced: append typed plan, background, learning, decision, gap, or spec-impact notes</td>
+</tr>
+<tr>
+<td><code>hk status</code></td>
+<td>Show active work, readiness checks, and next-action guidance for the agent loop</td>
+</tr>
+<tr>
+<td><code>hk sync</code></td>
+<td>Record or check a freshness checkpoint for the active work snapshot; use <code>--exclude PATH --reason TEXT</code> for explicit one-shot untracked local-state exclusions; HK records/revalidates excluded path metadata instead of using a tiny hardcoded allowlist</td>
+</tr>
+<tr>
+<td><code>hk capture</code></td>
+<td>Advanced: run a native command and record exact evidence</td>
+</tr>
+<tr>
+<td><code>hk artifact attach</code></td>
+<td>Attach a real harness/tool-produced file such as an agent session transcript, Codex review transcript, HAR file, or validation artifact; HK copies/references it, hashes it, and renders metadata in handoff/export</td>
+</tr>
+<tr>
+<td><code>hk artifact list</code></td>
+<td>Read-only list of attached artifacts for the active work; use after attach to verify kind, label, redaction, size, hash, and copied/reference path</td>
+</tr>
+<tr>
+<td><code>hk review prompt REVIEW_NAME</code></td>
+<td>Print a profile-named reviewer prompt from <code>hk status</code> / <code>hk checks --changed</code> to dispatch to an independent AI/tool or fresh-context reviewer, e.g. Pi <code>subagent</code>, Claude Code <code>Agent</code>/<code>Task</code> alias, or Codex via Shell tool running <code>codex review --uncommitted</code>; re-run <code>hk status</code> after review tools run</td>
+</tr>
+<tr>
+<td><code>hk review add --path src/foo.py ...</code></td>
+<td>Record a targeted follow-up review for one or more currently changed repo-relative paths; HK uses path/content facts to avoid whole-diff review thrash</td>
+</tr>
+<tr>
+<td><code>hk summary</code></td>
+<td>Render a concise human-readable readiness digest for PRs/review</td>
+</tr>
+<tr>
+<td><code>hk handoff</code></td>
+<td>Render a longer transfer artifact from the work ledger; <code>--json</code> returns live markdown content without writing files</td>
+</tr>
+<tr>
+<td><code>hk export --format handoff-dir</code></td>
+<td>Generate a compact committed handoff package such as <code>.ai/hk/2026-05-09-120000-demo/</code> from the HK ledger (<code>README.md</code>, <code>meta.json</code>, explicit-only <code>artifacts/</code>); active <code>.ai/hk/&lt;work-id&gt;/</code> exports are lifecycle-neutral for validation/review/sync freshness and readiness changed-path checks, and <code>--check --json</code> validates package freshness with structured fresh/missing/stale/invalid/no-active-work states while preserving nonzero exits for non-fresh exports</td>
+</tr>
+<tr>
+<td><code>hk spec</code></td>
+<td>Manage optional local/external spec drafts</td>
+</tr>
+<tr>
+<td><code>hk instructions</code></td>
+<td>Print the compact user-level <code>AGENTS.md</code> snippet; use <code>--scope repo</code> for a fuller profile-specific repo snippet</td>
+</tr>
+<tr>
+<td><code>hk profile list</code></td>
+<td>List built-in/custom/user-config profile contracts and model-directed selection guidance</td>
+</tr>
+<tr>
+<td><code>hk profile resolve</code></td>
+<td>Resolve the configured profile for a target using explicit user config bindings, including Git linked-worktree projection</td>
+</tr>
+<tr>
+<td><code>hk profile show &lt;name&gt;</code></td>
+<td>Show one profile's instructions, checks, and review guidance</td>
+</tr>
+<tr>
+<td><code>hk profile create &lt;name&gt;</code></td>
+<td>Create an editable custom profile TOML template</td>
+</tr>
+<tr>
+<td><code>hk config inspect</code></td>
+<td>Read-only snapshot of resolved <code>harness.toml</code>, target binding, profile, and active system-map source/status</td>
+</tr>
+<tr>
+<td><code>hk config validate</code></td>
+<td>Deterministically validate config/profile/system-map references; does not run profile commands or change readiness semantics</td>
+</tr>
+<tr>
+<td><code>hk config explain --changed\|--path PATH</code></td>
+<td>Explain why profile checks/reviews and system-map invariants surface for changed or explicit paths</td>
+</tr>
+<tr>
+<td><code>hk config audit</code></td>
+<td>Advisory read-only drift/surprise report for config joins; exits zero by default</td>
+</tr>
+<tr>
+<td><code>hk checks [--profile &lt;name&gt;] [--changed]</code></td>
+<td>Show named verification loops and review guidance without executing them; <code>--changed</code> adds path-rule suggestions, required items, matched files, and triggering patterns</td>
+</tr>
+<tr>
+<td><code>hk plan &lt;text&gt;</code></td>
+<td>Record or refine the lifecycle implementation plan for active Harness Kit work</td>
+</tr>
+<tr>
+<td><code>hk dangerously-skip review\|validation\|sync --label &lt;name&gt; --reason &lt;text&gt; --mitigation &lt;text&gt;</code></td>
+<td>Explicitly record an auditable dangerous skip when a lifecycle guarantee cannot be satisfied; skips render in summary, handoff, and PR handoff</td>
+</tr>
+</tbody>
+</table>
+<p>Portable plan-artifact commands have been removed from <code>hk</code>. Use scaffold <code>mise run
+plan</code> and <code>mise run sync-check</code> for generated-repo committed plan packages. For
+HK-native repos that want durable review artifacts, generate compact committed
+packages with <code>hk export --format handoff-dir --output .ai/hk/2026-05-09-120000-demo</code>
+instead of hand-authoring <code>.ai/plans</code> files. The export is a projection, not a
+second ledger: <code>README.md</code> is the human handoff, <code>meta.json</code> is machine
+freshness/integrity data, and <code>artifacts/</code> is for explicit copied attachments only; <code>--no-copy</code> attachments remain referenced by metadata. The active <code>.ai/hk/&lt;work-id&gt;/</code> package is generated/derived and does not by itself stale validation/review/sync freshness or readiness changed-path checks; validate export integrity with <code>hk export --format handoff-dir --check</code> or <code>mise run sync-check</code>.</p>
+<p>Config diagnostics are intentionally narrower than authoring. They can inspect,
+validate, audit, and explain deterministic joins between target bindings,
+profiles, review prompt files, and system-map labels. They do <strong>not</strong> infer
+architecture, draft authoritative profiles/system maps, execute validation, or
+create readiness blockers. Use the profile/system-map authoring skills for
+judgment-heavy create or audit/update proposals.</p>
+<p>Profiles are small workflow contracts for agentic engineering checks and
+reviews. They describe what exists for an environment; they do <strong>not</strong> run those
+checks or reviews. Well-authored profiles also separate focused iteration checks
+from final closeout gates so agents do not rerun broad validation and review
+stacks after every small edit. Agents should run the suggested validation command
+directly so the raw output stays visible in the normal shell loop, then record
+the exact command/result with <code>hk validate --why</code> for Harness Kit lifecycle work.
+When a profile check is named, record it with <code>hk validate --check NAME --why ...</code>.</p>
+<p>Initial built-in profiles:</p>
+<ul>
+<li><code>generic</code></li>
+<li><code>python</code></li>
+<li><code>go</code></li>
+<li><code>rust</code></li>
+<li><code>rust-mise</code></li>
+</ul>
+<p>Example discovery:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>hk<span class="w"> </span>profile<span class="w"> </span>list<span class="w"> </span>--target<span class="w"> </span>/path/to/repo<span class="w"> </span>--json
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>hk<span class="w"> </span>checks<span class="w"> </span>--profile<span class="w"> </span>python<span class="w"> </span>--target<span class="w"> </span>/path/to/python-project<span class="w"> </span>--changed<span class="w"> </span>--json
+</code></pre></div>
+<p><code>profile list --target</code> does not score, rank, or implicitly choose a profile. It
+prints available profile contracts plus few-shot selection guidance for the
+agent. Agents inspect the target scope, choose the closest profile, tell the user
+once why they chose it, and then use that profile consistently. During
+implementation, use focused profile checks and targeted validation; save broad
+required gates and reviews for closeout once the implementation is stable. After
+small review fixes, prefer targeted follow-up validation/review for changed paths
+instead of rerunning the whole stack unless behavior or design changed. In
+monorepos, <code>--target</code> should usually be the module/package/crate directory that
+owns the work, not the repo root.</p>
+<p>The selection order is conceptual, not algorithmic:</p>
+<ol>
+<li>exact target/module profile, for example <code>my-project-api</code></li>
+<li>repo-specific profile, for example <code>foreman-root</code></li>
+<li>stack/task-runner profile, for example <code>python</code> or <code>rust-mise</code></li>
+<li><code>generic</code></li>
+</ol>
+<p>For example, a mixed repo root with a Python manifest under a module such as
+<code>packages/api</code> should use <code>--target packages/api</code> and choose <code>python</code> unless a
+custom profile like <code>my-project-api</code> exists. A Rust repo or crate with <code>.mise.toml</code> and repo guidance
+naming mise gates should choose <code>rust-mise</code> unless an exact module/repo profile
+exists.</p>
+<p>Custom profiles can be loaded either by declaring a profile directory in
+<code>harness.toml</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">profiles_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;profiles&quot;</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="c1"># or, for more than one catalog:</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="n">profiles_dirs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;profiles&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;team-profiles&quot;</span><span class="p">]</span>
+</code></pre></div>
+<p>Paths are resolved relative to <code>harness.toml</code> unless they are absolute. HK loads
+built-ins first, then inline <code>[profiles.&lt;name&gt;]</code>, then config-declared profile
+directories, then an explicit CLI <code>--profiles-dir</code> when one is provided; later
+sources override earlier profiles with the same name. This means a compact
+<code>harness.toml</code> can keep only target bindings while profile bodies live in
+separate files.</p>
+<p>See <a href="../../how-to/profile-authoring/">Profile Authoring</a> for guidance on choosing
+<code>applies_when</code> vs <code>required_when</code>, avoiding expensive <code>required_when = ["*"]</code>
+patterns, and bounding advisory reviews.</p>
+<p>Custom profiles can also be loaded ad hoc with <code>--profiles-dir</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>hk<span class="w"> </span>profile<span class="w"> </span>create<span class="w"> </span>my-project-api<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">  </span>--target<span class="w"> </span>my_project/api<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">  </span>--preset<span class="w"> </span>python<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">  </span>--output<span class="w"> </span>~/.config/harness-toolkit/profiles/my-project-api.toml
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>hk<span class="w"> </span>profile<span class="w"> </span>list<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="w">  </span>--target<span class="w"> </span>my_project/api<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="w">  </span>--profiles-dir<span class="w"> </span>~/.config/harness-toolkit/profiles<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="w">  </span>--json
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>
+<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a>hk<span class="w"> </span>checks<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a><span class="w">  </span>--target<span class="w"> </span>my_project/api<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a><span class="w">  </span>--profile<span class="w"> </span>my-project-api<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a><span class="w">  </span>--profiles-dir<span class="w"> </span>~/.config/harness-toolkit/profiles<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a><span class="w">  </span>--json
+</code></pre></div>
+<p><code>profile create</code> creates an editable template only. It does not modify the target
+repo, does not infer commands as facts, and refuses to overwrite an existing file
+unless <code>--force</code> is passed.</p>
+<p>This repo and generated harness-scaffold repos include a
+<code>harness-kit-profile-authoring</code> skill that agents can load when no exact profile
+exists. It guides agents to mine CI, hooks, task runners, and repo docs, then
+propose TOML for user approval before writing a custom profile.</p>
+<p>Harness Kit lifecycle commands accept:</p>
+<ul>
+<li><code>--target PATH</code> — target repo or scoped path, defaulting to the current directory</li>
+<li><code>--json</code> — machine-readable output where useful</li>
+<li><code>--no-local-files</code> — use external state instead of checkout-local ignored files
+  for commands that write lifecycle state</li>
+</ul>
+<p>Commands that need custom profiles load directories declared in user
+<code>harness.toml</code>; they also accept <code>--profiles-dir</code> for ad hoc catalogs. This keeps
+profile catalogs explicit and avoids hidden repo-local adoption.</p>
+<p>Agent-friendly properties in the current spike:</p>
+<ul>
+<li>non-interactive by default; every input is an argument or flag</li>
+<li>local state is ignored through <code>.git/info/exclude</code></li>
+<li>profile/check discovery does not execute commands</li>
+<li>JSON output for every command agents need to compose</li>
+<li>actionable errors with a suggested retry command</li>
+<li>focused per-subcommand help with examples</li>
+</ul>
+<h2 id="current-limitations">Current limitations<a class="headerlink" href="#current-limitations" title="Permanent link">&para;</a></h2>
+<p>This is intentionally an early implementation:</p>
+<ul>
+<li>It does not install global mise tasks yet.</li>
+<li>It does not render <code>slice-plan</code> prompts from portable state yet.</li>
+<li>HK does not install global mise tasks yet; repos that adopt committed <code>.ai/hk</code> exports need a repo-owned sync-check task or CI hook to validate them.</li>
+<li>External state is keyed by git remote URL when available, otherwise by target path.</li>
+</ul>
+<p>The spike proves that the workflow can be attached to an arbitrary repo without
+making that repo dirty.</p>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
