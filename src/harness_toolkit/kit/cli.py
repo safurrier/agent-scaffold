@@ -2320,6 +2320,55 @@ def status(
             print(f"- {check.id}: {check.status} — {check.message}")
     else:
         print("- none")
+    if result.evidence_freshness:
+        print("evidence freshness:")
+        for item in result.evidence_freshness:
+            status_text = "fresh" if item.fresh else "stale"
+            scope_text = (
+                "required profile evidence"
+                if item.required
+                else "generic evidence; does not satisfy required profile labels"
+                if any(entry.required for entry in result.evidence_freshness)
+                else "generic evidence"
+            )
+            print(
+                f"- {item.kind} {item.label}: {status_text} "
+                f"({item.accepted_or_passing}/{item.total} accepted or passing; {scope_text})"
+            )
+            if item.covered_paths:
+                preview = ", ".join(item.covered_paths[:5])
+                suffix = (
+                    ""
+                    if len(item.covered_paths) <= 5
+                    else f", +{len(item.covered_paths) - 5} more"
+                )
+                print(f"  covered: {preview}{suffix}")
+            if item.uncovered_paths:
+                preview = ", ".join(item.uncovered_paths[:5])
+                suffix = (
+                    ""
+                    if len(item.uncovered_paths) <= 5
+                    else f", +{len(item.uncovered_paths) - 5} more"
+                )
+                print(f"  uncovered: {preview}{suffix}")
+            if item.next_action:
+                print(f"  next: {item.next_action}")
+            if item.path_decision_hint:
+                print("  path decision:")
+                print(f"    source-risk: {item.path_decision_hint.source_risk}")
+                print(f"    accidental: {item.path_decision_hint.accidental}")
+                print(f"    local-only: {item.path_decision_hint.local_only}")
+    if result.export_freshness:
+        print("export freshness:")
+        print(f"- {result.export_freshness.message}")
+        preview = ", ".join(result.export_freshness.fresh_neutral_paths[:5])
+        suffix = (
+            ""
+            if len(result.export_freshness.fresh_neutral_paths) <= 5
+            else f", +{len(result.export_freshness.fresh_neutral_paths) - 5} more"
+        )
+        print(f"  paths: {preview}{suffix}")
+        print(f"  check: {result.export_freshness.check_command}")
     if result.invariant_supersessions:
         print("⚠️ invariant supersessions:")
         for item in result.invariant_supersessions:

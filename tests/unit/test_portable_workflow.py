@@ -740,6 +740,470 @@ def test_ready_requires_matching_profile_check_and_review(
     assert checks["profile-review:agent-friendly-cli-review"]["status"] == "pass"
 
 
+def test_status_reports_generic_stale_paths_without_profile(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+
+    assert (
+        _run_workflow(
+            "start",
+            "generic-freshness",
+            "--plan",
+            "Exercise generic evidence freshness.",
+            "--target",
+            str(repo),
+        ).returncode
+        == 0
+    )
+    (repo / "src").mkdir()
+    (repo / "src" / "example.py").write_text("VALUE = 1\n")
+    validate = _run_workflow(
+        "validate",
+        "--why",
+        "Syntax check covers current source change.",
+        "--target",
+        str(repo),
+        "--",
+        "python3",
+        "-c",
+        "print('ok')",
+    )
+    assert validate.returncode == 0, validate.stderr
+    review = _run_workflow(
+        "review",
+        "add",
+        "--backend",
+        "subagent",
+        "--reviewer",
+        "fresh-context",
+        "--summary",
+        "No blockers.",
+        "--target",
+        str(repo),
+    )
+    assert review.returncode == 0, review.stderr
+
+    (repo / "src" / "example.py").write_text("VALUE = 2\n")
+
+    result = _run_workflow("status", "--target", str(repo), "--json")
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    freshness = {
+        (item["kind"], item["label"]): item for item in payload["evidence_freshness"]
+    }
+    assert freshness[("validation", "general")]["fresh"] is False
+    assert freshness[("validation", "general")]["uncovered_paths"] == ["src/example.py"]
+    assert freshness[("review", "general")]["fresh"] is False
+    assert freshness[("review", "general")]["uncovered_paths"] == ["src/example.py"]
+    hint = freshness[("review", "general")]["path_decision_hint"]
+    assert "only the paths you judge local-only" in hint["local_only"]
+    assert "hk sync --exclude PATH" in hint["local_only"]
+    assert "remove accidental tool output" in hint["accidental"]
+    assert "profile-check" not in result.stdout
+
+
+def test_targeted_review_followup_refreshes_generic_review(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+
+    _run_workflow(
+        "start",
+        "targeted-review",
+        "--plan",
+        "Exercise targeted review freshness.",
+        "--target",
+        str(repo),
+    )
+    (repo / "src").mkdir()
+    (repo / "src" / "example.py").write_text("VALUE = 1\n")
+    _run_workflow(
+        "review",
+        "add",
+        "--backend",
+        "subagent",
+        "--reviewer",
+        "fresh-context",
+        "--summary",
+        "No blockers.",
+        "--target",
+        str(repo),
+    )
+    (repo / "src" / "example.py").write_text("VALUE = 2\n")
+    followup = _run_workflow(
+        "review",
+        "add",
+        "--path",
+        "src/example.py",
+        "--backend",
+        "subagent",
+        "--reviewer",
+        "fresh-context-followup",
+        "--summary",
+        "Targeted follow-up has no blockers.",
+        "--target",
+        str(repo),
+    )
+    assert followup.returncode == 0, followup.stderr
+
+    result = _run_workflow("status", "--target", str(repo), "--json")
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    review_freshness = next(
+        item
+        for item in payload["evidence_freshness"]
+        if item["kind"] == "review" and item["label"] == "general"
+    )
+    assert review_freshness["fresh"] is True
+    assert review_freshness["accepted_or_passing"] == 2
+    assert review_freshness["uncovered_paths"] == []
+
+
+def test_required_profile_check_stays_fresh_for_unmatched_followup(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+    monkeypatch.setenv("HARNESS_KIT_CONFIG", str(_write_profile_config(tmp_path, repo)))
+
+    _run_workflow(
+        "start",
+        "path-current-check",
+        "--plan",
+        "Exercise path-current profile check freshness.",
+        "--target",
+        str(repo),
+    )
+    (repo / "src" / "harness_toolkit" / "kit").mkdir(parents=True)
+    (repo / "src" / "harness_toolkit" / "kit" / "cli.py").write_text(
+        "print('changed')\n"
+    )
+    validate = _run_workflow(
+        "validate",
+        "--check",
+        "unit-tests",
+        "--why",
+        "Required unit-tests label covers CLI change.",
+        "--target",
+        str(repo),
+        "--",
+        "python3",
+        "-c",
+        "print('ok')",
+    )
+    assert validate.returncode == 0, validate.stderr
+    (repo / "notes.md").write_text("# follow-up docs\n")
+
+    result = _run_workflow("status", "--target", str(repo), "--json")
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    checks = {check["id"]: check for check in payload["checks"]}
+    assert checks["profile-check:unit-tests"]["status"] == "pass"
+    freshness = {
+        (item["kind"], item["label"]): item for item in payload["evidence_freshness"]
+    }
+    assert freshness[("validation", "unit-tests")]["fresh"] is True
+    assert freshness[("validation", "unit-tests")]["uncovered_paths"] == []
+
+
+def test_status_reports_active_export_neutrality(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+
+    start = _run_workflow(
+        "start",
+        "export-neutrality",
+        "--plan",
+        "Exercise active export status note.",
+        "--target",
+        str(repo),
+        "--json",
+    )
+    assert start.returncode == 0, start.stderr
+    work_id = json.loads(start.stdout)["work_id"]
+    export_dir = repo / ".ai" / "hk" / work_id
+    export_dir.mkdir(parents=True)
+    (export_dir / "README.md").write_text("# generated handoff\n")
+
+    result = _run_workflow("status", "--target", str(repo), "--json")
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["export_freshness"]["fresh_neutral_paths"] == [
+        f".ai/hk/{work_id}/README.md"
+    ]
+    assert (
+        "hk export --format handoff-dir" in payload["export_freshness"]["check_command"]
+    )
+
+
+def test_status_freshness_ignores_sync_excluded_paths(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+
+    _run_workflow(
+        "start",
+        "sync-exclude-freshness",
+        "--plan",
+        "Exercise sync exclusion freshness diagnostics.",
+        "--target",
+        str(repo),
+    )
+    (repo / "src").mkdir()
+    (repo / "src" / "example.py").write_text("VALUE = 1\n")
+    _run_workflow(
+        "validate",
+        "--why",
+        "Generic validation covers source change.",
+        "--target",
+        str(repo),
+        "--",
+        "python3",
+        "-c",
+        "print('ok')",
+    )
+    (repo / ".agent-state").write_text("local only\n")
+    sync = _run_workflow(
+        "sync",
+        "--exclude",
+        ".agent-state",
+        "--reason",
+        "local agent state",
+        "--target",
+        str(repo),
+    )
+    assert sync.returncode == 0, sync.stderr
+
+    result = _run_workflow("status", "--target", str(repo), "--json")
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    freshness = {
+        (item["kind"], item["label"]): item for item in payload["evidence_freshness"]
+    }
+    validation = freshness[("validation", "general")]
+    assert ".agent-state" not in validation["covered_paths"]
+    assert ".agent-state" not in validation["uncovered_paths"]
+
+
+def test_status_freshness_honors_required_label_dangerous_skip(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+    monkeypatch.setenv("HARNESS_KIT_CONFIG", str(_write_profile_config(tmp_path, repo)))
+
+    _run_workflow(
+        "start",
+        "skip-label",
+        "--plan",
+        "Exercise skip freshness diagnostics.",
+        "--target",
+        str(repo),
+    )
+    (repo / "src" / "harness_toolkit" / "kit").mkdir(parents=True)
+    (repo / "src" / "harness_toolkit" / "kit" / "cli.py").write_text(
+        "print('changed')\n"
+    )
+    skip = _run_workflow(
+        "dangerously-skip",
+        "validation",
+        "--label",
+        "unit-tests",
+        "--reason",
+        "synthetic test unavailable",
+        "--mitigation",
+        "covered by parent suite",
+        "--target",
+        str(repo),
+    )
+    assert skip.returncode == 0, skip.stderr
+
+    result = _run_workflow("status", "--target", str(repo), "--json")
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    checks = {check["id"]: check for check in payload["checks"]}
+    assert checks["profile-check:unit-tests"]["status"] == "pass"
+    freshness = {
+        (item["kind"], item["label"]): item for item in payload["evidence_freshness"]
+    }
+    assert freshness[("validation", "unit-tests")]["fresh"] is True
+    assert freshness[("validation", "unit-tests")]["latest_status"] == "skipped"
+    assert freshness[("validation", "unit-tests")]["readiness_blocker"] is False
+
+
+def test_status_required_review_latest_status_uses_latest_event(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+    monkeypatch.setenv("HARNESS_KIT_CONFIG", str(_write_profile_config(tmp_path, repo)))
+
+    _run_workflow(
+        "start",
+        "review-latest-status",
+        "--plan",
+        "Exercise required review latest status.",
+        "--target",
+        str(repo),
+    )
+    (repo / "src" / "harness_toolkit" / "kit").mkdir(parents=True)
+    (repo / "src" / "harness_toolkit" / "kit" / "cli.py").write_text(
+        "print('changed')\n"
+    )
+    accepted = _run_workflow(
+        "review",
+        "add",
+        "--review",
+        "agent-friendly-cli-review",
+        "--backend",
+        "subagent",
+        "--reviewer",
+        "fresh-context",
+        "--summary",
+        "No blockers.",
+        "--target",
+        str(repo),
+    )
+    assert accepted.returncode == 0, accepted.stderr
+    rejected = _run_workflow(
+        "review",
+        "add",
+        "--review",
+        "agent-friendly-cli-review",
+        "--backend",
+        "subagent",
+        "--reviewer",
+        "fresh-context-second",
+        "--disposition",
+        "rejected",
+        "--summary",
+        "Follow-up found blockers.",
+        "--target",
+        str(repo),
+    )
+    assert rejected.returncode == 0, rejected.stderr
+
+    result = _run_workflow("status", "--target", str(repo), "--json")
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    freshness = {
+        (item["kind"], item["label"]): item for item in payload["evidence_freshness"]
+    }
+    review_item = freshness[("review", "agent-friendly-cli-review")]
+    assert review_item["accepted_or_passing"] == 1
+    assert review_item["total"] == 2
+    assert review_item["latest_status"] == "rejected"
+
+
+def test_status_freshness_honors_required_review_dangerous_skip(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+    monkeypatch.setenv("HARNESS_KIT_CONFIG", str(_write_profile_config(tmp_path, repo)))
+
+    _run_workflow(
+        "start",
+        "skip-review-label",
+        "--plan",
+        "Exercise review skip freshness diagnostics.",
+        "--target",
+        str(repo),
+    )
+    (repo / "src" / "harness_toolkit" / "kit").mkdir(parents=True)
+    (repo / "src" / "harness_toolkit" / "kit" / "cli.py").write_text(
+        "print('changed')\n"
+    )
+    skip = _run_workflow(
+        "dangerously-skip",
+        "review",
+        "--label",
+        "agent-friendly-cli-review",
+        "--reason",
+        "review tool unavailable in synthetic test",
+        "--mitigation",
+        "rerun before merge",
+        "--target",
+        str(repo),
+    )
+    assert skip.returncode == 0, skip.stderr
+
+    result = _run_workflow("status", "--target", str(repo), "--json")
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    checks = {check["id"]: check for check in payload["checks"]}
+    assert checks["profile-review:agent-friendly-cli-review"]["status"] == "pass"
+    freshness = {
+        (item["kind"], item["label"]): item for item in payload["evidence_freshness"]
+    }
+    review_item = freshness[("review", "agent-friendly-cli-review")]
+    assert review_item["fresh"] is True
+    assert review_item["latest_status"] == "skipped"
+    assert review_item["readiness_blocker"] is False
+
+
+def test_required_profile_check_keeps_label_authority(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+    monkeypatch.setenv("HARNESS_KIT_CONFIG", str(_write_profile_config(tmp_path, repo)))
+
+    _run_workflow(
+        "start",
+        "label-authority",
+        "--plan",
+        "Exercise profile label authority.",
+        "--target",
+        str(repo),
+    )
+    (repo / "src" / "harness_toolkit" / "kit").mkdir(parents=True)
+    (repo / "src" / "harness_toolkit" / "kit" / "cli.py").write_text(
+        "print('changed')\n"
+    )
+    validate = _run_workflow(
+        "validate",
+        "--why",
+        "Focused validation exists but not under required label.",
+        "--target",
+        str(repo),
+        "--",
+        "python3",
+        "-c",
+        "print('ok')",
+    )
+    assert validate.returncode == 0, validate.stderr
+
+    result = _run_workflow("status", "--target", str(repo), "--json")
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    checks = {check["id"]: check for check in payload["checks"]}
+    assert checks["validation"]["status"] == "pass"
+    assert checks["profile-check:unit-tests"]["status"] == "fail"
+    freshness = {
+        (item["kind"], item["label"]): item for item in payload["evidence_freshness"]
+    }
+    assert freshness[("validation", "general")]["fresh"] is True
+    assert freshness[("validation", "unit-tests")]["fresh"] is False
+    assert freshness[("validation", "unit-tests")]["accepted_or_passing"] == 0
+
+
 def test_start_retries_resume_active_work_with_same_slug(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     repo.mkdir()

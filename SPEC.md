@@ -158,10 +158,17 @@ if the harness provides a fresh-context review mechanism, the agent should dispa
 Code `Agent`/legacy `Task`, and Codex via the Shell tool running
 `codex review --uncommitted`. Agents should re-run `hk status` after review
 because review tools may create agent-local state. Reviews record deterministic
-path/content facts for the reviewed changed paths. Readiness may accept multiple
-targeted follow-up reviews when their reviewed paths cover the current
-review-relevant diff. Generated active HK export refreshes under
-`.ai/hk/<active-work-id>/...` are derived lifecycle artifacts: they must not by
+path/content facts for the reviewed changed paths. Validation evidence also records
+path/content facts for changed paths when captured; exact diff hashes remain a
+sufficient freshness proof and backward-compatible fallback, but path/content
+coverage can keep evidence fresh when unrelated or generated files changed.
+Readiness may accept multiple targeted follow-up reviews when their reviewed paths
+cover the current review-relevant diff. Required profile check labels remain
+authoritative: generic or differently labeled validation evidence may explain
+freshness in `hk status`, but it does not satisfy a required profile check unless
+it was recorded under that required label or explicitly skipped. Generated active
+HK export refreshes under `.ai/hk/<active-work-id>/...` are derived lifecycle
+artifacts: they must not by
 themselves make validation, review, or sync freshness stale, and their integrity
 is checked by `hk export --format handoff-dir --check` / `mise run sync-check`
 instead. If no independent AI/tool or fresh-context review is available, the
@@ -175,7 +182,11 @@ skips remain an explicit fallback.
 
 `hk profile resolve`, `hk config inspect`, `hk config validate`, `hk config explain`,
 `hk config audit`, `hk checks --changed`, and `hk status` MUST explain profile/check/review
-selection without changing readiness semantics. Config diagnostics are read-only:
+selection and evidence freshness without changing readiness semantics. `hk status`
+MUST expose typed freshness diagnostics for agents, including generic no-profile
+validation/review freshness, profile-label freshness when profile items are
+required, stale/uncovered paths, evidence counts, and active export neutrality
+notes. Config diagnostics are read-only:
 they MUST NOT generate authoritative profiles/system maps, execute profile
 commands, run reviewers, or become hidden readiness gates. JSON diagnostics may
 grow only additively and should include the profile match kind plus changed
