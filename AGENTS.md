@@ -156,6 +156,12 @@ use it only in a copied scaffold or throwaway init target.
   setup steps in this repo's public docs. **BECAUSE** user-specific adoption notes
   belong in the user's dotfiles repo or private setup docs.
 
+- **DO** keep Harness Toolkit's own root-only docs publishing workflow out of
+  generated repos unless MkDocs publishing becomes an explicit scaffold feature.
+  **NOT** let `harness-scaffold init` retain `.github/workflows/docs.yml` while
+  deleting `mkdocs.yml`. **BECAUSE** generated repos currently get a docs tree,
+  not a complete GitHub Pages/MkDocs setup.
+
 - **DO** treat profiles and dumb repo scripts as validation guidance and stable
   command surfaces that feed `hk validate -- <native command>`. **NOT** turn HK
   into a task runner that chooses and executes checks itself. **BECAUSE** Harness Kit

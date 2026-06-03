@@ -9,6 +9,8 @@ index:
     keywords: [uv, tool, install, hk, harness-kit, harness-scaffold]
   - id: release-policy
     keywords: [versioning, tags, github-release, pypi]
+  - id: docs-site
+    keywords: [mkdocs, github-pages, gh-pages, deploy]
   - id: release-checklist
     keywords: [check, build, tag, release]
 ---
@@ -85,6 +87,39 @@ Use GitHub tags/releases as the distribution boundary for now.
 - Use patch releases for bug fixes, documentation, and validation hardening.
 - Use minor releases for command, profile, or plan-contract changes.
 - Defer PyPI until external install-by-name is worth the package maintenance.
+
+## Publish the docs site
+
+Harness Toolkit's own docs deploy from the `gh-pages` branch. The GitHub Actions
+workflow builds MkDocs and pushes that branch on changes to `main`, but a new
+repo still needs Pages enabled once.
+
+After the first successful `Deploy Documentation` run, enable Pages in GitHub:
+
+1. Go to **Settings → Pages**.
+2. Set **Source** to **Deploy from a branch**.
+3. Set **Branch** to `gh-pages` and folder to `/ (root)`.
+4. Save and wait a minute or two for GitHub to provision the site.
+
+From the CLI, the same setup is:
+
+```bash
+gh api repos/safurrier/harness-toolkit/pages \
+  --method POST \
+  -f 'source[branch]=gh-pages' \
+  -f 'source[path]=/'
+```
+
+If the deploy action is green and `gh-pages` exists but the site returns 404,
+check whether Pages is enabled:
+
+```bash
+gh api repos/safurrier/harness-toolkit/pages
+git ls-remote --heads origin gh-pages
+```
+
+A `404` from the Pages API usually means the branch was pushed but GitHub Pages
+has not been configured for the repo yet.
 
 ## Release checklist
 

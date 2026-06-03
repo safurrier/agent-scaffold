@@ -143,6 +143,10 @@ def cleanup_scaffold(root: Path, config: Config) -> None:
         root / "templates",
         root / "src" / "harness_toolkit",  # scaffold CLI package (not whole src/)
         root / "mkdocs.yml",  # scaffold's MkDocs config
+        # Harness Toolkit's own docs deploy workflow requires mkdocs.yml and GitHub
+        # Pages configuration. Generated repos get docs/ but not MkDocs publishing
+        # by default, so do not accidentally retain the scaffold repo workflow.
+        root / ".github" / "workflows" / "docs.yml",
         root / "scripts" / "init_project.py",  # legacy, may not exist
     ]
 
