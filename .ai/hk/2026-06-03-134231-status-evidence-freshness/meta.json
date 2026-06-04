@@ -1,0 +1,57 @@
+{
+  "attached_artifacts": [
+    {
+      "copied": true,
+      "export_path": "artifacts/artifact_6_dogfood-report_artifact_20260603_140326_323032_dogfood-report_collection.md",
+      "kind": "dogfood-report",
+      "label": "status freshness no-profile dogfood collection",
+      "redaction": "unknown",
+      "seq": 6,
+      "sha256": "sha256:1442b5bf8930e8e2463a9628e54e92abc5d4554694a15452e25b7f9267eae596",
+      "size_bytes": 8711
+    }
+  ],
+  "branch": "feat/hk-status-evidence-freshness",
+  "diff_hash": "sha256:36ce65754cd7c4bb0733889c1bdb7e02a67935d6d76aaf154d58c6a3e8571c7e",
+  "dirty": true,
+  "event_count": 27,
+  "event_seq": 34,
+  "evidence_count": 13,
+  "evidence_ids": [
+    "ev_20260603_140145_485979",
+    "ev_20260603_141153_553413",
+    "ev_20260603_141202_798217",
+    "ev_20260603_142042_495476",
+    "ev_20260603_143726_404307",
+    "ev_20260603_145656_562791",
+    "ev_20260603_150558_390611",
+    "ev_20260603_153132_716585",
+    "ev_20260603_153228_970768",
+    "ev_20260603_153232_350847",
+    "ev_20260604_114420_434186",
+    "ev_20260604_114448_126868",
+    "ev_20260604_114452_224274"
+  ],
+  "file_hashes": {
+    "README.md": "sha256:58811ff88e7b930cadb72929eb9421e0e83bc5deaf47e13448a85c7f58f97bce",
+    "artifacts/README.md": "sha256:c4bad9d4652f296a7e4dcf175fe1dd0c66a99ec0b74941cd45c499e84792436c",
+    "artifacts/artifact_6_dogfood-report_artifact_20260603_140326_323032_dogfood-report_collection.md": "sha256:1442b5bf8930e8e2463a9628e54e92abc5d4554694a15452e25b7f9267eae596"
+  },
+  "files": [
+    "README.md",
+    "meta.json",
+    "artifacts/README.md",
+    "artifacts/artifact_6_dogfood-report_artifact_20260603_140326_323032_dogfood-report_collection.md"
+  ],
+  "generated_at": "2026-06-04T18:53:45.360924+00:00",
+  "generated_by": "hk export --format handoff-dir",
+  "git_sha": "0b840e4",
+  "output_path": ".ai/hk/2026-06-03-134231-status-evidence-freshness",
+  "ready": true,
+  "ready_status": "ready",
+  "schema_version": 1,
+  "sync_status": "synced",
+  "target_root": ".",
+  "target_scope": ".",
+  "work_id": "2026-06-03-134231-status-evidence-freshness"
+}

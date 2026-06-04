@@ -150,3 +150,4 @@ def test_typed_evidence_reader_parses_existing_jsonl_shape(tmp_path: Path) -> No
     assert len(records) == 1
     assert records[0].id == "evidence-1"
     assert records[0].why == "parity"
+    assert records[0].changed_path_hashes is None

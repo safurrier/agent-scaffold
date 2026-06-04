@@ -97,4 +97,11 @@ Trade-offs:
   file semantically invalidates review of another.
 - Keep profile-required review coverage explicit rather than inferring all review
   needs from path hashes.
+- Apply the same freshness shape to validation evidence: exact diff hash matching
+  is a sufficient proof and backward-compatible fallback, while path/content
+  coverage can keep validation evidence fresh when unrelated or generated paths
+  change.
+- Keep required profile check labels authoritative; generic validation freshness
+  may guide agents in `hk status`, but it should not satisfy a required profile
+  check unless the matching label was recorded or explicitly skipped.
 - Continue hardening export and sync validation for generated handoff artifacts.

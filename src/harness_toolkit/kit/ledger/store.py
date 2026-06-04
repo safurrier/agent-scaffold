@@ -102,6 +102,20 @@ def _optional_list(
     return cast("list[object]", value)
 
 
+def _optional_str_dict(
+    data: dict[str, object], key: str, *, path: Path, line_number: int, kind: str
+) -> dict[str, str] | None:
+    if key not in data:
+        return None
+    value = data.get(key)
+    if not isinstance(value, dict) or not all(
+        isinstance(item_key, str) and isinstance(item_value, str)
+        for item_key, item_value in value.items()
+    ):
+        raise _shape_error(path, line_number, kind)
+    return {str(item_key): str(item_value) for item_key, item_value in value.items()}
+
+
 def _validate_event_payload(
     event_type: str, event_data: dict[str, object], *, path: Path, line_number: int
 ) -> dict[str, object]:
@@ -391,6 +405,13 @@ def parse_evidence(
         ),
         changed_paths=_optional_str_list(
             data, "changed_paths", path=path, line_number=line_number, kind=kind
+        ),
+        changed_path_hashes=_optional_str_dict(
+            data,
+            "changed_path_hashes",
+            path=path,
+            line_number=line_number,
+            kind=kind,
         ),
         timed_out=data.get("timed_out") is True,
         truncated=data.get("truncated") is True,

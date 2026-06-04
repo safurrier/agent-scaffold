@@ -68,6 +68,12 @@ from harness_toolkit.kit.readiness.policy import (
 from harness_toolkit.kit.readiness.policy import (
     lifecycle_phase as policy_lifecycle_phase,
 )
+from harness_toolkit.kit.readiness.status import (
+    EvidenceFreshnessItem,
+    ExportFreshnessNote,
+    build_evidence_freshness_items,
+    build_export_freshness_note,
+)
 from harness_toolkit.kit.rendering.handoff import (
     render_handoff_markdown,
     render_handoff_pr_markdown,
@@ -284,6 +290,8 @@ class StatusResult:
     suggested_checks: list[ProfileSuggestion] | None = None
     suggested_reviews: list[ProfileSuggestion] | None = None
     invariant_supersessions: list[dict[str, object]] | None = None
+    evidence_freshness: list[EvidenceFreshnessItem] | None = None
+    export_freshness: ExportFreshnessNote | None = None
 
 
 @dataclass(frozen=True)
@@ -993,6 +1001,13 @@ def capture_command(
         if shell_command
         else command_display(tuple(redacted_argv), "")
     )
+    covered_paths = tuple(
+        changed_paths_for_work(
+            state.target_root,
+            work_dir,
+            exclude_paths=active_handoff_export_excludes(work_dir),
+        )
+    )
     record = EvidenceRecord(
         schema_version=STATE_SCHEMA_VERSION,
         id=evidence_id,
@@ -1022,7 +1037,8 @@ def capture_command(
             base_sha=work_start_git_sha(read_events(work_dir)),
             extra_excludes=active_handoff_export_excludes(work_dir),
         ),
-        changed_paths=changed_paths_for_work(state.target_root, work_dir),
+        changed_paths=list(covered_paths),
+        changed_path_hashes=changed_path_hashes(state.target_root, covered_paths),
         timed_out=process_result.timed_out,
         truncated=process_result.truncated,
         transcript_bytes=process_result.transcript_bytes,
@@ -2244,6 +2260,8 @@ def status(target: Path, *, no_local_files: bool = False) -> StatusResult:
             suggested_checks=[],
             suggested_reviews=[],
             invariant_supersessions=[],
+            evidence_freshness=[],
+            export_freshness=None,
         )
 
     events = read_events(work_dir)
@@ -2267,6 +2285,68 @@ def status(target: Path, *, no_local_files: bool = False) -> StatusResult:
         for item in (profile_view.suggested_reviews if profile_view else ())
         if not item.required
     ]
+    current_changed_paths = tuple(changed_paths_for_work(state.target_root, work_dir))
+    status_sync_status = sync_status_for(state)
+    if status_sync_status == "sync-dangerously-skipped":
+        freshness_paths = _filtered_changed_paths(
+            current_changed_paths, COMMON_AGENT_LOCAL_STATE_PATHS
+        )
+        current_diff_hashes = (
+            validation_diff_hash(
+                state.target_root,
+                base_sha=work_start_git_sha(events),
+                extra_excludes=(
+                    *COMMON_AGENT_LOCAL_STATE_PATHS,
+                    *active_handoff_export_excludes(work_dir),
+                ),
+            ),
+            validation_diff_hash(
+                state.target_root,
+                base_sha=work_start_git_sha(events),
+                extra_excludes=active_handoff_export_excludes(work_dir),
+            ),
+        )
+    else:
+        sync_excludes = latest_sync_excluded_paths(events)
+        freshness_paths = _filtered_changed_paths(current_changed_paths, sync_excludes)
+        current_diff_hashes = (
+            validation_diff_hash(
+                state.target_root,
+                base_sha=work_start_git_sha(events),
+                extra_excludes=(
+                    *sync_excludes,
+                    *active_handoff_export_excludes(work_dir),
+                ),
+            ),
+            validation_diff_hash(
+                state.target_root,
+                base_sha=work_start_git_sha(events),
+                extra_excludes=active_handoff_export_excludes(work_dir),
+            ),
+        )
+    try:
+        required_checks, required_reviews = required_profile_items_for_work(
+            state, work_dir, changed_paths=freshness_paths
+        )
+    except LocalWorkflowError:
+        required_checks, required_reviews = (), ()
+    evidence_freshness = build_evidence_freshness_items(
+        work_id=work_dir.name,
+        events=events,
+        evidence=read_evidence(work_dir),
+        current_paths=freshness_paths,
+        current_path_hashes=changed_path_hashes(state.target_root, freshness_paths),
+        current_diff_hashes=current_diff_hashes,
+        required_checks=required_checks,
+        required_reviews=required_reviews,
+    )
+    export_freshness = build_export_freshness_note(
+        work_id=work_dir.name,
+        target_root=str(state.target_root),
+        all_changed_paths=tuple(
+            changed_paths(state.target_root, base_sha=work_start_git_sha(events))
+        ),
+    )
     actions: list[str] = []
     if not notes_by_kind(events, "plan"):
         actions.append(
@@ -2330,6 +2410,8 @@ def status(target: Path, *, no_local_files: bool = False) -> StatusResult:
         suggested_checks=suggested_checks,
         suggested_reviews=suggested_reviews,
         invariant_supersessions=invariant_supersessions,
+        evidence_freshness=evidence_freshness,
+        export_freshness=export_freshness,
     )
 
 

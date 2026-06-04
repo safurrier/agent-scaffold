@@ -217,6 +217,31 @@ def _reviews_cover_paths(
     return not missing, tuple(missing)
 
 
+def _evidence_covers_path(record: EvidenceRecord, path: str, current_hash: str) -> bool:
+    hashes = record.changed_path_hashes
+    if not isinstance(hashes, dict):
+        return False
+    return hashes.get(path) == current_hash
+
+
+def _evidence_covers_paths(
+    records: list[EvidenceRecord],
+    paths: tuple[str, ...],
+    current_changed_path_hashes: dict[str, str],
+) -> tuple[bool, tuple[str, ...]]:
+    missing = [
+        path
+        for path in paths
+        if not any(
+            _evidence_covers_path(
+                record, path, current_changed_path_hashes.get(path, "")
+            )
+            for record in records
+        )
+    ]
+    return not missing, tuple(missing)
+
+
 def ready_for_events(
     *,
     work_id: str,
@@ -286,6 +311,7 @@ def ready_for_events(
         current_diff_hashes,
     )
     validation_skipped = bool(validation_skips)
+    path_hashes = current_changed_path_hashes or {}
     stale_passing_evidence_with_why = [
         record
         for record in evidence
@@ -298,7 +324,7 @@ def ready_for_events(
             current_diff_hashes=current_diff_hashes,
         )
     ]
-    passing_evidence_with_why = [
+    exact_passing_evidence_with_why = [
         record
         for record in evidence
         if record.why
@@ -309,6 +335,16 @@ def ready_for_events(
             current_diff_hashes=current_diff_hashes,
         )
     ]
+    path_evidence_covers_all, validation_uncovered_paths = _evidence_covers_paths(
+        [record for record in evidence if record.why and record.status == "pass"],
+        changed_paths,
+        path_hashes,
+    )
+    passing_evidence_with_why = exact_passing_evidence_with_why or (
+        [record for record in evidence if record.why and record.status == "pass"]
+        if path_evidence_covers_all
+        else []
+    )
     failed_evidence_with_why = [
         record for record in evidence if record.why and record.status != "pass"
     ]
@@ -319,8 +355,8 @@ def ready_for_events(
         if passing_evidence_with_why
         else dangerous_skip_message("validation", validation_skips)
         if validation_skipped
-        else "validation evidence is stale for current diff; rerun hk validate or dangerously-skip validation."
-        + _changed_paths_text(changed_paths)
+        else "validation evidence is stale for current changed paths; rerun hk validate or dangerously-skip validation."
+        + _changed_paths_text(validation_uncovered_paths or changed_paths)
         if stale_passing_evidence_with_why
         else "validation evidence with rationale failed"
         if failed_evidence_with_why
@@ -344,7 +380,6 @@ def ready_for_events(
     ]
     recorded_reviews = review_events(events)
     relevant_review_paths = _review_relevant_paths(work_id, changed_paths)
-    path_hashes = current_changed_path_hashes or {}
     path_reviews = [
         review
         for review in all_accepted_reviews
@@ -369,17 +404,30 @@ def ready_for_events(
         else "missing accepted external-enough review record; dispatch a separate reviewer/subagent with fresh context via your harness, then record it with hk review add",
     )
     for item in required_profile_checks:
-        matching_evidence = [
+        named_passing_evidence = [
             record
             for record in evidence
             if getattr(record, "check_name", "") == item.name
             and record.status == "pass"
-            and _hash_is_current(
+        ]
+        exact_matching_evidence = [
+            record
+            for record in named_passing_evidence
+            if _hash_is_current(
                 record.diff_hash,
                 current_diff_hash=current_diff_hash,
                 current_diff_hashes=current_diff_hashes,
             )
         ]
+        item_paths = _review_relevant_paths(work_id, item.matched_paths)
+        item_paths_covered, item_unvalidated_paths = _evidence_covers_paths(
+            named_passing_evidence,
+            item_paths,
+            path_hashes,
+        )
+        matching_evidence = exact_matching_evidence or (
+            named_passing_evidence if item_paths_covered else []
+        )
         matching_skips = dangerous_skip_for_label(
             events,
             "validation",
@@ -394,7 +442,9 @@ def ready_for_events(
             if matching_evidence
             else dangerous_skip_message("validation", matching_skips)
             if matching_skips
-            else f"missing required profile check `{item.name}` ({_paths_text(item.matched_paths)}); run `hk validate --check {item.name} --why 'Fast gate passes' -- mise run check` using the matching native command, or `hk dangerously-skip validation --label {item.name} --reason ... --mitigation ...`",
+            else f"required profile check `{item.name}` does not cover current changed paths ({_paths_text(item_unvalidated_paths)}); rerun the matching native command from `hk checks --changed`, record it with `hk validate --check {item.name} --why '...' -- <command>`, or `hk dangerously-skip validation --label {item.name} --reason ... --mitigation ...`"
+            if named_passing_evidence
+            else f"missing required profile check `{item.name}` ({_paths_text(item.matched_paths)}); run the matching native command from `hk checks --changed`, record it with `hk validate --check {item.name} --why '...' -- <command>`, or `hk dangerously-skip validation --label {item.name} --reason ... --mitigation ...`",
         )
 
     for item in required_profile_reviews:
