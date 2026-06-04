@@ -1900,6 +1900,13 @@ mitigation, and it remains visible in readiness and handoff output.</p>
   file semantically invalidates review of another.</li>
 <li>Keep profile-required review coverage explicit rather than inferring all review
   needs from path hashes.</li>
+<li>Apply the same freshness shape to validation evidence: exact diff hash matching
+  is a sufficient proof and backward-compatible fallback, while path/content
+  coverage can keep validation evidence fresh when unrelated or generated paths
+  change.</li>
+<li>Keep required profile check labels authoritative; generic validation freshness
+  may guide agents in <code>hk status</code>, but it should not satisfy a required profile
+  check unless the matching label was recorded or explicitly skipped.</li>
 <li>Continue hardening export and sync validation for generated handoff artifacts.</li>
 </ul>
 
