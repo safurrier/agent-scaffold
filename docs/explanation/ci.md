@@ -70,7 +70,7 @@ logic lives in `mise run sync-check`. Local runs validate the active plan. Pull
 request CI calls `mise run sync-check -- --changed-plans origin/<base>...HEAD`
 so changed plans must be marked complete and their artifacts are validated. The
 repository CI also runs generated-project smoke tests across the supported
-stacks so Python, Go, and Rust scaffolds prove they can initialize and pass
+stacks so Python, Go, Rust, and Web scaffolds prove they can initialize and pass
 `mise run check`.
 
 ## Pre-commit hooks

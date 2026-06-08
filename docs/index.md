@@ -86,4 +86,4 @@ See [Getting Started](how-to/getting-started.md) for the full walkthrough and
 | Python | ruff format    | ruff check     | ty          | pytest     | ✅ Available |
 | Go     | gofumpt        | golangci-lint  | go vet      | go test    | ✅ Available |
 | Rust   | cargo fmt      | cargo clippy   | cargo check | cargo test | ✅ Available |
-| Web    | prettier       | eslint         | tsc         | vitest     | 🔜 Planned  |
+| Web    | prettier       | eslint         | tsc         | vitest     | ✅ Available |

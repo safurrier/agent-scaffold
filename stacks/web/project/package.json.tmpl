@@ -1,0 +1,39 @@
+{
+  "name": "{{web_package_name}}",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "setup": "npm install --package-lock=false",
+    "dev": "npm run build && wrangler dev --local --port 8787",
+    "fmt": "prettier --write index.html 'src/**/*.{ts,tsx,css}' 'worker/**/*.ts' 'tests/**/*.{ts,tsx}' '*.json' '*.jsonc' '*.ts' '*.mjs'",
+    "fmt:check": "prettier --check index.html 'src/**/*.{ts,tsx,css}' 'worker/**/*.ts' 'tests/**/*.{ts,tsx}' '*.json' '*.jsonc' '*.ts' '*.mjs'",
+    "lint": "eslint src worker tests vite.config.ts vitest.config.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "vite build",
+    "deploy:dry-run": "wrangler deploy --dry-run --outdir dist-worker",
+    "check": "npm run fmt:check && npm run lint && npm run typecheck && npm run test",
+    "verify": "npm run check && npm run build && npm run deploy:dry-run",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241230.0",
+    "@eslint/js": "^9.17.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "eslint": "^9.17.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.19.0",
+    "vite": "^6.0.7",
+    "vitest": "^2.1.8",
+    "wrangler": "^4.0.0"
+  }
+}

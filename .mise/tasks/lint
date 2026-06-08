@@ -51,10 +51,20 @@ def lint_rust(cwd=PROJECT_ROOT):
     log_ok("Rust lint")
 
 
+def lint_web(cwd=PROJECT_ROOT):
+    log_step("Linting Web code")
+    run(["npm", "run", "lint"], cwd=cwd)
+    log_ok("Web lint")
+
+
 if get_shape() == "apps":
     run_per_module(
         "lint",
-        dispatch_module({"python": lint_python, "go": lint_go, "rust": lint_rust}),
+        dispatch_module(
+            {"python": lint_python, "go": lint_go, "rust": lint_rust, "web": lint_web}
+        ),
     )
 else:
-    dispatch_stack({"python": lint_python, "go": lint_go, "rust": lint_rust})
+    dispatch_stack(
+        {"python": lint_python, "go": lint_go, "rust": lint_rust, "web": lint_web}
+    )

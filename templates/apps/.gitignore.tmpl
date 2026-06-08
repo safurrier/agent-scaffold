@@ -16,6 +16,21 @@ bin/
 target/
 **/*.rs.bk
 
+# Node / web
+node_modules/
+apps/*/node_modules/
+dist/
+apps/*/dist/
+dist-worker/
+apps/*/dist-worker/
+npm-debug.log*
+
+# Cloudflare / local env
+.wrangler/
+apps/*/.wrangler/
+.dev.vars
+apps/*/.dev.vars
+
 # Virtual environments
 .venv/
 venv/

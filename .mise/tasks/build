@@ -43,10 +43,20 @@ def build_rust(cwd=PROJECT_ROOT):
     log_ok("Rust build")
 
 
+def build_web(cwd=PROJECT_ROOT):
+    log_step("Building Web app")
+    run(["npm", "run", "build"], cwd=cwd)
+    log_ok("Web build")
+
+
 if get_shape() == "apps":
     run_per_module(
         "build",
-        dispatch_module({"python": build_python, "go": build_go, "rust": build_rust}),
+        dispatch_module(
+            {"python": build_python, "go": build_go, "rust": build_rust, "web": build_web}
+        ),
     )
 else:
-    dispatch_stack({"python": build_python, "go": build_go, "rust": build_rust})
+    dispatch_stack(
+        {"python": build_python, "go": build_go, "rust": build_rust, "web": build_web}
+    )

@@ -81,10 +81,20 @@ def fmt_rust(cwd=PROJECT_ROOT):
     log_ok("Rust format")
 
 
+def fmt_web(cwd=PROJECT_ROOT):
+    log_step("Checking Web formatting" if check else "Formatting Web code")
+    run(["npm", "run", "fmt:check" if check else "fmt"], cwd=cwd)
+    log_ok("Web format")
+
+
 if get_shape() == "apps":
     run_per_module(
         "fmt",
-        dispatch_module({"python": fmt_python, "go": fmt_go, "rust": fmt_rust}),
+        dispatch_module(
+            {"python": fmt_python, "go": fmt_go, "rust": fmt_rust, "web": fmt_web}
+        ),
     )
 else:
-    dispatch_stack({"python": fmt_python, "go": fmt_go, "rust": fmt_rust})
+    dispatch_stack(
+        {"python": fmt_python, "go": fmt_go, "rust": fmt_rust, "web": fmt_web}
+    )

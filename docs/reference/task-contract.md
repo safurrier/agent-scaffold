@@ -87,6 +87,11 @@ Installs all project dependencies. Safe to re-run.
     cargo fetch
     ```
 
+=== "Web"
+    ```bash
+    npm install --package-lock=false
+    ```
+
 For the apps workspace shape, `setup` iterates `workspace.toml` and runs the appropriate install per module.
 
 ---
@@ -111,6 +116,12 @@ Auto-formats code in-place. Pass `--check` to fail without modifying (used by `c
     ```bash
     cargo fmt          # format
     cargo fmt --check  # check only
+    ```
+
+=== "Web"
+    ```bash
+    npm run fmt        # format
+    npm run fmt:check  # check only
     ```
 
 ```bash
@@ -139,6 +150,11 @@ Non-modifying lint checks. Fails on any violation.
     cargo clippy --all-targets --all-features -- -D warnings
     ```
 
+=== "Web"
+    ```bash
+    npm run lint
+    ```
+
 ---
 
 ## typecheck
@@ -158,6 +174,11 @@ Static type analysis.
 === "Rust"
     ```bash
     cargo check --all-targets --all-features
+    ```
+
+=== "Web"
+    ```bash
+    npm run typecheck
     ```
 
 !!! note "Go typecheck"
@@ -184,6 +205,11 @@ Unit tests only — no integration tests, no external services.
     cargo test --all-features
     ```
 
+=== "Web"
+    ```bash
+    npm run test
+    ```
+
 ---
 
 ## build
@@ -203,6 +229,11 @@ Produces distributable artifacts.
 === "Rust"
     ```bash
     cargo build --release
+    ```
+
+=== "Web"
+    ```bash
+    npm run build
     ```
 
 ---
@@ -431,6 +462,11 @@ Starts local development. Long-running — stays in the foreground.
     cargo run
     ```
 
+=== "Web"
+    ```bash
+    npm run dev
+    ```
+
 For the apps workspace shape:
 ```bash
 mise run dev -- api      # start the 'api' module
@@ -493,6 +529,9 @@ Phases:
 
 Rust generated projects rerun `cargo test --all-features` during `verify`, then
 run the Docker build when a Dockerfile is present.
+
+Web generated projects run `npm run build` and `npm run deploy:dry-run` after
+the fast quality gate.
 
 ```bash
 mise run verify

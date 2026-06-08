@@ -57,7 +57,8 @@ tests/
     ├── conftest.py              # module-scoped fixtures: py_single_ready, etc.
     ├── test_python.py           # @e2e — Python happy path + gate tests
     ├── test_go.py               # @e2e @slow @go — Go tests (needs Go toolchain)
-    └── test_rust.py             # @e2e @slow @rust — Rust happy path + gate tests
+    ├── test_rust.py             # @e2e @slow @rust — Rust happy path + gate tests
+    └── test_web.py              # @e2e @slow — Web happy path + gate tests
 ```
 
 ### Running subsets
@@ -67,7 +68,8 @@ uv run pytest -m "not slow"          # default: contract + unit + Python E2E (~3
 uv run pytest -m contract            # structural checks only (instant)
 uv run pytest -m unit                # unit tests only (instant)
 uv run pytest -m "e2e and not slow"  # Python E2E only
-uv run pytest                        # full suite including Go (slow, needs Go)
+uv run pytest tests/e2e/test_web.py  # generated Web stack smoke
+uv run pytest                        # full suite including Go/Rust/Web slow tests
 ```
 
 ### Parallelism

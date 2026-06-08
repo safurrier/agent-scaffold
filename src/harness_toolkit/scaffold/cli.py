@@ -14,7 +14,7 @@ from harness_toolkit.names import DISTRIBUTION_NAME, SCAFFOLD_COMMAND
 from harness_toolkit.scaffold.config import Config, validate_module_name, validate_name
 
 Shape = Literal["single", "apps"]
-Stack = Literal["python", "go", "rust"]
+Stack = Literal["python", "go", "rust", "web"]
 
 cli = App(
     name=SCAFFOLD_COMMAND,
@@ -31,7 +31,8 @@ def print_error(message: str) -> None:
     help_epilogue=(
         "Examples:\n"
         f"  {SCAFFOLD_COMMAND} init --non-interactive --name myapp --shape single --stack python\n"
-        f"  {SCAFFOLD_COMMAND} init --non-interactive --name platform --shape apps --stack go --modules api,worker"
+        f"  {SCAFFOLD_COMMAND} init --non-interactive --name platform --shape apps --stack go --modules api,worker\n"
+        f"  {SCAFFOLD_COMMAND} init --non-interactive --name dashboard --shape single --stack web"
     )
 )
 def init(

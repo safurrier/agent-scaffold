@@ -1,0 +1,14 @@
+import { ExamplePanel } from "./ExamplePanel";
+
+export function App() {
+  return (
+    <main className="app-shell">
+      <section className="hero">
+        <p className="eyebrow">Harness web stack</p>
+        <h1>{{ project_name }}</h1>
+        <p className="summary">{{ project_description }}</p>
+      </section>
+      <ExamplePanel />
+    </main>
+  );
+}

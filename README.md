@@ -194,7 +194,7 @@ Supported scaffold stacks:
 | Python | `ruff format` | `ruff check` | `ty` | `pytest` | Available |
 | Go | `gofumpt` | `golangci-lint` | `go vet` | `go test` | Available |
 | Rust | `cargo fmt` | `cargo clippy` | `cargo check` | `cargo test` | Available |
-| Web / TypeScript | `prettier` | `eslint` | `tsc --noEmit` | `vitest` | Planned |
+| Web / TypeScript | `prettier` | `eslint` | `tsc --noEmit` | `vitest` | Available |
 
 Repo shapes are **single-project** and **apps workspace**. The full reference is
 in [Task Contract](docs/reference/task-contract.md), [Stacks](docs/reference/stacks/index.md), and

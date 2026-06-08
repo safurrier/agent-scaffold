@@ -38,14 +38,30 @@ def typecheck_rust(cwd=PROJECT_ROOT):
     log_ok("Rust typecheck")
 
 
+def typecheck_web(cwd=PROJECT_ROOT):
+    log_step("Type-checking Web code")
+    run(["npm", "run", "typecheck"], cwd=cwd)
+    log_ok("Web typecheck")
+
+
 if get_shape() == "apps":
     run_per_module(
         "typecheck",
         dispatch_module(
-            {"python": typecheck_python, "go": typecheck_go, "rust": typecheck_rust}
+            {
+                "python": typecheck_python,
+                "go": typecheck_go,
+                "rust": typecheck_rust,
+                "web": typecheck_web,
+            }
         ),
     )
 else:
     dispatch_stack(
-        {"python": typecheck_python, "go": typecheck_go, "rust": typecheck_rust}
+        {
+            "python": typecheck_python,
+            "go": typecheck_go,
+            "rust": typecheck_rust,
+            "web": typecheck_web,
+        }
     )
