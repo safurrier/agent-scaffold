@@ -1,0 +1,41 @@
+{
+  "attached_artifacts": [],
+  "branch": "feat/web-stack-v0",
+  "diff_hash": "sha256:e426920e8d90169b75b689badf428a755f547471b9de8d3dccf08ee172c3d001",
+  "dirty": false,
+  "event_count": 17,
+  "event_seq": 17,
+  "evidence_count": 10,
+  "evidence_ids": [
+    "ev_20260607_180557_487449",
+    "ev_20260607_180618_076416",
+    "ev_20260607_180635_231826",
+    "ev_20260607_180719_748450",
+    "ev_20260607_181439_436652",
+    "ev_20260607_181445_946603",
+    "ev_20260607_182526_158019",
+    "ev_20260607_182540_377316",
+    "ev_20260607_182626_454545",
+    "ev_20260607_182657_442739"
+  ],
+  "file_hashes": {
+    "README.md": "sha256:74ba7a9dae3bdb0d84080791f85563104c0f4681f57553ddcae3908e0a4aa697",
+    "artifacts/README.md": "sha256:c4bad9d4652f296a7e4dcf175fe1dd0c66a99ec0b74941cd45c499e84792436c"
+  },
+  "files": [
+    "README.md",
+    "meta.json",
+    "artifacts/README.md"
+  ],
+  "generated_at": "2026-06-08T01:56:10.422355+00:00",
+  "generated_by": "hk export --format handoff-dir",
+  "git_sha": "b71d73a",
+  "output_path": ".ai/hk/2026-06-07-174855-web-stack-v0",
+  "ready": false,
+  "ready_status": "not-ready",
+  "schema_version": 1,
+  "sync_status": "needs-sync",
+  "target_root": ".",
+  "target_scope": ".",
+  "work_id": "2026-06-07-174855-web-stack-v0"
+}
