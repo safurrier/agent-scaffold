@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { handleHealth } from "../worker/routes/health";
+import { handleRunsRequest } from "../worker/routes/runs";
 
 describe("worker health route", () => {
   it("returns an ok health payload", async () => {
@@ -8,3 +9,51 @@ describe("worker health route", () => {
     await expect(response.json()).resolves.toMatchObject({ ok: true });
   });
 });
+
+describe("saved run routes", () => {
+  it("rejects unauthenticated remote saved-run reads", async () => {
+    const response = await handleRunsRequest(
+      new Request("https://app.example.com/api/runs/mine"),
+      { DB: neverUsedDb() } as never,
+    );
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "unauthorized",
+    });
+  });
+
+  it("allows the explicit localhost development owner", async () => {
+    const response = await handleRunsRequest(
+      new Request("http://localhost:8787/api/runs/mine"),
+      { DB: dbWithRows([]) } as never,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({ runs: [] });
+  });
+});
+
+function neverUsedDb(): D1Database {
+  return {
+    prepare() {
+      throw new Error("DB should not be used for unauthorized requests");
+    },
+  } as never;
+}
+
+function dbWithRows(rows: unknown[]): D1Database {
+  return {
+    prepare() {
+      return {
+        bind() {
+          return {
+            async all() {
+              return { results: rows };
+            },
+          };
+        },
+      };
+    },
+  } as never;
+}

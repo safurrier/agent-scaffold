@@ -30,6 +30,9 @@ class TestWebSingleHappyPath:
         assert not (web_single_ready / "stacks").exists()
         assert not (web_single_ready / "templates").exists()
         assert not (web_single_ready / "src" / "harness_toolkit").exists()
+        assert not (web_single_ready / "tests" / "e2e").exists()
+        assert not (web_single_ready / "tests" / "unit").exists()
+        assert not (web_single_ready / "tests" / "contract").exists()
 
     def test_spec_md_generated(self, web_single_ready: Path) -> None:
         spec = web_single_ready / "SPEC.md"

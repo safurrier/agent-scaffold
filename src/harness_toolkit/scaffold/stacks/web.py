@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
 from harness_toolkit.scaffold.config import SCAFFOLD_ROOT, Config
@@ -34,6 +35,9 @@ The Web stack uses:
         stack_dir = SCAFFOLD_ROOT / "stacks" / "web"
         context = _build_context(config, config.name)
 
+        tests_dir = root / "tests"
+        if tests_dir.exists():
+            shutil.rmtree(tests_dir)
         copy_tree(stack_dir / "project", root, context)
 
         gitignore = SCAFFOLD_ROOT / "templates" / "single" / ".gitignore.web.tmpl"

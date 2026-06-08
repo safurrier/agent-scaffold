@@ -1,11 +1,11 @@
 {
   "attached_artifacts": [],
   "branch": "feat/web-stack-v0",
-  "diff_hash": "sha256:e426920e8d90169b75b689badf428a755f547471b9de8d3dccf08ee172c3d001",
-  "dirty": false,
-  "event_count": 17,
-  "event_seq": 17,
-  "evidence_count": 10,
+  "diff_hash": "sha256:6c2712676ee3ca6bbeadb3efe581dbc9068cb1f68282950743bb13cd0b269a3c",
+  "dirty": true,
+  "event_count": 18,
+  "event_seq": 19,
+  "evidence_count": 11,
   "evidence_ids": [
     "ev_20260607_180557_487449",
     "ev_20260607_180618_076416",
@@ -16,10 +16,11 @@
     "ev_20260607_182526_158019",
     "ev_20260607_182540_377316",
     "ev_20260607_182626_454545",
-    "ev_20260607_182657_442739"
+    "ev_20260607_182657_442739",
+    "ev_20260607_191504_782533"
   ],
   "file_hashes": {
-    "README.md": "sha256:74ba7a9dae3bdb0d84080791f85563104c0f4681f57553ddcae3908e0a4aa697",
+    "README.md": "sha256:15ad8d96708d2a4a3d25c524f7088e54d961e69741ce57bcd06e4223abc0384c",
     "artifacts/README.md": "sha256:c4bad9d4652f296a7e4dcf175fe1dd0c66a99ec0b74941cd45c499e84792436c"
   },
   "files": [
@@ -27,9 +28,9 @@
     "meta.json",
     "artifacts/README.md"
   ],
-  "generated_at": "2026-06-08T01:56:10.422355+00:00",
+  "generated_at": "2026-06-08T02:17:56.959327+00:00",
   "generated_by": "hk export --format handoff-dir",
-  "git_sha": "b71d73a",
+  "git_sha": "9b23b84",
   "output_path": ".ai/hk/2026-06-07-174855-web-stack-v0",
   "ready": false,
   "ready_status": "not-ready",

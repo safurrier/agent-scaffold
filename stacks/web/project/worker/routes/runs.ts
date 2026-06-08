@@ -9,11 +9,17 @@ export async function handleRunsRequest(
 
   if (request.method === "GET" && url.pathname === "/api/runs/mine") {
     const ownerId = ownerFromRequest(request);
+    if (!ownerId) {
+      return Response.json({ error: "unauthorized" }, { status: 401 });
+    }
     return Response.json({ runs: await listSavedRuns(env.DB, ownerId) });
   }
 
   if (request.method === "POST" && url.pathname === "/api/runs") {
     const ownerId = ownerFromRequest(request);
+    if (!ownerId) {
+      return Response.json({ error: "unauthorized" }, { status: 401 });
+    }
     const body = (await request.json().catch(() => null)) as unknown;
     if (!isCreateRunBody(body)) {
       return Response.json({ error: "invalid_run" }, { status: 400 });
@@ -25,10 +31,19 @@ export async function handleRunsRequest(
   return Response.json({ error: "not_found" }, { status: 404 });
 }
 
-function ownerFromRequest(request: Request): string {
-  return (
-    request.headers.get("Cf-Access-Authenticated-User-Email") ?? "local-dev"
-  );
+function ownerFromRequest(request: Request): string | null {
+  const accessEmail = request.headers.get("Cf-Access-Authenticated-User-Email");
+  if (accessEmail) return accessEmail;
+
+  const hostname = new URL(request.url).hostname;
+  if (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "[::1]"
+  ) {
+    return "local-dev";
+  }
+  return null;
 }
 
 interface CreateRunBody {
