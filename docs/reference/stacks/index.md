@@ -57,3 +57,4 @@ All task scripts read this variable to dispatch to the correct toolchain.
 - [Go stack](go.md)
 - [Rust stack](rust.md)
 - [Web stack](web.md)
+- [Web app template summary](web-template-summary.md)
