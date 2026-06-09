@@ -54,9 +54,9 @@ The worker includes a small `/api/health` route and saved-run endpoints:
 - `POST /api/runs`
 
 The saved-run table is intentionally generic: an owner id, a title, a lineup
-JSON blob, a result JSON blob, and timestamps. That gives web apps such as the
-NBA simulator a relational home for login-owned saved runs without committing
-the template to a specific auth provider.
+JSON blob, a result JSON blob, and timestamps. That gives generated web apps a
+relational home for login-owned saved runs without committing the template to a
+specific auth provider.
 
 ## Task contract
 

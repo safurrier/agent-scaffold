@@ -115,9 +115,10 @@ Saved runs use a generic relational table:
 - `result_json`
 - `created_at`
 
-The saved-run routes now require an authenticated owner outside localhost. In
-deployed environments, missing `Cf-Access-Authenticated-User-Email` returns
-`401` instead of silently sharing a `local-dev` owner.
+The saved-run routes now require a real authenticated owner outside localhost.
+In deployed environments, requests return `401` until the app wires a validated
+auth provider; the template does not trust caller-supplied identity headers by
+default.
 
 ## What is intentionally stubbed
 
@@ -134,21 +135,7 @@ It leaves these as explicit app-level follow-ups:
 
 The default recommendation remains Cloudflare-native for simple apps that want
 one deploy surface: Worker compute, static hosting, D1 relational persistence,
-and Access-based login.
-
-## What we proved with the NBA simulator
-
-The NBA simulator repo was generated from this stack and then used as the first
-real app-shaped proof:
-
-- React UI replaced the scaffold example app.
-- Domain logic moved into `src/sim/nba.ts`.
-- Save-run client calls the generated Worker route.
-- `SPEC.md` captured app-specific invariants.
-- `mise run verify` passed with app tests, build, and Wrangler dry-run.
-
-That validates the stack as a useful V0 app template, not only a minimal smoke
-fixture.
+and a deliberately wired auth provider.
 
 ## Known follow-ups for the template
 

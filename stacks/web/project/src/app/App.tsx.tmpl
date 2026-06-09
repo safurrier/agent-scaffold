@@ -6,7 +6,7 @@ export function App() {
       <section className="hero">
         <p className="eyebrow">Harness web stack</p>
         <h1>{{ project_name }}</h1>
-        <p className="summary">{{ project_description }}</p>
+        <p className="summary">{{ "{" }}{{ project_description_template_literal }}{{ "}" }}</p>
       </section>
       <ExamplePanel />
     </main>

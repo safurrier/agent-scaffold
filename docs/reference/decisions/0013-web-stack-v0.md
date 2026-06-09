@@ -23,9 +23,8 @@ index:
 ## Context
 
 Harness Scaffold already supported Python, Go, and Rust stacks behind the stable
-`mise run` task contract. The next target project is a web app for the NBA
-season simulator, with likely needs for deploy previews, a custom domain, login,
-and saved simulation runs.
+`mise run` task contract. The next target class is small app-shaped web projects
+with likely needs for deploy previews, a custom domain, login, and saved runs.
 
 The planning trade-off was whether to start with Vercel plus common external
 services, or a Cloudflare-native baseline. Cloudflare is a good first target
@@ -58,8 +57,8 @@ remain follow-up stack variants or optional modules, not inert V0 adapters.
 - New web apps get the same task contract as existing stacks.
 - The generated repo can deploy to Cloudflare with static assets and Worker
   routes from day one.
-- D1 gives the NBA simulator a relational persistence path for login-owned saved
-  runs without introducing external Postgres setup in the template.
+- D1 gives generated web apps a relational persistence path for login-owned
+  saved runs without introducing external Postgres setup in the template.
 - PR/merge deploy preview workflows can build on Cloudflare or a future Vercel
   platform module without changing the core app structure.
 
@@ -75,7 +74,7 @@ remain follow-up stack variants or optional modules, not inert V0 adapters.
 
 - Add a how-to for custom domains once the first real generated web app is
   deployed.
-- Add an auth module after choosing the NBA simulator auth provider.
+- Add an auth module after the first generated apps settle on a provider shape.
 - Consider Vercel and Postgres as explicit stack options only after a real app
   needs them.
 - Add R2 support when a generated app needs object/blob storage.

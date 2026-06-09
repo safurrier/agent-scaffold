@@ -25,7 +25,7 @@ def dev_python(cwd=PROJECT_ROOT):
     if main_py.exists():
         run(["uv", "run", "python", "-m", module_name], cwd=cwd)
     else:
-        log_warn(f"No __main__.py found — this appears to be a library.")
+        log_warn("No __main__.py found — this appears to be a library.")
         log_warn(f"Add {module_name}/__main__.py for a runnable dev target.")
 
 
@@ -39,9 +39,9 @@ def dev_rust(cwd=PROJECT_ROOT):
     run(["cargo", "run"], cwd=cwd)
 
 
-def dev_web(cwd=PROJECT_ROOT):
+def dev_web(cwd=PROJECT_ROOT, extra_args: list[str] | None = None):
     log_step("Starting Web development server")
-    run(["npm", "run", "dev", "--", *sys.argv[1:]], cwd=cwd)
+    run(["npm", "run", "dev", "--", *(extra_args or sys.argv[1:])], cwd=cwd)
 
 
 shape = get_shape()
@@ -67,8 +67,13 @@ if shape == "apps":
         mod["kind"]
     )
     if fn:
-        fn(cwd=cwd)
+        if mod["kind"] == "web":
+            dev_web(cwd=cwd, extra_args=sys.argv[2:])
+        else:
+            fn(cwd=cwd)
     else:
         log_warn(f"{mod['kind']} stack: not yet implemented")
 else:
-    dispatch_stack({"python": dev_python, "go": dev_go, "rust": dev_rust, "web": dev_web})
+    dispatch_stack(
+        {"python": dev_python, "go": dev_go, "rust": dev_rust, "web": dev_web}
+    )

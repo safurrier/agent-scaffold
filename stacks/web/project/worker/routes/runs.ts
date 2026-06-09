@@ -32,9 +32,6 @@ export async function handleRunsRequest(
 }
 
 function ownerFromRequest(request: Request): string | null {
-  const accessEmail = request.headers.get("Cf-Access-Authenticated-User-Email");
-  if (accessEmail) return accessEmail;
-
   const hostname = new URL(request.url).hostname;
   if (
     hostname === "localhost" ||
@@ -55,5 +52,9 @@ interface CreateRunBody {
 function isCreateRunBody(body: unknown): body is CreateRunBody {
   if (!body || typeof body !== "object") return false;
   const candidate = body as Record<string, unknown>;
-  return "lineup" in candidate && "result" in candidate;
+  return (
+    "lineup" in candidate &&
+    "result" in candidate &&
+    (candidate.title === undefined || typeof candidate.title === "string")
+  );
 }

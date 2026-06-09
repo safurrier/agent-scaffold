@@ -23,6 +23,35 @@ describe("saved run routes", () => {
     });
   });
 
+  it("rejects spoofed remote identity headers until auth is wired", async () => {
+    const response = await handleRunsRequest(
+      new Request("https://app.example.com/api/runs/mine", {
+        headers: { "Cf-Access-Authenticated-User-Email": "owner@example.com" },
+      }),
+      { DB: neverUsedDb() } as never,
+    );
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "unauthorized",
+    });
+  });
+
+  it("rejects saved-run creates with non-string titles", async () => {
+    const response = await handleRunsRequest(
+      new Request("http://localhost:8787/api/runs", {
+        method: "POST",
+        body: JSON.stringify({ title: 123, lineup: {}, result: {} }),
+      }),
+      { DB: neverUsedDb() } as never,
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "invalid_run",
+    });
+  });
+
   it("allows the explicit localhost development owner", async () => {
     const response = await handleRunsRequest(
       new Request("http://localhost:8787/api/runs/mine"),

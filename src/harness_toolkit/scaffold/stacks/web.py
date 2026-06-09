@@ -89,6 +89,9 @@ def _build_context(config: Config, package_name: str) -> dict[str, str]:
     return {
         "project_name": package_name,
         "project_description": config.description,
+        "project_description_template_literal": _tsx_template_literal(
+            config.description
+        ),
         "project_stack": config.stack,
         "author_name": config.author_name,
         "author_email": config.author_email,
@@ -102,6 +105,11 @@ def _write(src: Path, dst: Path, context: dict[str, str]) -> None:
     dst.write_text(render_template(src, context))
 
 
+def _tsx_template_literal(value: str) -> str:
+    escaped = value.replace("\\", "\\\\").replace("`", "\\`").replace("${", "\\${")
+    return f"`{escaped}`"
+
+
 def _write_minimal_app(path: Path, project_name: str, description: str) -> None:
     path.write_text(
         f"""\
@@ -111,7 +119,7 @@ export function App() {{
       <section className="hero">
         <p className="eyebrow">Harness web stack</p>
         <h1>{project_name}</h1>
-        <p className="summary">{description or "Ready for implementation."}</p>
+        <p className="summary">{{{_tsx_template_literal(description or "Ready for implementation.")}}}</p>
       </section>
     </main>
   );

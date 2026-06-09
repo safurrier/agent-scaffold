@@ -40,6 +40,25 @@ def test_stack_notes_mentions_key_tools() -> None:
     assert "wrangler deploy --dry-run" in notes
 
 
+def test_init_single_escapes_description_for_tsx(tmp_path: Path) -> None:
+    from harness_toolkit.scaffold.config import Config
+    from harness_toolkit.scaffold.stacks.web import WebStack
+
+    config = Config(
+        name="webprobe",
+        description='A < B & {C} "quoted" `tick` ${value}',
+        shape="single",
+        stack="web",
+    )
+    WebStack().init_single(tmp_path, config)
+
+    app = (tmp_path / "src" / "app" / "App.tsx").read_text()
+    assert (
+        '<p className="summary">{`A < B & {C} "quoted" \\`tick\\` \\${value}`}</p>'
+        in app
+    )
+
+
 def test_remove_examples_rewrites_app_without_example_import(tmp_path: Path) -> None:
     from harness_toolkit.scaffold.config import Config
     from harness_toolkit.scaffold.stacks.web import WebStack
@@ -59,7 +78,7 @@ def test_remove_examples_rewrites_app_without_example_import(tmp_path: Path) -> 
 
     config = Config(
         name="webprobe",
-        description="A generated web app",
+        description='A < B & {C} "quoted" `tick` ${value}',
         shape="single",
         stack="web",
     )
@@ -68,5 +87,9 @@ def test_remove_examples_rewrites_app_without_example_import(tmp_path: Path) -> 
     app = (app_dir / "App.tsx").read_text()
     assert "ExamplePanel" not in app
     assert "webprobe" in app
+    assert (
+        '<p className="summary">{`A < B & {C} "quoted" \\`tick\\` \\${value}`}</p>'
+        in app
+    )
     assert not (app_dir / "ExamplePanel.tsx").exists()
     assert not (tests_dir / "app.test.ts").exists()
