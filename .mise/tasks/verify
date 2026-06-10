@@ -81,6 +81,16 @@ def verify_rust(cwd=PROJECT_ROOT):
         log_ok("Docker build")
 
 
+def verify_web(cwd=PROJECT_ROOT):
+    log_step("Building Web app for deploy")
+    run(["npm", "run", "build"], cwd=cwd)
+    log_ok("Web build")
+
+    log_step("Running Wrangler deploy dry-run")
+    run(["npm", "run", "deploy:dry-run"], cwd=cwd)
+    log_ok("Wrangler deploy dry-run")
+
+
 log_step("Running verification suite")
 log_step("Phase 1: quality gate (check)")
 _run_task("check")
@@ -90,12 +100,12 @@ if get_shape() == "apps":
     run_per_module(
         "verify",
         dispatch_module(
-            {"python": verify_python, "go": verify_go, "rust": verify_rust}
+            {"python": verify_python, "go": verify_go, "rust": verify_rust, "web": verify_web}
         ),
     )
 else:
     dispatch_stack(
-        {"python": verify_python, "go": verify_go, "rust": verify_rust}
+        {"python": verify_python, "go": verify_go, "rust": verify_rust, "web": verify_web}
     )
 
 log_ok("Verification complete")

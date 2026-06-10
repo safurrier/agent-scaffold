@@ -52,7 +52,7 @@ Files with the `.tmpl` extension are processed by replacing `{{placeholder}}` st
 | `{{project_name}}` | Project name (e.g. `my-service`) |
 | `{{module_name}}` | Python module name (`my_service`) |
 | `{{project_description}}` | Project description |
-| `{{project_stack}}` | `python`, `go`, or `rust` |
+| `{{project_stack}}` | `python`, `go`, `rust`, or `web` |
 | `{{go_module}}` | Go module path, for example github.com/org/my-service |
 | `{{author_name}}` | Author name |
 | `{{author_email}}` | Author email |
@@ -69,7 +69,7 @@ After init, the following scaffold artifacts are deleted:
 - `mkdocs.yml` — scaffold's MkDocs config
 - legacy init script, if present
 
-The scaffold's test suite (`tests/`, `pyproject.toml`) is only removed for non-Python stacks. For Python single projects, the test suite itself becomes the project's test suite.
+The scaffold's Python package config (`pyproject.toml`) is removed for non-Python stacks. Root `tests/` is preserved for stacks that own root tests, currently Python and Web single projects, and removed for Go/Rust single projects whose tests live beside their source files.
 
 **Note:** `SPEC.md` is *not* removed — the scaffold's design spec is replaced by a project-specific correctness envelope generated from `templates/SPEC.md.tmpl`.
 
@@ -128,6 +128,28 @@ Dockerfile.tmpl  →  Dockerfile
 rustfmt.toml     →  rustfmt.toml
 README.md        →  README.md
 ```
+
+### Web
+
+Copies from `stacks/web/project/`:
+
+```
+package.json.tmpl                       →  package.json
+wrangler.jsonc.tmpl                     →  wrangler.jsonc
+index.html.tmpl                         →  index.html
+src/                                    →  React browser app
+worker/                                 →  Cloudflare Worker API routes
+migrations/0001_auth_and_saved_runs.sql →  D1 schema seed
+tests/                                  →  Vitest tests
+```
+
+Optional web flags alter the copied template after render:
+
+- `--web-ui tailwind` adds Tailwind v4 and the Vite Tailwind plugin.
+- `--web-ui shadcn` adds Tailwind plus `components.json`, `src/lib/utils.ts`,
+  and `src/components/ui/button.tsx`.
+- `--web-db drizzle-d1` keeps the Cloudflare D1 migration/binding and adds
+  `worker/db/schema.ts` plus Drizzle query code.
 
 ## Apps workspace shape
 

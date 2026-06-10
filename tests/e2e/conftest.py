@@ -149,6 +149,44 @@ def rust_apps_ready(tmp_path_factory: pytest.TempPathFactory) -> Path:
     return dest
 
 
+@pytest.fixture(scope="module")
+def web_single_ready(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Initialized + set-up Web single project (module scope)."""
+    dest = tmp_path_factory.mktemp("web-single") / "scaffold"
+    shutil.copytree(SCAFFOLD_ROOT, dest, ignore=COPY_IGNORE)
+    trust_mise(dest)
+
+    result = init_project(dest, name="testwebapp", shape="single", stack="web")
+    assert result.returncode == 0, f"init failed:\n{result.stderr}"
+
+    trust_mise(dest)
+
+    result = mise("setup", dest, timeout=300)
+    assert result.returncode == 0, f"setup failed:\n{result.stderr}"
+
+    return dest
+
+
+@pytest.fixture(scope="module")
+def web_apps_ready(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Initialized + set-up Web apps workspace (module scope)."""
+    dest = tmp_path_factory.mktemp("web-apps") / "scaffold"
+    shutil.copytree(SCAFFOLD_ROOT, dest, ignore=COPY_IGNORE)
+    trust_mise(dest)
+
+    result = init_project(
+        dest, name="testwebplatform", shape="apps", stack="web", modules="ui,admin"
+    )
+    assert result.returncode == 0, f"init failed:\n{result.stderr}"
+
+    trust_mise(dest)
+
+    result = mise("setup", dest, timeout=420)
+    assert result.returncode == 0, f"setup failed:\n{result.stderr}"
+
+    return dest
+
+
 # ── Function-scoped "mutable" copies for negative-path tests ─────────────
 
 
@@ -179,4 +217,14 @@ def rust_single_mut(rust_single_ready: Path, tmp_path: Path) -> Path:
     shutil.copytree(rust_single_ready, dest, ignore=COPY_IGNORE)
     trust_mise(dest)
     mise("setup", dest, timeout=180)
+    return dest
+
+
+@pytest.fixture()
+def web_single_mut(web_single_ready: Path, tmp_path: Path) -> Path:
+    """Mutable copy of the initialized Web single project."""
+    dest = tmp_path / "web-single"
+    shutil.copytree(web_single_ready, dest, ignore=COPY_IGNORE)
+    trust_mise(dest)
+    mise("setup", dest, timeout=240)
     return dest

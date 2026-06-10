@@ -20,6 +20,10 @@ COPY_IGNORE = shutil.ignore_patterns(
     ".venv",
     ".mypy_cache",
     ".ruff_cache",
+    "node_modules",
+    "dist",
+    "dist-worker",
+    ".wrangler",
 )
 
 

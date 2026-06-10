@@ -1,0 +1,26 @@
+{
+  "name": "{{web_package_name}}",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "setup": "npm install --package-lock=false",
+    "dev": "npm run build && wrangler dev --local --port 8787",
+    "fmt": "prettier --write index.html 'src/**/*.{ts,tsx,css}' 'worker/**/*.ts' 'tests/**/*.{ts,tsx}' '*.json' '*.jsonc' '*.ts' '*.mjs'{{ web_format_extra_files }}",
+    "fmt:check": "prettier --check index.html 'src/**/*.{ts,tsx,css}' 'worker/**/*.ts' 'tests/**/*.{ts,tsx}' '*.json' '*.jsonc' '*.ts' '*.mjs'{{ web_format_extra_files }}",
+    "lint": "eslint src worker tests vite.config.ts vitest.config.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "vite build",
+    "deploy:dry-run": "wrangler deploy --dry-run --outdir dist-worker",
+    "check": "npm run fmt:check && npm run lint && npm run typecheck && npm run test",
+    "verify": "npm run check && npm run build && npm run deploy:dry-run",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local"
+  },
+  "dependencies": {
+{{ web_dependencies_json_entries }}
+  },
+  "devDependencies": {
+{{ web_dev_dependencies_json_entries }}
+  }
+}

@@ -37,13 +37,23 @@ def setup_rust(cwd=PROJECT_ROOT):
     log_ok("Rust dependencies fetched")
 
 
+def setup_web(cwd=PROJECT_ROOT):
+    log_step("Installing Web dependencies")
+    run(["npm", "run", "setup"], cwd=cwd)
+    log_ok("Web dependencies installed")
+
+
 if get_shape() == "apps":
     run_per_module(
         "setup",
-        dispatch_module({"python": setup_python, "go": setup_go, "rust": setup_rust}),
+        dispatch_module(
+            {"python": setup_python, "go": setup_go, "rust": setup_rust, "web": setup_web}
+        ),
     )
 else:
-    dispatch_stack({"python": setup_python, "go": setup_go, "rust": setup_rust})
+    dispatch_stack(
+        {"python": setup_python, "go": setup_go, "rust": setup_rust, "web": setup_web}
+    )
 
 # Install pre-commit hooks if available
 pre_commit_cfg = PROJECT_ROOT / ".pre-commit-config.yaml"

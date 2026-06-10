@@ -1,17 +1,63 @@
 # Changelog
 
-## v0.3.0 - 2026-06-02
+## v0.3.0 - 2026-06-10
 
 ### Added
 
-- Added the "Harness Kit: Dumb Tasks, Smart Agents" docs page explaining HK's what/why thesis, lifecycle spine, config layers, skills boundary, and dogfood workflow.
-- Added a GitHub Pages documentation workflow that builds docs on PRs and deploys MkDocs from `main`.
+- Added the Web scaffold stack for Vite, React, TypeScript, Cloudflare Workers,
+  Static Assets, and Cloudflare D1.
+- Added opt-in Web stack variants:
+  - `--web-ui plain|tailwind|shadcn`
+  - `--web-db d1|drizzle-d1`
+- Added generated Web stack smoke coverage for single-project and apps workspace
+  shapes, including setup, check, build/verify, audit, and module-selector
+  behavior.
+- Added HK config diagnostics for auditing user/dots/repo Harness Kit config and
+  target bindings.
+- Added HK system-map parsing, validation, matching, brief/checks views, and
+  authoring guidance for component/invariant maps.
+- Added path-aware `hk status` freshness diagnostics for validation and review
+  evidence, including no-profile generic guidance and required-profile label
+  authority.
+- Added dogfood regression scenarios for `hk status` freshness behavior.
+- Added the "Harness Kit: Dumb Tasks, Smart Agents" docs page explaining HK's
+  what/why thesis, lifecycle spine, config layers, skills boundary, and dogfood
+  workflow.
+- Added a GitHub Pages documentation workflow that builds docs on PRs and
+  deploys MkDocs from `main`.
 
 ### Changed
 
-- Reorganized MkDocs navigation and docs files into intent-based `explanation/`, `how-to/`, and `reference/` sections.
-- Refreshed README positioning around the "dumb tasks, smart agents" thesis and linked the published docs site.
-- Updated documentation links and docs routing index for the new folder layout.
+- Updated `hk status` to be the default closeout coach: it now surfaces evidence
+  freshness, stale changed paths, active export neutrality, and explicit path
+  decisions by default.
+- Made validation evidence path/content-aware, matching review evidence so small
+  follow-up edits can be covered by targeted validation instead of broad reruns.
+- Kept required profile check/review labels authoritative while allowing generic
+  freshness guidance when no profile is configured.
+- Made active HK handoff exports neutral for validation/review freshness and
+  source-risk matching while still checking export freshness separately.
+- Reorganized MkDocs navigation and docs files into intent-based `explanation/`,
+  `how-to`, and `reference/` sections.
+- Refreshed README positioning around the "dumb tasks, smart agents" thesis and
+  linked the published docs site.
+- Updated documentation links, docs routing indexes, and stack references for the
+  new Web stack and optional variants.
+- Kept generated Web defaults intentionally small: plain CSS plus raw Cloudflare
+  D1 prepared statements. Tailwind, shadcn/ui, and Drizzle-D1 are opt-in.
+
+### Fixed
+
+- Prevented generated repos from retaining Harness Toolkit's root-only docs
+  publishing workflow.
+- Hardened generated Web saved-run routes so remote callers cannot spoof
+  `Cf-Access-Authenticated-User-Email`; localhost still uses the explicit
+  `local-dev` path.
+- Rejected malformed saved-run titles with `400 invalid_run`.
+- Escaped generated TSX template literal content for project descriptions.
+- Fixed apps-shape Web `mise run dev -- <module> --help` so module names are not
+  forwarded to Wrangler as entrypoints.
+- Updated generated Vite/Vitest tooling to avoid moderate npm audit findings.
 
 ## v0.2.0 - 2026-05-15
 

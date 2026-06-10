@@ -1,0 +1,42 @@
+# Node / web
+node_modules/
+dist/
+dist-worker/
+npm-debug.log*
+
+# Cloudflare / local env
+.wrangler/
+.dev.vars
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Testing
+coverage/
+test-results/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# mise
+.mise.local.toml
+
+# Agent scratch
+.ai/handoffs/
+.ai/research/
+.ai/plans/**/artifacts/**
+!.ai/plans/**/artifacts/
+!.ai/plans/**/artifacts/manifest.yaml
+!.ai/plans/**/artifacts/*.md
+!.ai/plans/**/artifacts/*.txt
+!.ai/plans/**/artifacts/*.log
+!.ai/plans/**/artifacts/*.png
+
+# Harness-local settings
+.claude/settings.local.json
+.codex/hooks.json

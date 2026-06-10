@@ -36,9 +36,11 @@ def to_module_name(name: str) -> str:
     return name.replace("-", "_")
 
 
-SUPPORTED_STACKS = ("python", "go", "rust")
-PLANNED_STACKS = ("web",)
+SUPPORTED_STACKS = ("python", "go", "rust", "web")
+PLANNED_STACKS: tuple[str, ...] = ()
 SUPPORTED_SHAPES = ("single", "apps")
+WEB_UI_OPTIONS = ("plain", "tailwind", "shadcn")
+WEB_DB_OPTIONS = ("d1", "drizzle-d1")
 
 
 @dataclass
@@ -46,10 +48,12 @@ class Config:
     name: str
     description: str
     shape: str  # "single" | "apps"
-    stack: str  # "python" | "go" | "rust"
+    stack: str  # "python" | "go" | "rust" | "web"
     modules: list[str] = field(default_factory=list)
     author_name: str = ""
     author_email: str = ""
     go_module: str = ""
     install_hooks: bool = True
     keep_examples: bool = True
+    web_ui: str = "plain"
+    web_db: str = "d1"

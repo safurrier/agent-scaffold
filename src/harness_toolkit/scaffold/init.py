@@ -150,9 +150,14 @@ def cleanup_scaffold(root: Path, config: Config) -> None:
         root / "scripts" / "init_project.py",  # legacy, may not exist
     ]
 
-    is_python_single = config.shape == "single" and config.stack == "python"
-    if not is_python_single:
-        to_remove += [root / "tests", root / "pyproject.toml"]
+    stack_owns_root_tests = config.shape == "single" and config.stack in {
+        "python",
+        "web",
+    }
+    if not stack_owns_root_tests:
+        to_remove.append(root / "tests")
+    if config.stack != "python":
+        to_remove.append(root / "pyproject.toml")
 
     for path in to_remove:
         if path.is_dir():

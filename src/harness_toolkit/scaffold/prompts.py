@@ -6,6 +6,8 @@ from harness_toolkit.scaffold.config import (
     PLANNED_STACKS,
     SUPPORTED_SHAPES,
     SUPPORTED_STACKS,
+    WEB_DB_OPTIONS,
+    WEB_UI_OPTIONS,
     Config,
     validate_module_name,
     validate_name,
@@ -54,6 +56,12 @@ def gather_interactive() -> Config:
         default_mod = f"github.com/your-org/{name}"
         go_module = _prompt("  Go module path", default=default_mod)
 
+    web_ui = "plain"
+    web_db = "d1"
+    if stack == "web":
+        web_ui = _choose("Web UI", list(WEB_UI_OPTIONS), default="plain")
+        web_db = _choose("Web D1 access layer", list(WEB_DB_OPTIONS), default="d1")
+
     keep_examples = _confirm("Keep example code?", default=True)
     install_hooks = _confirm("Install pre-commit hooks?", default=True)
 
@@ -68,6 +76,8 @@ def gather_interactive() -> Config:
         go_module=go_module,
         install_hooks=install_hooks,
         keep_examples=keep_examples,
+        web_ui=web_ui,
+        web_db=web_db,
     )
 
 

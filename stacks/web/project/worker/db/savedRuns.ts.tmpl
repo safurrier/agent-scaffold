@@ -1,0 +1,92 @@
+{% if web_db_drizzle %}import { desc, eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/d1";
+import { savedRuns } from "./schema";
+{% endif %}
+export interface SavedRunRow {
+  id: string;
+  owner_id: string;
+  title: string;
+  lineup_json: string;
+  result_json: string;
+  created_at: string;
+}
+
+export interface CreateSavedRunInput {
+  title?: string;
+  lineup: unknown;
+  result: unknown;
+}
+
+export async function listSavedRuns(
+  db: D1Database,
+  ownerId: string,
+): Promise<SavedRunRow[]> {
+{% if web_db_drizzle %}  const rows = await drizzle(db)
+    .select()
+    .from(savedRuns)
+    .where(eq(savedRuns.ownerId, ownerId))
+    .orderBy(desc(savedRuns.createdAt))
+    .limit(50);
+  return rows.map(toSavedRunRow);
+{% else %}  const rows = await db
+    .prepare(
+      `SELECT id, owner_id, title, lineup_json, result_json, created_at
+       FROM saved_runs
+       WHERE owner_id = ?
+       ORDER BY created_at DESC
+       LIMIT 50`,
+    )
+    .bind(ownerId)
+    .all<SavedRunRow>();
+  return rows.results ?? [];
+{% endif %}}
+
+export async function createSavedRun(
+  db: D1Database,
+  ownerId: string,
+  input: CreateSavedRunInput,
+): Promise<SavedRunRow> {
+  const id = crypto.randomUUID();
+  const title = input.title?.trim() || "Untitled run";
+  const createdAt = new Date().toISOString();
+  const lineupJson = JSON.stringify(input.lineup);
+  const resultJson = JSON.stringify(input.result);
+
+{% if web_db_drizzle %}  await drizzle(db).insert(savedRuns).values({
+    id,
+    ownerId,
+    title,
+    lineupJson,
+    resultJson,
+    createdAt,
+  });
+{% else %}  await db
+    .prepare(
+      `INSERT INTO saved_runs
+        (id, owner_id, title, lineup_json, result_json, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+    )
+    .bind(id, ownerId, title, lineupJson, resultJson, createdAt)
+    .run();
+{% endif %}
+  return {
+    id,
+    owner_id: ownerId,
+    title,
+    lineup_json: lineupJson,
+    result_json: resultJson,
+    created_at: createdAt,
+  };
+}
+{% if web_db_drizzle %}
+function toSavedRunRow(row: typeof savedRuns.$inferSelect): SavedRunRow {
+  return {
+    id: row.id,
+    owner_id: row.ownerId,
+    title: row.title,
+    lineup_json: row.lineupJson,
+    result_json: row.resultJson,
+    created_at: row.createdAt,
+  };
+}
+{% endif %}

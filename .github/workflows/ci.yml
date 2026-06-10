@@ -84,6 +84,8 @@ jobs:
             name: smokego
           - stack: rust
             name: smokerust
+          - stack: web
+            name: smokeweb
     steps:
       - uses: actions/checkout@v4
 

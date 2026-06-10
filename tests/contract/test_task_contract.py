@@ -107,6 +107,10 @@ def test_stacks_rust_exists() -> None:
     assert (SCAFFOLD_ROOT / "stacks" / "rust").is_dir()
 
 
+def test_stacks_web_exists() -> None:
+    assert (SCAFFOLD_ROOT / "stacks" / "web").is_dir()
+
+
 def test_ci_workflow_exists() -> None:
     assert (SCAFFOLD_ROOT / ".github" / "workflows" / "ci.yml").exists()
 
@@ -128,6 +132,7 @@ def test_ci_workflow_runs_sync_check_and_stack_smokes() -> None:
     assert "stack: python" in workflow
     assert "stack: go" in workflow
     assert "stack: rust" in workflow
+    assert "stack: web" in workflow
 
 
 def test_pre_commit_config_exists() -> None:
@@ -147,6 +152,7 @@ def test_pre_commit_calls_mise_tasks() -> None:
         "templates/single/.gitignore.python.tmpl",
         "templates/single/.gitignore.go.tmpl",
         "templates/single/.gitignore.rust.tmpl",
+        "templates/single/.gitignore.web.tmpl",
         "templates/apps/.gitignore.tmpl",
     ],
 )
@@ -178,6 +184,14 @@ def test_go_stack_has_go_mod_template() -> None:
 
 def test_rust_stack_has_cargo_toml_template() -> None:
     assert (SCAFFOLD_ROOT / "stacks" / "rust" / "Cargo.toml.tmpl").exists()
+
+
+def test_web_stack_has_package_and_wrangler_templates() -> None:
+    project = SCAFFOLD_ROOT / "stacks" / "web" / "project"
+    assert (project / "package.json.tmpl").exists()
+    assert (project / "wrangler.jsonc.tmpl").exists()
+    assert (project / "worker" / "index.ts").exists()
+    assert (project / "migrations" / "0001_auth_and_saved_runs.sql").exists()
 
 
 def test_go_stack_has_golangci_config() -> None:

@@ -55,6 +55,7 @@ nav:
           - Python: reference/stacks/python.md
           - Go: reference/stacks/go.md
           - Rust: reference/stacks/rust.md
+          - Web: reference/stacks/web.md
       - Decisions:
           - ADR 0001 — Spec-Driven Decision Loop: reference/decisions/0001-spec-driven-decision-loop.md
           - ADR 0002 — Plan Workflow: reference/decisions/0002-plan-workflow.md
@@ -68,6 +69,7 @@ nav:
           - ADR 0010 — Compact HK Export Packages: reference/decisions/0010-compact-hk-export-packages.md
           - ADR 0011 — Path-Aware Review Freshness: reference/decisions/0011-path-aware-review-freshness.md
           - ADR 0012 — Lifecycle-Neutral Active HK Exports: reference/decisions/0012-lifecycle-neutral-active-hk-exports.md
+          - ADR 0013 — Web Stack V0: reference/decisions/0013-web-stack-v0.md
 
 markdown_extensions:
   - admonition

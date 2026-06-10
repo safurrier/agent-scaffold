@@ -27,6 +27,7 @@ my-project/
 ├── .github/workflows/ci.yml
 ├── pyproject.toml          # Python: package config + tool config
 ├── go.mod                  # Go: module config
+├── package.json            # Web: app scripts and npm dependencies
 │
 ├── src/my_project/         # Python: source package
 │   ├── __init__.py
@@ -36,7 +37,7 @@ my-project/
 │   ├── app.go
 │   └── app_test.go
 │
-└── tests/                  # Python: test suite
+└── tests/                  # Python/Web: root test suite
     └── test_example.py
 ```
 
@@ -82,7 +83,7 @@ role = "app"
 | Field | Required | Values | Description |
 |-------|----------|--------|-------------|
 | `path` | No | string | Path relative to repo root (default: `apps/<name>`) |
-| `kind` | No | `python`, `go`, `rust` | Stack for this module |
+| `kind` | No | `python`, `go`, `rust`, `web` | Stack for this module |
 | `role` | No | `app`, `package` | Module role |
 
 ### Task behaviour in apps shape

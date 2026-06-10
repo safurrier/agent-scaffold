@@ -59,6 +59,8 @@ def test_init_help() -> None:
     assert "--name" in result.stdout
     assert "--shape" in result.stdout
     assert "--stack" in result.stdout
+    assert "--web-ui" in result.stdout
+    assert "--web-db" in result.stdout
 
 
 # ── non-interactive validation ────────────────────────────────────────────────
@@ -128,3 +130,20 @@ def test_invalid_stack_rejected() -> None:
         "ruby",
     )
     assert result.returncode != 0
+
+
+def test_web_flags_rejected_for_non_web_stack() -> None:
+    result = _run_scaffold(
+        "init",
+        "--non-interactive",
+        "--name",
+        "myapp",
+        "--shape",
+        "single",
+        "--stack",
+        "python",
+        "--web-ui",
+        "shadcn",
+    )
+    assert result.returncode != 0
+    assert "--web-ui and --web-db can only be used with --stack web" in result.stderr

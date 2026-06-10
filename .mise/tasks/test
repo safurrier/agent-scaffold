@@ -62,10 +62,32 @@ def test_rust(cwd=PROJECT_ROOT):
     log_ok("Rust tests")
 
 
+def test_web(cwd=PROJECT_ROOT):
+    log_step("Running Web tests")
+    results_dir = Path(cwd) / "test-results"
+    results_dir.mkdir(parents=True, exist_ok=True)
+    result = subprocess.run(
+        ["npm", "run", "test"],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+    )
+    output = result.stdout + result.stderr
+    (results_dir / "vitest.txt").write_text(output)
+    print(output, end="")
+    if result.returncode != 0:
+        sys.exit(result.returncode)
+    log_ok("Web tests")
+
+
 if get_shape() == "apps":
     run_per_module(
         "test",
-        dispatch_module({"python": test_python, "go": test_go, "rust": test_rust}),
+        dispatch_module(
+            {"python": test_python, "go": test_go, "rust": test_rust, "web": test_web}
+        ),
     )
 else:
-    dispatch_stack({"python": test_python, "go": test_go, "rust": test_rust})
+    dispatch_stack(
+        {"python": test_python, "go": test_go, "rust": test_rust, "web": test_web}
+    )

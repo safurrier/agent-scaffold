@@ -84,7 +84,7 @@ The interactive flow prompts for:
 1. **Project name** — lowercase, hyphens allowed (e.g. `my-service`)
 2. **Description** — one-line project description
 3. **Shape** — `single` (one language) or `apps` (workspace with multiple apps)
-4. **Stack** — `python` or `go`
+4. **Stack** — `python`, `go`, `rust`, or `web`
 5. **Author** name and email
 6. **Options** — pre-commit hooks, example code
 
@@ -105,13 +105,38 @@ Full flag reference:
 | `--name` | Yes | — | Project name (lowercase, hyphens) |
 | `--description` | No | `A <name> project` | One-line description |
 | `--shape` | No | `single` | `single` or `apps` |
-| `--stack` | No | `python` | `python` or `go` |
+| `--stack` | No | `python` | `python`, `go`, `rust`, or `web` |
 | `--modules` | For apps | — | Comma-separated module names |
 | `--go-module` | For Go | `github.com/your-org/<name>` | Go module path |
+| `--web-ui` | For Web | `plain` | Web UI variant: `plain`, `tailwind`, or `shadcn` |
+| `--web-db` | For Web | `d1` | Cloudflare D1 access layer: `d1` or `drizzle-d1` |
 | `--author-name` | No | — | Author name |
 | `--author-email` | No | — | Author email |
 | `--no-hooks` | No | hooks enabled | Skip pre-commit installation |
 | `--no-examples` | No | examples kept | Remove example source files |
+
+For a Cloudflare-ready web app:
+
+```bash
+mise run init -- \
+  --non-interactive \
+  --name my-dashboard \
+  --shape single \
+  --stack web
+```
+
+For the more opinionated app starter with Tailwind, shadcn/ui, and Drizzle over
+Cloudflare D1:
+
+```bash
+mise run init -- \
+  --non-interactive \
+  --name my-dashboard \
+  --shape single \
+  --stack web \
+  --web-ui shadcn \
+  --web-db drizzle-d1
+```
 
 ## After init
 
