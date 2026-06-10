@@ -126,19 +126,20 @@ mise run check
 mise run dev -- ui --help >/tmp/web-apps-max-dev-help.out 2>&1
 ! grep -q "entry-point file at \"ui\"" /tmp/web-apps-max-dev-help.out'`: pass (exit 0) — validates: Max web variants verify and apps-shape dev module selector smoke after recovery — `<local HK state not exported>`
 - `mise run check`: pass (exit 0) — validates: Full fast gate after optional Tailwind/shadcn and Drizzle-D1 web variants after recovery — `<local HK state not exported>`
+- `uv run pytest tests/contract/test_docs_contract.py -q`: pass (exit 0) — validates: Changelog release-note update for v0.3.0 before merging PR 31 — `<local HK state not exported>`
 
 ## Readiness
 - context: info — context recorded
 - plan: pass — plan recorded
 - decision: pass — decision and spec reflection recorded
 - validation: pass — validation evidence with rationale recorded
-- review: pass — external-enough review recorded
+- review: fail — accepted review does not cover current changed paths; run a targeted follow-up review with `hk review add --path PATH ...` or dangerously-skip review. Current changed paths: CHANGELOG.md.
 - profile-check:focused-contract-tests: pass — required profile check recorded: focused-contract-tests (matched .github/workflows/ci.yml, .mise/tasks/build, .mise/tasks/dev, +20 more)
-- profile-check:fast-gate: pass — required profile check recorded: fast-gate (matched .github/workflows/ci.yml, .mise/tasks/build, .mise/tasks/dev, +58 more)
+- profile-check:fast-gate: pass — required profile check recorded: fast-gate (matched .github/workflows/ci.yml, .mise/tasks/build, .mise/tasks/dev, +57 more)
 - profile-check:handoff-sync-check: pass — required profile check recorded: handoff-sync-check (matched .github/workflows/ci.yml)
 - profile-check:heavy-gate: pass — required profile check recorded: heavy-gate (matched .github/workflows/ci.yml, .mise/tasks/verify)
-- profile-check:generated-stack-smoke: pass — required profile check recorded: generated-stack-smoke (matched src/harness_toolkit/scaffold/stacks/__init__.py, src/harness_toolkit/scaffold/stacks/web.py, stacks/web/project/.npmrc, +24 more)
-- profile-review:codex-review: pass — required profile review recorded: codex-review (matched .github/workflows/ci.yml, .mise/tasks/build, .mise/tasks/dev, +56 more)
+- profile-check:generated-stack-smoke: pass — required profile check recorded: generated-stack-smoke (matched src/harness_toolkit/scaffold/stacks/__init__.py, src/harness_toolkit/scaffold/stacks/web.py, stacks/web/project/.npmrc, +23 more)
+- profile-review:codex-review: pass — required profile review recorded: codex-review (matched .github/workflows/ci.yml, .mise/tasks/build, .mise/tasks/dev, +55 more)
 
 ## Review
 - codex / codex-cli [codex-review]: Codex review rerun after fixes found no discrete correctness issues. Earlier actionable findings were addressed: remote identity headers are no longer trusted, non-string titles return 400, Vite/Vitest are bumped past audited vulnerable versions, TSX descriptions are escaped/prettier-compliant, apps web dev no longer forwards the module selector, and NBA simulator references were removed. paths: .mise/tasks/dev, docs/reference/decisions/0013-web-stack-v0.md, docs/reference/stacks/web-template-summary.md, +8 more. [accepted]
