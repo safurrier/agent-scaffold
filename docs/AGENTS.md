@@ -38,7 +38,7 @@ Agent routing index for MkDocs-managed documentation. Structure is owned by `mkd
 | `reference/stacks/python.md` | Python tooling: uv, ruff, ty, pytest configuration |
 | `reference/stacks/go.md` | Go tooling: gofumpt, golangci-lint, go test, Dockerfile |
 | `reference/stacks/rust.md` | Rust tooling: cargo fmt, clippy, check, test, Dockerfile |
-| `reference/stacks/web.md` | Web tooling: Vite, React, Cloudflare Workers, D1, Prettier, ESLint, Vitest |
+| `reference/stacks/web.md` | Web tooling and optional variants: Vite, React, Tailwind/shadcn, Cloudflare Workers, D1/Drizzle, Prettier, ESLint, Vitest |
 | `reference/decisions/0001-spec-driven-decision-loop.md` | SPEC.md, docs, and ADR loop |
 | `reference/decisions/0002-plan-workflow.md` | Plan directory workflow |
 | `reference/decisions/0003-deterministic-slice-contract.md` | Plan/spec/evidence/review contract |
@@ -51,6 +51,6 @@ Agent routing index for MkDocs-managed documentation. Structure is owned by `mkd
 | `reference/decisions/0010-compact-hk-export-packages.md` | Compact `.ai/hk` export package shape and ledger/projection boundary |
 | `reference/decisions/0011-path-aware-review-freshness.md` | Path/content-aware HK review freshness and targeted follow-up review coverage |
 | `reference/decisions/0012-lifecycle-neutral-active-hk-exports.md` | Lifecycle-neutral active HK handoff exports and strict export integrity checks |
-| `reference/decisions/0013-web-stack-v0.md` | Web stack V0: Vite/React, Cloudflare Workers, D1 persistence scaffold |
+| `reference/decisions/0013-web-stack-v0.md` | Web stack V0: Vite/React, optional Tailwind/shadcn, Cloudflare Workers, D1/Drizzle persistence scaffold |
 
 <!-- generated-by: context-engineering@2.2.0 | last-updated: 2026-06-02 -->

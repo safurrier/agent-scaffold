@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import json
 import shutil
 from pathlib import Path
+from typing import Any
 
 from harness_toolkit.scaffold.config import SCAFFOLD_ROOT, Config
 from harness_toolkit.scaffold.templates import copy_tree, render_template
@@ -39,6 +41,7 @@ The Web stack uses:
         if tests_dir.exists():
             shutil.rmtree(tests_dir)
         copy_tree(stack_dir / "project", root, context)
+        _apply_web_options(root, config)
 
         gitignore = SCAFFOLD_ROOT / "templates" / "single" / ".gitignore.web.tmpl"
         if gitignore.exists():
@@ -57,6 +60,7 @@ The Web stack uses:
         context = _build_context(config, mod_name)
 
         copy_tree(stack_dir / "project", mod_dir, context)
+        _apply_web_options(mod_dir, config)
 
         return {
             "stack_notes": self.stack_notes(),
@@ -85,7 +89,7 @@ The Web stack uses:
         _write_minimal_app(mod_dir / "src" / "app" / "App.tsx", mod_dir.name, "")
 
 
-def _build_context(config: Config, package_name: str) -> dict[str, str]:
+def _build_context(config: Config, package_name: str) -> dict[str, Any]:
     return {
         "project_name": package_name,
         "project_description": config.description,
@@ -97,10 +101,184 @@ def _build_context(config: Config, package_name: str) -> dict[str, str]:
         "author_email": config.author_email,
         "module_name": package_name.replace("-", "_"),
         "web_package_name": package_name,
+        "web_ui": config.web_ui,
+        "web_db": config.web_db,
+        "web_ui_tailwind": config.web_ui in {"tailwind", "shadcn"},
+        "web_ui_shadcn": config.web_ui == "shadcn",
+        "web_db_drizzle": config.web_db == "drizzle-d1",
+        "web_format_extra_files": " components.json"
+        if config.web_ui == "shadcn"
+        else "",
+        "web_dependencies_json_entries": _package_entries(_web_dependencies(config)),
+        "web_dev_dependencies_json_entries": _package_entries(
+            _web_dev_dependencies(config)
+        ),
     }
 
 
-def _write(src: Path, dst: Path, context: dict[str, str]) -> None:
+def _web_dependencies(config: Config) -> dict[str, str]:
+    dependencies = {
+        "react": "^19.0.0",
+        "react-dom": "^19.0.0",
+    }
+    if config.web_db == "drizzle-d1":
+        dependencies = {"drizzle-orm": "^0.45.2", **dependencies}
+    if config.web_ui == "shadcn":
+        dependencies.update(
+            {
+                "class-variance-authority": "^0.7.1",
+                "clsx": "^2.1.1",
+                "lucide-react": "^1.17.0",
+                "tailwind-merge": "^3.6.0",
+            }
+        )
+    return dependencies
+
+
+def _web_dev_dependencies(config: Config) -> dict[str, str]:
+    dependencies = {
+        "@cloudflare/workers-types": "^4.20241230.0",
+        "@eslint/js": "^9.17.0",
+        "@vitejs/plugin-react": "^6.0.2",
+        "@types/node": "^22.10.2",
+        "@types/react": "^19.0.2",
+        "@types/react-dom": "^19.0.2",
+        "eslint": "^9.17.0",
+        "prettier": "^3.4.2",
+        "typescript": "^5.7.3",
+        "typescript-eslint": "^8.19.0",
+        "vite": "^8.0.16",
+        "vitest": "^4.1.8",
+        "wrangler": "^4.0.0",
+    }
+    if config.web_ui in {"tailwind", "shadcn"}:
+        dependencies = {
+            **dependencies,
+            "@tailwindcss/vite": "^4.3.0",
+            "tailwindcss": "^4.3.0",
+        }
+    return dict(sorted(dependencies.items()))
+
+
+def _package_entries(dependencies: dict[str, str]) -> str:
+    lines = [
+        f"    {json.dumps(name)}: {json.dumps(version)}"
+        for name, version in dependencies.items()
+    ]
+    return ",\n".join(lines)
+
+
+def _apply_web_options(root: Path, config: Config) -> None:
+    if config.web_ui == "shadcn":
+        _write_shadcn_files(root)
+    if config.web_db == "drizzle-d1":
+        _write_drizzle_schema(root)
+
+
+def _write_shadcn_files(root: Path) -> None:
+    _write_text(
+        root / "components.json",
+        """\
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "new-york",
+  "rsc": false,
+  "tsx": true,
+  "tailwind": {
+    "css": "src/styles.css",
+    "baseColor": "slate",
+    "cssVariables": true
+  },
+  "aliases": {
+    "components": "@/components",
+    "utils": "@/lib/utils",
+    "ui": "@/components/ui",
+    "lib": "@/lib"
+  }
+}
+""",
+    )
+    _write_text(
+        root / "src" / "lib" / "utils.ts",
+        """\
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+""",
+    )
+    _write_text(
+        root / "src" / "components" / "ui" / "button.tsx",
+        """\
+import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "@/lib/utils";
+
+const buttonVariants = cva(
+  "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:pointer-events-none disabled:opacity-50",
+  {
+    variants: {
+      variant: {
+        default: "bg-slate-900 text-slate-50 hover:bg-slate-800",
+        secondary: "bg-slate-100 text-slate-900 hover:bg-slate-200",
+        outline: "border border-slate-300 bg-white hover:bg-slate-50",
+      },
+      size: {
+        default: "h-10 px-4 py-2",
+        sm: "h-9 rounded-md px-3",
+        lg: "h-11 rounded-md px-8",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  },
+);
+
+export interface ButtonProps
+  extends
+    React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {}
+
+export function Button({ className, variant, size, ...props }: ButtonProps) {
+  return (
+    <button
+      className={cn(buttonVariants({ variant, size }), className)}
+      {...props}
+    />
+  );
+}
+""",
+    )
+
+
+def _write_drizzle_schema(root: Path) -> None:
+    _write_text(
+        root / "worker" / "db" / "schema.ts",
+        """\
+import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+
+export const savedRuns = sqliteTable("saved_runs", {
+  id: text("id").primaryKey(),
+  ownerId: text("owner_id").notNull(),
+  title: text("title").notNull(),
+  lineupJson: text("lineup_json").notNull(),
+  resultJson: text("result_json").notNull(),
+  createdAt: text("created_at").notNull(),
+});
+""",
+    )
+
+
+def _write_text(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content)
+
+
+def _write(src: Path, dst: Path, context: dict[str, Any]) -> None:
     dst.parent.mkdir(parents=True, exist_ok=True)
     dst.write_text(render_template(src, context))
 

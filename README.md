@@ -196,6 +196,10 @@ Supported scaffold stacks:
 | Rust | `cargo fmt` | `cargo clippy` | `cargo check` | `cargo test` | Available |
 | Web / TypeScript | `prettier` | `eslint` | `tsc --noEmit` | `vitest` | Available |
 
+The Web stack defaults to plain CSS plus raw Cloudflare D1 prepared statements.
+Opt in to app-starter opinions with `--web-ui tailwind`, `--web-ui shadcn`, or
+`--web-db drizzle-d1`.
+
 Repo shapes are **single-project** and **apps workspace**. The full reference is
 in [Task Contract](docs/reference/task-contract.md), [Stacks](docs/reference/stacks/index.md), and
 [Repo Shapes](docs/explanation/shapes.md).

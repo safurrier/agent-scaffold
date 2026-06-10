@@ -51,6 +51,7 @@ describe("saved run routes", () => {
       error: "invalid_run",
     });
   });
+{% if not web_db_drizzle %}
 
   it("allows the explicit localhost development owner", async () => {
     const response = await handleRunsRequest(
@@ -61,6 +62,7 @@ describe("saved run routes", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({ runs: [] });
   });
+{% endif %}
 });
 
 function neverUsedDb(): D1Database {
@@ -70,6 +72,7 @@ function neverUsedDb(): D1Database {
     },
   } as never;
 }
+{% if not web_db_drizzle %}
 
 function dbWithRows(rows: unknown[]): D1Database {
   return {
@@ -86,3 +89,4 @@ function dbWithRows(rows: unknown[]): D1Database {
     },
   } as never;
 }
+{% endif %}

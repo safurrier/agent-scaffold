@@ -39,6 +39,8 @@ def to_module_name(name: str) -> str:
 SUPPORTED_STACKS = ("python", "go", "rust", "web")
 PLANNED_STACKS: tuple[str, ...] = ()
 SUPPORTED_SHAPES = ("single", "apps")
+WEB_UI_OPTIONS = ("plain", "tailwind", "shadcn")
+WEB_DB_OPTIONS = ("d1", "drizzle-d1")
 
 
 @dataclass
@@ -53,3 +55,5 @@ class Config:
     go_module: str = ""
     install_hooks: bool = True
     keep_examples: bool = True
+    web_ui: str = "plain"
+    web_db: str = "d1"

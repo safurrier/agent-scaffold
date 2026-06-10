@@ -11,10 +11,18 @@ from typing import Literal
 from cyclopts import App
 
 from harness_toolkit.names import DISTRIBUTION_NAME, SCAFFOLD_COMMAND
-from harness_toolkit.scaffold.config import Config, validate_module_name, validate_name
+from harness_toolkit.scaffold.config import (
+    WEB_DB_OPTIONS,
+    WEB_UI_OPTIONS,
+    Config,
+    validate_module_name,
+    validate_name,
+)
 
 Shape = Literal["single", "apps"]
 Stack = Literal["python", "go", "rust", "web"]
+WebUi = Literal["plain", "tailwind", "shadcn"]
+WebDb = Literal["d1", "drizzle-d1"]
 
 cli = App(
     name=SCAFFOLD_COMMAND,
@@ -32,7 +40,8 @@ def print_error(message: str) -> None:
         "Examples:\n"
         f"  {SCAFFOLD_COMMAND} init --non-interactive --name myapp --shape single --stack python\n"
         f"  {SCAFFOLD_COMMAND} init --non-interactive --name platform --shape apps --stack go --modules api,worker\n"
-        f"  {SCAFFOLD_COMMAND} init --non-interactive --name dashboard --shape single --stack web"
+        f"  {SCAFFOLD_COMMAND} init --non-interactive --name dashboard --shape single --stack web\n"
+        f"  {SCAFFOLD_COMMAND} init --non-interactive --name dashboard --shape single --stack web --web-ui shadcn --web-db drizzle-d1"
     )
 )
 def init(
@@ -48,6 +57,8 @@ def init(
     go_module: str | None = None,
     no_hooks: bool = False,
     no_examples: bool = False,
+    web_ui: WebUi = "plain",
+    web_db: WebDb = "d1",
     debug: bool = False,
 ) -> None:
     """Initialize harness-scaffold into a project.
@@ -76,6 +87,10 @@ def init(
         Skip pre-commit hook installation.
     no_examples
         Remove generated example code.
+    web_ui
+        Web UI variant for --stack web: plain, tailwind, or shadcn.
+    web_db
+        Web D1 access layer for --stack web: d1 or drizzle-d1.
     debug
         Show tracebacks instead of short errors.
     """
@@ -93,6 +108,8 @@ def init(
                 go_module=go_module,
                 no_hooks=no_hooks,
                 no_examples=no_examples,
+                web_ui=web_ui,
+                web_db=web_db,
             )
         else:
             from harness_toolkit.scaffold.prompts import gather_interactive
@@ -123,6 +140,8 @@ def _build_non_interactive_config(
     go_module: str | None,
     no_hooks: bool,
     no_examples: bool,
+    web_ui: str,
+    web_db: str,
 ) -> Config:
     """Validate CLI args and build a Config."""
     missing = []
@@ -146,6 +165,17 @@ def _build_non_interactive_config(
             validate_module_name(m.strip()) for m in modules.split(",") if m.strip()
         ]
 
+    if web_ui not in WEB_UI_OPTIONS:
+        raise ValueError(
+            f"Invalid --web-ui {web_ui!r}: choose one of {', '.join(WEB_UI_OPTIONS)}"
+        )
+    if web_db not in WEB_DB_OPTIONS:
+        raise ValueError(
+            f"Invalid --web-db {web_db!r}: choose one of {', '.join(WEB_DB_OPTIONS)}"
+        )
+    if stack != "web" and (web_ui != "plain" or web_db != "d1"):
+        raise ValueError("--web-ui and --web-db can only be used with --stack web")
+
     resolved_go_module = go_module or ""
     if stack == "go" and not resolved_go_module:
         resolved_go_module = f"github.com/your-org/{name}"
@@ -161,6 +191,8 @@ def _build_non_interactive_config(
         go_module=resolved_go_module,
         install_hooks=not no_hooks,
         keep_examples=not no_examples,
+        web_ui=web_ui,
+        web_db=web_db,
     )
 
 

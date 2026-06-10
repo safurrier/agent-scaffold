@@ -1,4 +1,5 @@
-import { ExamplePanel } from "./ExamplePanel";
+{% if web_ui_shadcn %}import { Button } from "@/components/ui/button";
+{% endif %}import { ExamplePanel } from "./ExamplePanel";
 
 export function App() {
   return (
@@ -7,7 +8,10 @@ export function App() {
         <p className="eyebrow">Harness web stack</p>
         <h1>{{ project_name }}</h1>
         <p className="summary">{{ "{" }}{{ project_description_template_literal }}{{ "}" }}</p>
-      </section>
+{% if web_ui_shadcn %}        <div className="mt-6">
+          <Button>Start building</Button>
+        </div>
+{% endif %}      </section>
       <ExamplePanel />
     </main>
   );

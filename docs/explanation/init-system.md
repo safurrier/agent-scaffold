@@ -143,6 +143,14 @@ migrations/0001_auth_and_saved_runs.sql →  D1 schema seed
 tests/                                  →  Vitest tests
 ```
 
+Optional web flags alter the copied template after render:
+
+- `--web-ui tailwind` adds Tailwind v4 and the Vite Tailwind plugin.
+- `--web-ui shadcn` adds Tailwind plus `components.json`, `src/lib/utils.ts`,
+  and `src/components/ui/button.tsx`.
+- `--web-db drizzle-d1` keeps the Cloudflare D1 migration/binding and adds
+  `worker/db/schema.ts` plus Drizzle query code.
+
 ## Apps workspace shape
 
 For each module declared in the init prompt (`--modules api,worker`):

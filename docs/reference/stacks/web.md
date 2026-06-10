@@ -34,6 +34,19 @@ index:
 The generated stack targets Node 22 through `.mise.toml` and installs npm
 dependencies during `mise run setup`.
 
+Optional web variants are available at init time:
+
+```bash
+harness-scaffold init --non-interactive --name my-dashboard --shape single --stack web --web-ui plain --web-db d1
+harness-scaffold init --non-interactive --name my-dashboard --shape single --stack web --web-ui tailwind --web-db d1
+harness-scaffold init --non-interactive --name my-dashboard --shape single --stack web --web-ui shadcn --web-db drizzle-d1
+```
+
+`--web-ui shadcn` implies Tailwind setup and generates a small shadcn-compatible
+`Button`, `cn()` helper, and `components.json`. `--web-db drizzle-d1` still uses
+the Cloudflare D1 binding and migration file; it changes the Worker access layer
+from raw prepared SQL to Drizzle's D1 adapter.
+
 ## Generated layout
 
 ```
@@ -48,6 +61,20 @@ my-dashboard/
 └── public/                 # Static assets and seed data
 ```
 
+When `--web-ui shadcn` is selected, the generated layout also includes:
+
+```text
+src/components/ui/button.tsx
+src/lib/utils.ts
+components.json
+```
+
+When `--web-db drizzle-d1` is selected, the generated layout also includes:
+
+```text
+worker/db/schema.ts
+```
+
 The worker includes a small `/api/health` route and saved-run endpoints:
 
 - `GET /api/runs/mine`
@@ -56,7 +83,9 @@ The worker includes a small `/api/health` route and saved-run endpoints:
 The saved-run table is intentionally generic: an owner id, a title, a lineup
 JSON blob, a result JSON blob, and timestamps. That gives generated web apps a
 relational home for login-owned saved runs without committing the template to a
-specific auth provider.
+specific auth provider. The default `--web-db d1` route code uses raw D1 prepared
+statements; `--web-db drizzle-d1` uses the same table and D1 binding through
+`drizzle-orm/d1`.
 
 ## Task contract
 

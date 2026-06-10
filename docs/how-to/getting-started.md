@@ -108,6 +108,8 @@ Full flag reference:
 | `--stack` | No | `python` | `python`, `go`, `rust`, or `web` |
 | `--modules` | For apps | — | Comma-separated module names |
 | `--go-module` | For Go | `github.com/your-org/<name>` | Go module path |
+| `--web-ui` | For Web | `plain` | Web UI variant: `plain`, `tailwind`, or `shadcn` |
+| `--web-db` | For Web | `d1` | Cloudflare D1 access layer: `d1` or `drizzle-d1` |
 | `--author-name` | No | — | Author name |
 | `--author-email` | No | — | Author email |
 | `--no-hooks` | No | hooks enabled | Skip pre-commit installation |
@@ -121,6 +123,19 @@ mise run init -- \
   --name my-dashboard \
   --shape single \
   --stack web
+```
+
+For the more opinionated app starter with Tailwind, shadcn/ui, and Drizzle over
+Cloudflare D1:
+
+```bash
+mise run init -- \
+  --non-interactive \
+  --name my-dashboard \
+  --shape single \
+  --stack web \
+  --web-ui shadcn \
+  --web-db drizzle-d1
 ```
 
 ## After init

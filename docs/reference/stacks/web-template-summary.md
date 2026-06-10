@@ -41,6 +41,14 @@ The generated app uses:
 - ESLint and Prettier for code quality
 - Wrangler for local Worker development and deploy dry-runs
 
+Optional variants:
+
+- `--web-ui tailwind` adds Tailwind v4 through the Vite plugin
+- `--web-ui shadcn` adds Tailwind plus shadcn-compatible `Button`, `cn()`, and
+  `components.json` scaffolding
+- `--web-db drizzle-d1` keeps Cloudflare D1 but uses Drizzle's D1 adapter and a
+  generated `worker/db/schema.ts`
+
 ## Generated layout
 
 ```text
@@ -66,6 +74,15 @@ my-dashboard/
 │   ├── app.test.ts
 │   └── worker.test.ts
 └── public/data/.gitkeep
+```
+
+Variant-only files:
+
+```text
+components.json                  # --web-ui shadcn
+src/components/ui/button.tsx     # --web-ui shadcn
+src/lib/utils.ts                 # --web-ui shadcn
+worker/db/schema.ts              # --web-db drizzle-d1
 ```
 
 For single-project web init, the template replaces the scaffold repo's Python
@@ -114,6 +131,10 @@ Saved runs use a generic relational table:
 - `lineup_json`
 - `result_json`
 - `created_at`
+
+The default `--web-db d1` generated Worker uses raw D1 prepared statements.
+The optional `--web-db drizzle-d1` variant keeps the same Cloudflare binding and
+migration, but performs reads/writes through `drizzle-orm/d1`.
 
 The saved-run routes now require a real authenticated owner outside localhost.
 In deployed environments, requests return `401` until the app wires a validated

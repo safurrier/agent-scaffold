@@ -35,11 +35,15 @@ A **stack** is the set of language-native tools wired into the task contract. Ev
 Set at `init` time via `--stack`:
 
 ```bash
-mise run init -- --non-interactive --name myapp --stack python
-mise run init -- --non-interactive --name myservice --stack go
-mise run init -- --non-interactive --name mydaemon --stack rust
-mise run init -- --non-interactive --name mydashboard --stack web
+mise run init -- --non-interactive --name myapp --shape single --stack python
+mise run init -- --non-interactive --name myservice --shape single --stack go
+mise run init -- --non-interactive --name mydaemon --shape single --stack rust
+mise run init -- --non-interactive --name mydashboard --shape single --stack web
+mise run init -- --non-interactive --name mydashboard --shape single --stack web --web-ui shadcn --web-db drizzle-d1
 ```
+
+Web stack variants are opt-in. `--web-ui` accepts `plain`, `tailwind`, or
+`shadcn`; `--web-db` accepts `d1` or `drizzle-d1`.
 
 After init, the stack is recorded in `.mise.toml`:
 

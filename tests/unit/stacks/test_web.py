@@ -59,6 +59,70 @@ def test_init_single_escapes_description_for_tsx(tmp_path: Path) -> None:
     )
 
 
+def test_tailwind_variant_adds_tailwind_tooling(tmp_path: Path) -> None:
+    from harness_toolkit.scaffold.config import Config
+    from harness_toolkit.scaffold.stacks.web import WebStack
+
+    config = Config(
+        name="webprobe",
+        description="A generated web app",
+        shape="single",
+        stack="web",
+        web_ui="tailwind",
+    )
+    WebStack().init_single(tmp_path, config)
+
+    package_json = (tmp_path / "package.json").read_text()
+    assert '"@tailwindcss/vite"' in package_json
+    assert '"tailwindcss"' in package_json
+    assert "tailwindcss()" in (tmp_path / "vite.config.ts").read_text()
+    assert '@import "tailwindcss";' in (tmp_path / "src" / "styles.css").read_text()
+
+
+def test_shadcn_variant_adds_components_and_tailwind(tmp_path: Path) -> None:
+    from harness_toolkit.scaffold.config import Config
+    from harness_toolkit.scaffold.stacks.web import WebStack
+
+    config = Config(
+        name="webprobe",
+        description="A generated web app",
+        shape="single",
+        stack="web",
+        web_ui="shadcn",
+    )
+    WebStack().init_single(tmp_path, config)
+
+    assert (tmp_path / "components.json").exists()
+    assert (tmp_path / "src" / "lib" / "utils.ts").exists()
+    assert (tmp_path / "src" / "components" / "ui" / "button.tsx").exists()
+    assert (
+        "@/components/ui/button" in (tmp_path / "src" / "app" / "App.tsx").read_text()
+    )
+    package_json = (tmp_path / "package.json").read_text()
+    assert '"class-variance-authority"' in package_json
+    assert '"tailwindcss"' in package_json
+
+
+def test_drizzle_d1_variant_adds_schema_and_drizzle_queries(tmp_path: Path) -> None:
+    from harness_toolkit.scaffold.config import Config
+    from harness_toolkit.scaffold.stacks.web import WebStack
+
+    config = Config(
+        name="webprobe",
+        description="A generated web app",
+        shape="single",
+        stack="web",
+        web_db="drizzle-d1",
+    )
+    WebStack().init_single(tmp_path, config)
+
+    assert (tmp_path / "worker" / "db" / "schema.ts").exists()
+    saved_runs = (tmp_path / "worker" / "db" / "savedRuns.ts").read_text()
+    assert 'from "drizzle-orm/d1"' in saved_runs
+    assert "drizzle(db)" in saved_runs
+    assert '"drizzle-orm"' in (tmp_path / "package.json").read_text()
+
+
 def test_remove_examples_rewrites_app_without_example_import(tmp_path: Path) -> None:
     from harness_toolkit.scaffold.config import Config
     from harness_toolkit.scaffold.stacks.web import WebStack
