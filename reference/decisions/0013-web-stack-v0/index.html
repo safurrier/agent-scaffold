@@ -6,18 +6,16 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Adds structured plan directories with META.yaml, TODO, learning log, and validation log as the standard way to start and track units of work.
+        <meta name="description" content="Accepts the first supported Web stack for harness-scaffold: Vite/React browser app, Cloudflare Worker API, D1 migration scaffold, and npm-backed validation.
 ">
       
       
       
-        <link rel="canonical" href="https://safurrier.github.io/harness-toolkit/reference/decisions/0002-plan-workflow/">
+        <link rel="canonical" href="https://safurrier.github.io/harness-toolkit/reference/decisions/0013-web-stack-v0/">
       
       
-        <link rel="prev" href="../0001-spec-driven-decision-loop/">
+        <link rel="prev" href="../0012-lifecycle-neutral-active-hk-exports/">
       
-      
-        <link rel="next" href="../0003-deterministic-slice-contract/">
       
       
         
@@ -28,7 +26,7 @@
     
     
       
-        <title>ADR 0002 — Plan-Based Workflow - harness-toolkit</title>
+        <title>ADR 0013 — Web Stack V0 - harness-toolkit</title>
       
     
     
@@ -79,7 +77,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#adr-0002-plan-based-workflow" class="md-skip">
+        <a href="#adr-0013-web-stack-v0" class="md-skip">
           Skip to content
         </a>
       
@@ -113,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              ADR 0002 — Plan-Based Workflow
+              ADR 0013 — Web Stack V0
             
           </span>
         </div>
@@ -1316,37 +1314,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    ADR 0002 — Plan Workflow
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../0002-plan-workflow/" class="md-nav__link">
         
   
   
@@ -1362,70 +1333,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Context
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decision
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#consequences" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Consequences
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#alternatives-considered" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Alternatives Considered
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1715,10 +1622,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../0013-web-stack-v0/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR 0013 — Web Stack V0
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1734,6 +1668,98 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Consequences">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#positive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Positive
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#negative-trade-offs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Negative / Trade-offs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#follow-ups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Follow-ups
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1811,13 +1837,41 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Consequences">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#positive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Positive
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#negative-trade-offs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Negative / Trade-offs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
-  <a href="#alternatives-considered" class="md-nav__link">
+  <a href="#follow-ups" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Alternatives Considered
+        Follow-ups
       
     </span>
   </a>
@@ -1844,78 +1898,75 @@
   
 
 
-<h1 id="adr-0002-plan-based-workflow">ADR 0002: Plan-Based Workflow<a class="headerlink" href="#adr-0002-plan-based-workflow" title="Permanent link">&para;</a></h1>
-<p><strong>Status</strong>: Accepted
-<strong>Date</strong>: 2026-03-08
-<strong>Deciders</strong>: Alex Furrier
-<strong>Generated from</strong>: agent-session</p>
+<h1 id="adr-0013-web-stack-v0">ADR 0013: Web Stack V0<a class="headerlink" href="#adr-0013-web-stack-v0" title="Permanent link">&para;</a></h1>
+<p><strong>Status</strong>: Accepted<br />
+<strong>Date</strong>: 2026-06-08<br />
+<strong>Deciders</strong>: Alex Furrier<br />
+<strong>Generated from</strong>: hk work item <code>2026-06-07-174855-web-stack-v0</code></p>
 <hr />
 <h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
-<p>The spec-driven decision loop (ADR 0001) established pre-push skills for keeping
-docs current, but had no convention for <strong>how to start work</strong>. Agents picking up
-a task would jump straight to coding without scoping, and there was no structured
-place to capture problems, adaptations, or validation evidence during development.</p>
-<p>The user's personal AGENTS.md had a plan convention (<code>.ai/plans/</code> with SPEC, TODO,
-IMPLEMENTATION, LEARNING_LOG) but it wasn't part of harness-scaffold's generated repos.</p>
+<p>Harness Scaffold already supported Python, Go, and Rust stacks behind the stable
+<code>mise run</code> task contract. The next target class is small app-shaped web projects
+with likely needs for deploy previews, a custom domain, login, and saved runs.</p>
+<p>The planning trade-off was whether to start with Vercel plus common external
+services, or a Cloudflare-native baseline. Cloudflare is a good first target
+because one platform can host static assets, execute API routes, and provide D1
+relational persistence. The template still needs to stay boring and reversible:
+no fake adapters for platforms that are not wired yet, and no over-abstracted
+persistence layer in the default path. However, the first real app workflows
+commonly want Tailwind, shadcn/ui conventions, and Drizzle over D1, so those are
+supported as opt-in web variants rather than defaults.</p>
 <h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
-<p>Add a plan-based workflow to harness-scaffold:</p>
+<p>Add <code>web</code> as a supported <code>harness-scaffold</code> stack.</p>
+<p>The generated V0 uses:</p>
 <ul>
-<li><strong><code>mise run plan -- &lt;slug&gt;</code></strong> creates <code>.ai/plans/YYYY-MM-DD-HHmm-&lt;slug&gt;/</code> with templates</li>
-<li><strong>4 required files</strong>: META.yaml (machine-readable metadata), TODO.md (task list),
-  LEARNING_LOG.md (dev diary), VALIDATION.md (verification log)</li>
-<li><strong>2 optional files</strong>: SPEC.md (requirements), IMPLEMENTATION.md (approach)</li>
-<li><strong>Example plan</strong> in <code>templates/.ai/plans/_example/</code> showing the full lifecycle
-  for agent reference</li>
-<li><strong><code>/plan-sync</code> skill</strong> validates plan artifacts are current before pushing</li>
-<li><strong>META.yaml</strong> is structured YAML with required fields (slug, created, status)
-  for future tooling (Groundskeeper, dashboards)</li>
-<li><strong>LEARNING_LOG as dev diary</strong>: append timestamped entries during work (problems,
-  adaptations, feedback), not just retrospective at completion</li>
+<li>Vite + React for the browser app;</li>
+<li>Cloudflare Workers + Static Assets for hosting and API routes;</li>
+<li>D1 migrations for relational saved-run state, with optional Drizzle-over-D1
+  query code;</li>
+<li>npm scripts behind the standard <code>setup</code>, <code>fmt</code>, <code>lint</code>, <code>typecheck</code>, <code>test</code>,
+  <code>build</code>, <code>check</code>, <code>dev</code>, and <code>verify</code> tasks;</li>
+<li>Prettier, ESLint, TypeScript, and Vitest as the fast validation gate;</li>
+<li>optional Tailwind and shadcn/ui generated UI scaffolding.</li>
 </ul>
-<p>Only TODO.md is truly required to start — the overhead is one command and editing
-a task list. SPEC.md and IMPLEMENTATION.md are for heavier work.</p>
+<p>The default remains plain CSS plus raw D1 prepared statements. The opt-in
+variants are <code>--web-ui tailwind</code>, <code>--web-ui shadcn</code>, and <code>--web-db drizzle-d1</code>.
+The template includes saved-run API routes and an auth placeholder document, but
+does not choose an auth provider. Vercel, Postgres, R2, and richer auth support
+remain follow-up stack variants or optional modules, not inert V0 adapters.</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
-<p><strong>Positive:</strong></p>
+<h3 id="positive">Positive<a class="headerlink" href="#positive" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Every unit of work has a structured home with machine-readable metadata</li>
-<li>Learning log captures problems and feedback as they happen, not reconstructed later</li>
-<li>Validation log provides audit trail of how changes were verified</li>
-<li>Example plan teaches agents the convention by showing, not just telling</li>
-<li><code>mise run plan</code> is zero-overhead — one command, templates auto-filled</li>
+<li>New web apps get the same task contract as existing stacks.</li>
+<li>The generated repo can deploy to Cloudflare with static assets and Worker
+  routes from day one.</li>
+<li>D1 gives generated web apps a relational persistence path for login-owned
+  saved runs without introducing external Postgres setup in the template.</li>
+<li>Agents can opt into the app starter Alex usually wants (<code>--web-ui shadcn
+  --web-db drizzle-d1</code>) without making every generated web repo inherit those
+  opinions.</li>
+<li>PR/merge deploy preview workflows can build on Cloudflare or a future Vercel
+  platform module without changing the core app structure.</li>
 </ul>
-<p><strong>Negative / Trade-offs:</strong></p>
+<h3 id="negative-trade-offs">Negative / Trade-offs<a class="headerlink" href="#negative-trade-offs" title="Permanent link">&para;</a></h3>
 <ul>
-<li>More files in <code>.ai/plans/</code> over time (mitigated: old plans are historical, not active)</li>
-<li><code>plan-sync</code> adds one more pre-push step (mitigated: fast no-op when nothing changed)</li>
-<li>META.yaml is a new file format to validate (mitigated: simple YAML, stdlib parser)</li>
+<li>The first supported web stack is Cloudflare-oriented, not platform-neutral.</li>
+<li>D1 is SQLite-compatible and Cloudflare-hosted; teams that specifically need
+  Postgres will add a separate persistence module later.</li>
+<li>Auth and custom domains remain explicit post-init setup steps.</li>
+<li>npm install introduces network-bound setup into the generated web smoke tests.</li>
+<li>The optional UI/DB variants increase the validation matrix for web-stack
+  changes.</li>
 </ul>
-<h2 id="alternatives-considered">Alternatives Considered<a class="headerlink" href="#alternatives-considered" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Alternative</th>
-<th>Reason not chosen</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>YAML block in TODO.md instead of META.yaml</td>
-<td>Harder to parse mechanically, mixes content and metadata</td>
-</tr>
-<tr>
-<td>No required files (all optional)</td>
-<td>Too loose — no guarantee plans have minimum structure</td>
-</tr>
-<tr>
-<td>Auto-create branch from slug</td>
-<td>Branch naming is semantic, needs agent/human judgment</td>
-</tr>
-<tr>
-<td>Groundskeeper orchestration for plan lifecycle</td>
-<td>Over-engineered for v1 — convention + contract tests sufficient</td>
-</tr>
-</tbody>
-</table>
+<h2 id="follow-ups">Follow-ups<a class="headerlink" href="#follow-ups" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Add a how-to for custom domains once the first real generated web app is
+  deployed.</li>
+<li>Add an auth module after the first generated apps settle on a provider shape.</li>
+<li>Consider Vercel and Postgres as explicit stack options only after a real app
+  needs them.</li>
+<li>Add R2 support when a generated app needs object/blob storage.</li>
+</ul>
 
 
 

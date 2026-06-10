@@ -725,6 +725,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#web" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Web
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1362,6 +1373,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/stacks/web/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1758,6 +1797,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/decisions/0013-web-stack-v0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR 0013 — Web Stack V0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1888,6 +1955,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#web" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Web
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1990,7 +2068,7 @@
 </tr>
 <tr>
 <td><code>{{project_stack}}</code></td>
-<td><code>python</code>, <code>go</code>, or <code>rust</code></td>
+<td><code>python</code>, <code>go</code>, <code>rust</code>, or <code>web</code></td>
 </tr>
 <tr>
 <td><code>{{go_module}}</code></td>
@@ -2020,7 +2098,7 @@
 <li><code>mkdocs.yml</code> — scaffold's MkDocs config</li>
 <li>legacy init script, if present</li>
 </ul>
-<p>The scaffold's test suite (<code>tests/</code>, <code>pyproject.toml</code>) is only removed for non-Python stacks. For Python single projects, the test suite itself becomes the project's test suite.</p>
+<p>The scaffold's Python package config (<code>pyproject.toml</code>) is removed for non-Python stacks. Root <code>tests/</code> is preserved for stacks that own root tests, currently Python and Web single projects, and removed for Go/Rust single projects whose tests live beside their source files.</p>
 <p><strong>Note:</strong> <code>SPEC.md</code> is <em>not</em> removed — the scaffold's design spec is replaced by a project-specific correctness envelope generated from <code>templates/SPEC.md.tmpl</code>.</p>
 <h2 id="shared-templates">Shared templates<a class="headerlink" href="#shared-templates" title="Permanent link">&para;</a></h2>
 <p>Generated for all stacks and shapes from <code>templates/</code>:</p>
@@ -2061,6 +2139,24 @@
 <a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>rustfmt.toml     →  rustfmt.toml
 <a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>README.md        →  README.md
 </code></pre></div>
+<h3 id="web">Web<a class="headerlink" href="#web" title="Permanent link">&para;</a></h3>
+<p>Copies from <code>stacks/web/project/</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>package.json.tmpl                       →  package.json
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>wrangler.jsonc.tmpl                     →  wrangler.jsonc
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>index.html.tmpl                         →  index.html
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>src/                                    →  React browser app
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>worker/                                 →  Cloudflare Worker API routes
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>migrations/0001_auth_and_saved_runs.sql →  D1 schema seed
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>tests/                                  →  Vitest tests
+</code></pre></div>
+<p>Optional web flags alter the copied template after render:</p>
+<ul>
+<li><code>--web-ui tailwind</code> adds Tailwind v4 and the Vite Tailwind plugin.</li>
+<li><code>--web-ui shadcn</code> adds Tailwind plus <code>components.json</code>, <code>src/lib/utils.ts</code>,
+  and <code>src/components/ui/button.tsx</code>.</li>
+<li><code>--web-db drizzle-d1</code> keeps the Cloudflare D1 migration/binding and adds
+  <code>worker/db/schema.ts</code> plus Drizzle query code.</li>
+</ul>
 <h2 id="apps-workspace-shape">Apps workspace shape<a class="headerlink" href="#apps-workspace-shape" title="Permanent link">&para;</a></h2>
 <p>For each module declared in the init prompt (<code>--modules api,worker</code>):</p>
 <ol>
@@ -2071,15 +2167,15 @@
 </ol>
 <h2 id="non-interactive-mode">Non-interactive mode<a class="headerlink" href="#non-interactive-mode" title="Permanent link">&para;</a></h2>
 <p>All prompts can be supplied as flags. The <code>--non-interactive</code> flag is required to skip the interactive UI:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>mise<span class="w"> </span>run<span class="w"> </span>init<span class="w"> </span>--<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span>--non-interactive<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span>--name<span class="w"> </span>my-platform<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span>--shape<span class="w"> </span>apps<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span>--stack<span class="w"> </span>python<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">  </span>--modules<span class="w"> </span>api,worker,scheduler<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">  </span>--author-name<span class="w"> </span><span class="s2">&quot;Alice Smith&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">  </span>--author-email<span class="w"> </span><span class="s2">&quot;alice@example.com&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">  </span>--no-examples
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>mise<span class="w"> </span>run<span class="w"> </span>init<span class="w"> </span>--<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span>--non-interactive<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span>--name<span class="w"> </span>my-platform<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">  </span>--shape<span class="w"> </span>apps<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">  </span>--stack<span class="w"> </span>python<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">  </span>--modules<span class="w"> </span>api,worker,scheduler<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">  </span>--author-name<span class="w"> </span><span class="s2">&quot;Alice Smith&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">  </span>--author-email<span class="w"> </span><span class="s2">&quot;alice@example.com&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="w">  </span>--no-examples
 </code></pre></div>
 <p>Missing required flags (<code>--name</code>) cause an immediate non-zero exit with a clear error message.</p>
 <h2 id="validation">Validation<a class="headerlink" href="#validation" title="Permanent link">&para;</a></h2>
@@ -2090,7 +2186,7 @@
 <li>No spaces, underscores, dots, or uppercase</li>
 </ul>
 <p>Invalid names fail immediately:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>Error: name must match ^[a-z][a-z0-9-]* (got &#39;My Project&#39;)
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>Error: name must match ^[a-z][a-z0-9-]* (got &#39;My Project&#39;)
 </code></pre></div></p>
 
 

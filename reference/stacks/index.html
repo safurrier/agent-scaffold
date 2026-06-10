@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Overview of supported language stacks (Python, Go, Rust) and planned stacks (Web), with a per-stack tool comparison table and how to select a stack at init time.
+        <meta name="description" content="Overview of supported language stacks (Python, Go, Rust, Web), with a per-stack tool comparison table and how to select a stack at init time.
 ">
       
       
@@ -1273,6 +1273,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="web/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1672,6 +1700,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../decisions/0013-web-stack-v0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR 0013 — Web Stack V0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1785,7 +1841,7 @@
 <td>✅ Available</td>
 <td>✅ Available</td>
 <td>✅ Available</td>
-<td>🔜 Planned</td>
+<td>✅ Available</td>
 </tr>
 <tr>
 <td><strong>fmt</strong></td>
@@ -1823,20 +1879,31 @@
 <td>vite build</td>
 </tr>
 <tr>
+<td><strong>deploy check</strong></td>
+<td>Package build</td>
+<td>Docker build</td>
+<td>Docker build</td>
+<td>wrangler deploy dry-run</td>
+</tr>
+<tr>
 <td><strong>Tool manager</strong></td>
 <td>uv</td>
 <td>go toolchain</td>
 <td>cargo</td>
-<td>npm/pnpm</td>
+<td>npm</td>
 </tr>
 </tbody>
 </table>
 <h2 id="stack-selection">Stack selection<a class="headerlink" href="#stack-selection" title="Permanent link">&para;</a></h2>
 <p>Set at <code>init</code> time via <code>--stack</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>mise<span class="w"> </span>run<span class="w"> </span>init<span class="w"> </span>--<span class="w"> </span>--non-interactive<span class="w"> </span>--name<span class="w"> </span>myapp<span class="w"> </span>--stack<span class="w"> </span>python
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>mise<span class="w"> </span>run<span class="w"> </span>init<span class="w"> </span>--<span class="w"> </span>--non-interactive<span class="w"> </span>--name<span class="w"> </span>myservice<span class="w"> </span>--stack<span class="w"> </span>go
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>mise<span class="w"> </span>run<span class="w"> </span>init<span class="w"> </span>--<span class="w"> </span>--non-interactive<span class="w"> </span>--name<span class="w"> </span>mydaemon<span class="w"> </span>--stack<span class="w"> </span>rust
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>mise<span class="w"> </span>run<span class="w"> </span>init<span class="w"> </span>--<span class="w"> </span>--non-interactive<span class="w"> </span>--name<span class="w"> </span>myapp<span class="w"> </span>--shape<span class="w"> </span>single<span class="w"> </span>--stack<span class="w"> </span>python
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>mise<span class="w"> </span>run<span class="w"> </span>init<span class="w"> </span>--<span class="w"> </span>--non-interactive<span class="w"> </span>--name<span class="w"> </span>myservice<span class="w"> </span>--shape<span class="w"> </span>single<span class="w"> </span>--stack<span class="w"> </span>go
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>mise<span class="w"> </span>run<span class="w"> </span>init<span class="w"> </span>--<span class="w"> </span>--non-interactive<span class="w"> </span>--name<span class="w"> </span>mydaemon<span class="w"> </span>--shape<span class="w"> </span>single<span class="w"> </span>--stack<span class="w"> </span>rust
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>mise<span class="w"> </span>run<span class="w"> </span>init<span class="w"> </span>--<span class="w"> </span>--non-interactive<span class="w"> </span>--name<span class="w"> </span>mydashboard<span class="w"> </span>--shape<span class="w"> </span>single<span class="w"> </span>--stack<span class="w"> </span>web
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>mise<span class="w"> </span>run<span class="w"> </span>init<span class="w"> </span>--<span class="w"> </span>--non-interactive<span class="w"> </span>--name<span class="w"> </span>mydashboard<span class="w"> </span>--shape<span class="w"> </span>single<span class="w"> </span>--stack<span class="w"> </span>web<span class="w"> </span>--web-ui<span class="w"> </span>shadcn<span class="w"> </span>--web-db<span class="w"> </span>drizzle-d1
 </code></pre></div>
+<p>Web stack variants are opt-in. <code>--web-ui</code> accepts <code>plain</code>, <code>tailwind</code>, or
+<code>shadcn</code>; <code>--web-db</code> accepts <code>d1</code> or <code>drizzle-d1</code>.</p>
 <p>After init, the stack is recorded in <code>.mise.toml</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">[env]</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">SCAFFOLD_PROJECT_STACK</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;python&quot;</span>
@@ -1848,6 +1915,8 @@
 <li><a href="python/">Python stack</a></li>
 <li><a href="go/">Go stack</a></li>
 <li><a href="rust/">Rust stack</a></li>
+<li><a href="web/">Web stack</a></li>
+<li><a href="web-template-summary/">Web app template summary</a></li>
 </ul>
 
 

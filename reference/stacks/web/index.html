@@ -6,18 +6,18 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Adds structured plan directories with META.yaml, TODO, learning log, and validation log as the standard way to start and track units of work.
+        <meta name="description" content="Web stack tooling: Vite and React for the browser app, Cloudflare Workers for API routes and hosting, D1 migrations for relational persistence, and Prettier, ESLint, TypeScript, and Vitest for validation.
 ">
       
       
       
-        <link rel="canonical" href="https://safurrier.github.io/harness-toolkit/reference/decisions/0002-plan-workflow/">
+        <link rel="canonical" href="https://safurrier.github.io/harness-toolkit/reference/stacks/web/">
       
       
-        <link rel="prev" href="../0001-spec-driven-decision-loop/">
+        <link rel="prev" href="../rust/">
       
       
-        <link rel="next" href="../0003-deterministic-slice-contract/">
+        <link rel="next" href="../../decisions/0001-spec-driven-decision-loop/">
       
       
         
@@ -28,7 +28,7 @@
     
     
       
-        <title>ADR 0002 — Plan-Based Workflow - harness-toolkit</title>
+        <title>Web Stack - harness-toolkit</title>
       
     
     
@@ -79,7 +79,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#adr-0002-plan-based-workflow" class="md-skip">
+        <a href="#web-stack" class="md-skip">
           Skip to content
         </a>
       
@@ -113,7 +113,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              ADR 0002 — Plan-Based Workflow
+              Web Stack
             
           </span>
         </div>
@@ -1000,6 +1000,8 @@
                 
   
   
+    
+  
   
   
     
@@ -1015,11 +1017,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" checked>
         
           
           <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="">
@@ -1040,7 +1042,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_4_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1058,7 +1060,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../stacks/" class="md-nav__link">
+      <a href="../" class="md-nav__link">
         
   
   
@@ -1086,7 +1088,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../stacks/acceptance-rubric/" class="md-nav__link">
+      <a href="../acceptance-rubric/" class="md-nav__link">
         
   
   
@@ -1114,7 +1116,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../stacks/python/" class="md-nav__link">
+      <a href="../python/" class="md-nav__link">
         
   
   
@@ -1142,7 +1144,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../stacks/go/" class="md-nav__link">
+      <a href="../go/" class="md-nav__link">
         
   
   
@@ -1170,7 +1172,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../stacks/rust/" class="md-nav__link">
+      <a href="../rust/" class="md-nav__link">
         
   
   
@@ -1178,127 +1180,6 @@
     
   
     Rust
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../stacks/web/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Web
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-    
-  
-  
-  
-    
-    
-    
-    
-      
-      
-        
-          
-          
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_3" checked>
-        
-          
-          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Decisions
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_4_3">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Decisions
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../0001-spec-driven-decision-loop/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    ADR 0001 — Spec-Driven Decision Loop
   
 
     
@@ -1335,7 +1216,7 @@
   <span class="md-ellipsis">
     
   
-    ADR 0002 — Plan Workflow
+    Web
   
 
     
@@ -1353,7 +1234,7 @@
   <span class="md-ellipsis">
     
   
-    ADR 0002 — Plan Workflow
+    Web
   
 
     
@@ -1379,10 +1260,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#tools" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context
+        Tools
       
     </span>
   </a>
@@ -1390,10 +1271,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
+  <a href="#generated-layout" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision
+        Generated layout
       
     </span>
   </a>
@@ -1401,10 +1282,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#consequences" class="md-nav__link">
+  <a href="#task-contract" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences
+        Task contract
       
     </span>
   </a>
@@ -1412,10 +1293,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#alternatives-considered" class="md-nav__link">
+  <a href="#cloudflare-bindings" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Alternatives Considered
+        Cloudflare bindings
       
     </span>
   </a>
@@ -1431,6 +1312,69 @@
 
               
             
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisions
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Decisions
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
               
                 
   
@@ -1438,7 +1382,63 @@
   
   
     <li class="md-nav__item">
-      <a href="../0003-deterministic-slice-contract/" class="md-nav__link">
+      <a href="../../decisions/0001-spec-driven-decision-loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR 0001 — Spec-Driven Decision Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0002-plan-workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR 0002 — Plan Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0003-deterministic-slice-contract/" class="md-nav__link">
         
   
   
@@ -1466,7 +1466,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0004-skill-first-slice-workflow/" class="md-nav__link">
+      <a href="../../decisions/0004-skill-first-slice-workflow/" class="md-nav__link">
         
   
   
@@ -1494,7 +1494,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0005-harden-sync-contract-ci/" class="md-nav__link">
+      <a href="../../decisions/0005-harden-sync-contract-ci/" class="md-nav__link">
         
   
   
@@ -1522,7 +1522,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0006-followup-contract-stack-rubric/" class="md-nav__link">
+      <a href="../../decisions/0006-followup-contract-stack-rubric/" class="md-nav__link">
         
   
   
@@ -1550,7 +1550,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0007-harness-toolkit-naming/" class="md-nav__link">
+      <a href="../../decisions/0007-harness-toolkit-naming/" class="md-nav__link">
         
   
   
@@ -1578,7 +1578,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0008-harness-kit-ledger-first-local-assistant/" class="md-nav__link">
+      <a href="../../decisions/0008-harness-kit-ledger-first-local-assistant/" class="md-nav__link">
         
   
   
@@ -1606,7 +1606,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0009-harness-kit-lifecycle-first-cli/" class="md-nav__link">
+      <a href="../../decisions/0009-harness-kit-lifecycle-first-cli/" class="md-nav__link">
         
   
   
@@ -1634,7 +1634,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0010-compact-hk-export-packages/" class="md-nav__link">
+      <a href="../../decisions/0010-compact-hk-export-packages/" class="md-nav__link">
         
   
   
@@ -1662,7 +1662,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0011-path-aware-review-freshness/" class="md-nav__link">
+      <a href="../../decisions/0011-path-aware-review-freshness/" class="md-nav__link">
         
   
   
@@ -1690,7 +1690,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0012-lifecycle-neutral-active-hk-exports/" class="md-nav__link">
+      <a href="../../decisions/0012-lifecycle-neutral-active-hk-exports/" class="md-nav__link">
         
   
   
@@ -1718,7 +1718,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0013-web-stack-v0/" class="md-nav__link">
+      <a href="../../decisions/0013-web-stack-v0/" class="md-nav__link">
         
   
   
@@ -1781,10 +1781,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#tools" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context
+        Tools
       
     </span>
   </a>
@@ -1792,10 +1792,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
+  <a href="#generated-layout" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision
+        Generated layout
       
     </span>
   </a>
@@ -1803,10 +1803,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#consequences" class="md-nav__link">
+  <a href="#task-contract" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences
+        Task contract
       
     </span>
   </a>
@@ -1814,10 +1814,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#alternatives-considered" class="md-nav__link">
+  <a href="#cloudflare-bindings" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Alternatives Considered
+        Cloudflare bindings
       
     </span>
   </a>
@@ -1844,78 +1844,122 @@
   
 
 
-<h1 id="adr-0002-plan-based-workflow">ADR 0002: Plan-Based Workflow<a class="headerlink" href="#adr-0002-plan-based-workflow" title="Permanent link">&para;</a></h1>
-<p><strong>Status</strong>: Accepted
-<strong>Date</strong>: 2026-03-08
-<strong>Deciders</strong>: Alex Furrier
-<strong>Generated from</strong>: agent-session</p>
-<hr />
-<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
-<p>The spec-driven decision loop (ADR 0001) established pre-push skills for keeping
-docs current, but had no convention for <strong>how to start work</strong>. Agents picking up
-a task would jump straight to coding without scoping, and there was no structured
-place to capture problems, adaptations, or validation evidence during development.</p>
-<p>The user's personal AGENTS.md had a plan convention (<code>.ai/plans/</code> with SPEC, TODO,
-IMPLEMENTATION, LEARNING_LOG) but it wasn't part of harness-scaffold's generated repos.</p>
-<h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
-<p>Add a plan-based workflow to harness-scaffold:</p>
-<ul>
-<li><strong><code>mise run plan -- &lt;slug&gt;</code></strong> creates <code>.ai/plans/YYYY-MM-DD-HHmm-&lt;slug&gt;/</code> with templates</li>
-<li><strong>4 required files</strong>: META.yaml (machine-readable metadata), TODO.md (task list),
-  LEARNING_LOG.md (dev diary), VALIDATION.md (verification log)</li>
-<li><strong>2 optional files</strong>: SPEC.md (requirements), IMPLEMENTATION.md (approach)</li>
-<li><strong>Example plan</strong> in <code>templates/.ai/plans/_example/</code> showing the full lifecycle
-  for agent reference</li>
-<li><strong><code>/plan-sync</code> skill</strong> validates plan artifacts are current before pushing</li>
-<li><strong>META.yaml</strong> is structured YAML with required fields (slug, created, status)
-  for future tooling (Groundskeeper, dashboards)</li>
-<li><strong>LEARNING_LOG as dev diary</strong>: append timestamped entries during work (problems,
-  adaptations, feedback), not just retrospective at completion</li>
-</ul>
-<p>Only TODO.md is truly required to start — the overhead is one command and editing
-a task list. SPEC.md and IMPLEMENTATION.md are for heavier work.</p>
-<h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
-<p><strong>Positive:</strong></p>
-<ul>
-<li>Every unit of work has a structured home with machine-readable metadata</li>
-<li>Learning log captures problems and feedback as they happen, not reconstructed later</li>
-<li>Validation log provides audit trail of how changes were verified</li>
-<li>Example plan teaches agents the convention by showing, not just telling</li>
-<li><code>mise run plan</code> is zero-overhead — one command, templates auto-filled</li>
-</ul>
-<p><strong>Negative / Trade-offs:</strong></p>
-<ul>
-<li>More files in <code>.ai/plans/</code> over time (mitigated: old plans are historical, not active)</li>
-<li><code>plan-sync</code> adds one more pre-push step (mitigated: fast no-op when nothing changed)</li>
-<li>META.yaml is a new file format to validate (mitigated: simple YAML, stdlib parser)</li>
-</ul>
-<h2 id="alternatives-considered">Alternatives Considered<a class="headerlink" href="#alternatives-considered" title="Permanent link">&para;</a></h2>
+<h1 id="web-stack">Web Stack<a class="headerlink" href="#web-stack" title="Permanent link">&para;</a></h1>
+<h2 id="tools">Tools<a class="headerlink" href="#tools" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Alternative</th>
-<th>Reason not chosen</th>
+<th>Purpose</th>
+<th>Tool</th>
+<th>Config</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>YAML block in TODO.md instead of META.yaml</td>
-<td>Harder to parse mechanically, mixes content and metadata</td>
+<td>Package management</td>
+<td>npm</td>
+<td><code>package.json</code></td>
 </tr>
 <tr>
-<td>No required files (all optional)</td>
-<td>Too loose — no guarantee plans have minimum structure</td>
+<td>Browser app</td>
+<td>Vite + React</td>
+<td><code>vite.config.ts</code></td>
 </tr>
 <tr>
-<td>Auto-create branch from slug</td>
-<td>Branch naming is semantic, needs agent/human judgment</td>
+<td>API and hosting</td>
+<td>Cloudflare Workers + Static Assets</td>
+<td><code>wrangler.jsonc</code></td>
 </tr>
 <tr>
-<td>Groundskeeper orchestration for plan lifecycle</td>
-<td>Over-engineered for v1 — convention + contract tests sufficient</td>
+<td>Relational persistence</td>
+<td>Cloudflare D1</td>
+<td><code>migrations/</code></td>
+</tr>
+<tr>
+<td>Formatter</td>
+<td>Prettier</td>
+<td><code>package.json</code> scripts</td>
+</tr>
+<tr>
+<td>Linter</td>
+<td>ESLint flat config</td>
+<td><code>eslint.config.mjs</code></td>
+</tr>
+<tr>
+<td>Type checker</td>
+<td>TypeScript</td>
+<td><code>tsconfig.json</code></td>
+</tr>
+<tr>
+<td>Test runner</td>
+<td>Vitest</td>
+<td><code>vitest.config.ts</code></td>
 </tr>
 </tbody>
 </table>
+<p>The generated stack targets Node 22 through <code>.mise.toml</code> and installs npm
+dependencies during <code>mise run setup</code>.</p>
+<p>Optional web variants are available at init time:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>harness-scaffold<span class="w"> </span>init<span class="w"> </span>--non-interactive<span class="w"> </span>--name<span class="w"> </span>my-dashboard<span class="w"> </span>--shape<span class="w"> </span>single<span class="w"> </span>--stack<span class="w"> </span>web<span class="w"> </span>--web-ui<span class="w"> </span>plain<span class="w"> </span>--web-db<span class="w"> </span>d1
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>harness-scaffold<span class="w"> </span>init<span class="w"> </span>--non-interactive<span class="w"> </span>--name<span class="w"> </span>my-dashboard<span class="w"> </span>--shape<span class="w"> </span>single<span class="w"> </span>--stack<span class="w"> </span>web<span class="w"> </span>--web-ui<span class="w"> </span>tailwind<span class="w"> </span>--web-db<span class="w"> </span>d1
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>harness-scaffold<span class="w"> </span>init<span class="w"> </span>--non-interactive<span class="w"> </span>--name<span class="w"> </span>my-dashboard<span class="w"> </span>--shape<span class="w"> </span>single<span class="w"> </span>--stack<span class="w"> </span>web<span class="w"> </span>--web-ui<span class="w"> </span>shadcn<span class="w"> </span>--web-db<span class="w"> </span>drizzle-d1
+</code></pre></div>
+<p><code>--web-ui shadcn</code> implies Tailwind setup and generates a small shadcn-compatible
+<code>Button</code>, <code>cn()</code> helper, and <code>components.json</code>. <code>--web-db drizzle-d1</code> still uses
+the Cloudflare D1 binding and migration file; it changes the Worker access layer
+from raw prepared SQL to Drizzle's D1 adapter.</p>
+<h2 id="generated-layout">Generated layout<a class="headerlink" href="#generated-layout" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>my-dashboard/
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>├── package.json
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>├── wrangler.jsonc
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>├── index.html
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>├── src/                    # React app
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>├── worker/                 # Cloudflare Worker API routes
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>├── migrations/             # D1 schema migrations
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>├── tests/                  # Vitest coverage
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>└── public/                 # Static assets and seed data
+</code></pre></div>
+<p>When <code>--web-ui shadcn</code> is selected, the generated layout also includes:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>src/components/ui/button.tsx
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>src/lib/utils.ts
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>components.json
+</code></pre></div>
+<p>When <code>--web-db drizzle-d1</code> is selected, the generated layout also includes:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>worker/db/schema.ts
+</code></pre></div>
+<p>The worker includes a small <code>/api/health</code> route and saved-run endpoints:</p>
+<ul>
+<li><code>GET /api/runs/mine</code></li>
+<li><code>POST /api/runs</code></li>
+</ul>
+<p>The saved-run table is intentionally generic: an owner id, a title, a lineup
+JSON blob, a result JSON blob, and timestamps. That gives generated web apps a
+relational home for login-owned saved runs without committing the template to a
+specific auth provider. The default <code>--web-db d1</code> route code uses raw D1 prepared
+statements; <code>--web-db drizzle-d1</code> uses the same table and D1 binding through
+<code>drizzle-orm/d1</code>.</p>
+<h2 id="task-contract">Task contract<a class="headerlink" href="#task-contract" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>mise<span class="w"> </span>run<span class="w"> </span>setup<span class="w">      </span><span class="c1"># npm install --package-lock=false</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>mise<span class="w"> </span>run<span class="w"> </span>fmt<span class="w">        </span><span class="c1"># prettier --write on app/worker/test/config files</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>mise<span class="w"> </span>run<span class="w"> </span>lint<span class="w">       </span><span class="c1"># eslint src worker tests vite/vitest configs</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>mise<span class="w"> </span>run<span class="w"> </span>typecheck<span class="w">  </span><span class="c1"># tsc --noEmit</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>mise<span class="w"> </span>run<span class="w"> </span><span class="nb">test</span><span class="w">       </span><span class="c1"># vitest run</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>mise<span class="w"> </span>run<span class="w"> </span>build<span class="w">      </span><span class="c1"># vite build</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>mise<span class="w"> </span>run<span class="w"> </span>check<span class="w">      </span><span class="c1"># fmt-check + lint + typecheck + test</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>mise<span class="w"> </span>run<span class="w"> </span>verify<span class="w">     </span><span class="c1"># check + build + wrangler deploy dry-run</span>
+</code></pre></div>
+<p><code>mise run test</code> writes <code>test-results/vitest.txt</code> for CI artifact upload.</p>
+<h2 id="cloudflare-bindings">Cloudflare bindings<a class="headerlink" href="#cloudflare-bindings" title="Permanent link">&para;</a></h2>
+<p>Generated <code>wrangler.jsonc</code> includes:</p>
+<ul>
+<li><code>assets.directory = "./dist"</code> and <code>assets.binding = "ASSETS"</code> for the Vite
+  static build</li>
+<li>a D1 binding named <code>DB</code></li>
+<li><code>workers_dev = true</code> for first deploys before a custom domain is configured</li>
+</ul>
+<p>Custom domains, production D1 database ids, Cloudflare Access, and external
+auth providers are intentionally left as follow-up configuration. The template
+keeps those boundaries explicit instead of faking a provider-specific setup.</p>
 
 
 
