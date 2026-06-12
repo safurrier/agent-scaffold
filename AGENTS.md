@@ -189,6 +189,12 @@ use it only in a copied scaffold or throwaway init target.
   bookkeeping or tiny follow-up edits; prefer scoped diagnostics that explain
   what changed since review and allow a focused reviewer to cover just that risk.
 
+- **DO** treat profile instructions and handoff/readiness check notes as the place
+  for judgment-heavy last-mile workflow sequencing guidance. **NOT** add required
+  checks for PR opening, context capture, docs update, or other agent workflows.
+  **BECAUSE** HK profiles should guide repeated agent behavior without turning
+  workflows into fake validation gates.
+
 - **DO** reserve "dogfood" language for real Harness Kit dogfooding, especially
   repo-local skill/harness-driven replay studies such as `.agent/skills/hk-pr-sized-dogfood/`.
   **NOT** use `dogfood` as the pytest marker name for scripted fake-agent tests.
